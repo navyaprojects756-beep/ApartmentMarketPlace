@@ -40,6 +40,9 @@ app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true,
 app.get('/', (_request, response) => {
   response.json({ name: 'Apartment Marketplace API', version: 'v1', status: 'running' });
 });
+app.get('/api/v1', (_request, response) => {
+  response.json({ name: 'Apartment Marketplace API', version: 'v1', status: 'running' });
+});
 app.get('/api-docs', (_request, response) => response.json({ message: 'OpenAPI specification', specification: '/api-docs/openapi.json' }));
 app.get('/api-docs/openapi.json', (_request, response) => response.json(openapi));
 

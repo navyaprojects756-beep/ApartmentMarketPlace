@@ -259,3 +259,5 @@ Verification checkpoint: database migration status, web build, backend build, An
 - 2026-09-19: Preserved the previous login design as `LoginScreenV1` and activated a separate V2 login direction with a cleaner editorial marketplace layout, mobile-number OTP card, marketplace value messaging, and responsive mobile styling.
 - 2026-09-19: Refined the active Login V1 palette with a darker purple hero and a harmonized indigo Continue button; the alternate login direction remains preserved for comparison.
 - 2026-09-19: Added role-based post-login routing for the main marketplace login; users with `GLOBAL_ADMIN` now open the live Admin Workspace directly, while seller roles continue to open Seller Workspace.
+- 2026-09-19: Replaced deprecated React Native `SafeAreaView` with `react-native-safe-area-context` and added `SafeAreaProvider` to the Expo root layout; Android export completed successfully.
+- 2026-09-19: Reworked the mobile customer shell navigation with working Home, Orders, Profile and logout/back flows, plus a persistent bottom navigation bar; Android export verified after the change.
