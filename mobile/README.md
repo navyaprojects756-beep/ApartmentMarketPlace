@@ -13,6 +13,8 @@ For an Android bundle smoke test:
 npx expo export --platform android --output-dir dist-preview --no-minify
 ```
 
-The Android/iOS package identifiers and branded icon/splash assets are configured in `app.json`. Set `EXPO_PUBLIC_API_URL` for a device-accessible API URL; Android emulator development commonly uses `http://10.0.2.2:5000/api/v1`.
+The Android/iOS package identifiers and branded icon/splash assets are configured in `app.json`. The app renders the same web application used by the browser through `react-native-webview`, so set `EXPO_PUBLIC_WEB_APP_URL` to the device-accessible web URL and set `EXPO_PUBLIC_API_URL` to the device-accessible API URL. For an Android emulator, use `http://10.0.2.2:5173` and `http://10.0.2.2:5000/api/v1`; for a physical device, use the computer's LAN IP and start Vite with `npm run dev -- --host 0.0.0.0`.
 
-For seeded role previews, set `EXPO_PUBLIC_ROLE_PREVIEW` to `seller`, `delivery`, or `admin`. The mobile client selects the matching seeded account and loads that role's protected API summary.
+For production builds, `EXPO_PUBLIC_WEB_APP_URL` must point to the hosted web application. This guarantees that browser, Android, and iOS use the same login, routes, navigation, and marketplace workflows.
+
+The mobile shell intentionally does not maintain a separate role UI. After website login, the shared web application routes customers, sellers, delivery staff, and Global Admins to the same role workspace used in the browser.

@@ -21,7 +21,7 @@ const products = [
   { name: 'Fresh Curd', category: 'Sides', price: '₹60', old: '', color: 'dish-cream', icon: '○' },
 ];
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000/api/v1` : 'http://localhost:5000/api/v1');
 
 async function readApiResponse(response) {
   const text = await response.text();
