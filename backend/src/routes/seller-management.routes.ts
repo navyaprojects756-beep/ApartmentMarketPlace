@@ -63,6 +63,14 @@ sellerManagementRouter.get('/catalog', requireAuth, async (request, response, ne
   try { const seller = await sellerForUser(request.auth!.userId); if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; } response.json(await prisma.product.findMany({ where: { sellerId: seller.id }, include: { category: true, inventory: true, images: { orderBy: { sortOrder: 'asc' } } }, orderBy: { createdAt: 'desc' } })); } catch (error) { next(error); }
 });
 
+sellerManagementRouter.get('/categories', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId);
+    if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
+    response.json(await prisma.sellerCategory.findMany({ where: { sellerId: seller.id }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }));
+  } catch (error) { next(error); }
+});
+
 sellerManagementRouter.get('/orders', requireAuth, async (request, response, next) => {
   try {
     const seller = await sellerForUser(request.auth!.userId);
@@ -93,6 +101,18 @@ sellerManagementRouter.patch('/categories/:categoryId', requireAuth, async (requ
   } catch (error) { next(error); }
 });
 
+sellerManagementRouter.delete('/categories/:categoryId', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId);
+    const categoryId = z.string().uuid().parse(request.params.categoryId);
+    const category = await prisma.sellerCategory.findFirst({ where: { id: categoryId, sellerId: seller?.id }, include: { _count: { select: { products: true } } } });
+    if (!category) { response.status(404).json({ error: { code: 'CATEGORY_NOT_FOUND', message: 'Category not found' } }); return; }
+    if (category._count.products > 0) { response.status(409).json({ error: { code: 'CATEGORY_IN_USE', message: 'Deactivate this category instead because products are assigned to it.' } }); return; }
+    await prisma.sellerCategory.delete({ where: { id: categoryId } });
+    response.status(204).send();
+  } catch (error) { next(error); }
+});
+
 sellerManagementRouter.post('/products', requireAuth, async (request, response, next) => {
   try {
     const seller = await sellerForUser(request.auth!.userId);
@@ -113,6 +133,22 @@ sellerManagementRouter.patch('/products/:productId', requireAuth, async (request
     if (!product) { response.status(404).json({ error: { code: 'PRODUCT_NOT_FOUND', message: 'Product not found' } }); return; }
     const price = input.price ?? Number(product.price); const discount = input.discount ?? Number(product.discount);
     response.json(await prisma.product.update({ where: { id: productId }, data: { ...input, price, discount, finalPrice: Math.max(0, price - discount) } }));
+  } catch (error) { next(error); }
+});
+
+sellerManagementRouter.delete('/products/:productId', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId);
+    const productId = z.string().uuid().parse(request.params.productId);
+    const product = await prisma.product.findFirst({ where: { id: productId, sellerId: seller?.id }, select: { id: true, availability: true, _count: { select: { orderItems: true, cartItems: true } } } });
+    if (!product) { response.status(404).json({ error: { code: 'PRODUCT_NOT_FOUND', message: 'Product not found' } }); return; }
+    if (product._count.orderItems > 0) {
+      const updated = await prisma.product.update({ where: { id: productId }, data: { availability: false } });
+      response.json({ ...updated, deleted: false, message: 'Product has order history, so it was deactivated instead.' });
+      return;
+    }
+    await prisma.product.delete({ where: { id: productId } });
+    response.status(204).send();
   } catch (error) { next(error); }
 });
 
@@ -179,5 +215,29 @@ sellerManagementRouter.post('/delivery-boys', requireAuth, async (request, respo
     const deliveryRole = await prisma.role.findUniqueOrThrow({ where: { code: 'DELIVERY_BOY' } });
     const result = await prisma.$transaction(async tx => { const user = await tx.user.upsert({ where: { phone: input.phone }, update: { name: input.name }, create: { phone: input.phone, name: input.name } }); await tx.userRole.upsert({ where: { userId_roleId: { userId: user.id, roleId: deliveryRole.id } }, update: {}, create: { userId: user.id, roleId: deliveryRole.id } }); const deliveryBoy = await tx.deliveryBoy.upsert({ where: { userId: user.id }, update: { isActive: true }, create: { userId: user.id } }); await tx.deliveryBoySeller.upsert({ where: { deliveryBoyId_sellerId: { deliveryBoyId: deliveryBoy.id, sellerId: seller.id } }, update: {}, create: { deliveryBoyId: deliveryBoy.id, sellerId: seller.id } }); for (const apartmentId of input.apartmentIds) await tx.deliveryBoyApartment.upsert({ where: { deliveryBoyId_apartmentId: { deliveryBoyId: deliveryBoy.id, apartmentId } }, update: {}, create: { deliveryBoyId: deliveryBoy.id, apartmentId } }); return deliveryBoy; });
     response.status(201).json(result);
+  } catch (error) { next(error); }
+});
+
+sellerManagementRouter.patch('/delivery-boys/:deliveryBoyId', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId);
+    if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
+    const deliveryBoyId = z.string().uuid().parse(request.params.deliveryBoyId);
+    const input = z.object({ isActive: z.boolean() }).parse(request.body);
+    const link = await prisma.deliveryBoySeller.findUnique({ where: { deliveryBoyId_sellerId: { deliveryBoyId, sellerId: seller.id } } });
+    if (!link) { response.status(404).json({ error: { code: 'DELIVERY_BOY_NOT_FOUND', message: 'Delivery boy is not linked to this seller' } }); return; }
+    response.json(await prisma.deliveryBoy.update({ where: { id: deliveryBoyId }, data: { isActive: input.isActive }, include: { user: true, apartments: { include: { apartment: true } } } }));
+  } catch (error) { next(error); }
+});
+
+sellerManagementRouter.delete('/delivery-boys/:deliveryBoyId', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId);
+    if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
+    const deliveryBoyId = z.string().uuid().parse(request.params.deliveryBoyId);
+    const link = await prisma.deliveryBoySeller.findUnique({ where: { deliveryBoyId_sellerId: { deliveryBoyId, sellerId: seller.id } } });
+    if (!link) { response.status(404).json({ error: { code: 'DELIVERY_BOY_NOT_FOUND', message: 'Delivery boy is not linked to this seller' } }); return; }
+    await prisma.deliveryBoySeller.delete({ where: { deliveryBoyId_sellerId: { deliveryBoyId, sellerId: seller.id } } });
+    response.status(204).send();
   } catch (error) { next(error); }
 });
