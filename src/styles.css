@@ -325,6 +325,9 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .delivery-illustration:after { content: ''; display: block; position: absolute; z-index: 4; right: auto; bottom: 0; left: -2%; width: 58%; height: 82%; border: 0; border-radius: 0; background: url('/assets/delivery-rider.png') left bottom / contain no-repeat; box-shadow: none; }
 .delivery-illustration { background: transparent; }
 .delivery-illustration:before { content: ''; display: block; position: absolute; z-index: 1; inset: 0; right: auto; bottom: auto; width: 100%; height: 100%; background: url('/assets/community-gate.png') center bottom / cover no-repeat; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.35) 9%, #000 26%, #000 100%); mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.35) 9%, #000 26%, #000 100%); }
+.phone-icon { display: inline-grid; width: 15px; height: 24px; margin-right: 18px; border: 2px solid #14213d; border-radius: 3px; color: transparent; font-size: 0; place-items: end center; }
+.phone-icon::after { content: ''; width: 5px; height: 2px; margin-bottom: 3px; border-radius: 2px; background: #14213d; }
+.phone-chevron { display: inline-block; width: 16px; height: 1px; margin: 0 12px 0 8px; visibility: hidden; font-size: 0; }
 .delivery-illustration:after { z-index: 4; }
 @media(max-width: 600px) { .delivery-illustration { width: calc(100% + 40px); margin-left: -20px; } }
 .home-promotion-track { display: flex; transition: transform .45s ease; }
