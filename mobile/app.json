@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "gatedcart",
     "icon": "./assets/icon.svg",
-    "splash": { "image": "./assets/splash.svg", "resizeMode": "contain", "backgroundColor": "#6d4aff" },
+    "splash": { "image": "./assets/splash.svg", "resizeMode": "contain", "backgroundColor": "#fff8ec" },
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
@@ -16,7 +16,7 @@
     "android": {
       "package": "com.gatedcart.marketplace",
       "adaptiveIcon": {
-        "backgroundColor": "#6d4aff"
+        "backgroundColor": "#ff6b00"
       }
     },
     "web": {
