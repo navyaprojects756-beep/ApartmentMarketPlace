@@ -323,6 +323,10 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .delivery-illustration { background: url('/assets/community-gate.png') center bottom / cover no-repeat; }
 .delivery-scene { display: none !important; }
 .delivery-illustration:after { content: ''; display: block; position: absolute; z-index: 4; right: auto; bottom: 0; left: -2%; width: 58%; height: 82%; border: 0; border-radius: 0; background: url('/assets/delivery-rider.png') left bottom / contain no-repeat; box-shadow: none; }
+.delivery-illustration { background: transparent; }
+.delivery-illustration:before { content: ''; display: block; position: absolute; z-index: 1; inset: 0; right: auto; bottom: auto; width: 100%; height: 100%; background: url('/assets/community-gate.png') center bottom / cover no-repeat; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.35) 9%, #000 26%, #000 100%); mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.35) 9%, #000 26%, #000 100%); }
+.delivery-illustration:after { z-index: 4; }
+@media(max-width: 600px) { .delivery-illustration { width: calc(100% + 40px); margin-left: -20px; } }
 .home-promotion-track { display: flex; transition: transform .45s ease; }
 .home-promotion-slide { flex: 0 0 100%; height: 170px; }
 .home-promotion-slide img { display: block; width: 100%; height: 100%; object-fit: cover; }
