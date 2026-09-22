@@ -462,6 +462,7 @@ model Advertisement {
   title          String                         @db.VarChar(180)
   description    String?                        @db.Text
   imageUrl       String?                        @map("image_url") @db.Text
+  imageUrls      Json?                          @map("image_urls")
   type           AdvertisementType
   status         AdvertisementStatus            @default(DRAFT)
   startAt        DateTime?                      @map("start_at")
@@ -510,6 +511,7 @@ model AdvertisementRequest {
   title        String                                @db.VarChar(180)
   description  String?                               @db.Text
   imageUrl     String?                               @map("image_url") @db.Text
+  imageUrls    Json?                                 @map("image_urls")
   type         AdvertisementType
   status       AdvertisementStatus                   @default(PENDING)
   startAt      DateTime?                             @map("start_at")

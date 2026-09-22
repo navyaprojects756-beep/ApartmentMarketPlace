@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
 import { getPrimaryApartment } from '../services/home.service.js';
+import { getSellerAvailability } from '../utils/seller-hours.js';
 
 export const commerceRouter = Router();
 
@@ -59,7 +60,9 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
       return;
     }
     const order = await prisma.$transaction(async tx => {
-      const seller = await tx.sellerProfile.findUniqueOrThrow({ where: { id: input.sellerId } });
+      const seller = await tx.sellerProfile.findUniqueOrThrow({ where: { id: input.sellerId }, include: { operatingHours: true } });
+      const availability = getSellerAvailability(seller);
+      if (!availability.isOpen) throw new Error(availability.reason || 'STORE_CLOSED');
       if (input.fulfillmentType === 'DELIVERY' && !seller.deliveryEnabled) throw new Error('DELIVERY_NOT_AVAILABLE');
       if (input.fulfillmentType === 'PICKUP' && !seller.pickupEnabled) throw new Error('PICKUP_NOT_AVAILABLE');
       const products = await tx.product.findMany({ where: { id: { in: input.items.map(item => item.productId) }, sellerId: input.sellerId, availability: true } });

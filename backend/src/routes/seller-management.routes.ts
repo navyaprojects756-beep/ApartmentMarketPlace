@@ -35,7 +35,7 @@ sellerManagementRouter.patch('/settings', requireAuth, async (request, response,
   try {
     const seller = await sellerForUser(request.auth!.userId);
     if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
-    const input = z.object({ businessName: z.string().trim().min(2).max(160).optional(), description: z.string().max(3000).nullable().optional(), address: z.string().max(1000).nullable().optional(), logoUrl: z.string().url().nullable().optional(), bannerUrl: z.string().url().nullable().optional(), isOpen: z.boolean().optional(), deliveryEnabled: z.boolean().optional(), pickupEnabled: z.boolean().optional(), minimumOrder: z.number().nonnegative().nullable().optional(), deliveryCharge: z.number().nonnegative().nullable().optional(), operatingHours: z.array(z.object({ dayOfWeek: z.number().int().min(0).max(6), openTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(), closeTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(), isClosed: z.boolean().default(false) })).max(7).optional() }).parse(request.body);
+    const input = z.object({ businessName: z.string().trim().min(2).max(160).optional(), description: z.string().max(3000).nullable().optional(), address: z.string().max(1000).nullable().optional(), logoUrl: z.string().url().nullable().optional(), bannerUrl: z.string().url().nullable().optional(), isOpen: z.boolean().optional(), deliveryEnabled: z.boolean().optional(), pickupEnabled: z.boolean().optional(), minimumOrder: z.number().nonnegative().nullable().optional(), deliveryCharge: z.number().nonnegative().nullable().optional(), operatingHours: z.array(z.object({ dayOfWeek: z.number().int().min(0).max(6), openTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(), closeTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(), isClosed: z.boolean().default(false) })).max(7).optional() }).superRefine((value, context) => { if (value.deliveryEnabled === true && value.pickupEnabled === true) context.addIssue({ code: 'custom', path: ['pickupEnabled'], message: 'Choose Delivery or Takeaway, not both.' }); if (value.deliveryEnabled === false && value.pickupEnabled === false) context.addIssue({ code: 'custom', path: ['deliveryEnabled'], message: 'Choose Delivery or Takeaway.' }); }).parse(request.body);
     const updated = await prisma.$transaction(async tx => {
       const sellerUpdate = await tx.sellerProfile.update({ where: { id: seller.id }, data: { businessName: input.businessName, description: input.description, address: input.address, logoUrl: input.logoUrl, bannerUrl: input.bannerUrl, isOpen: input.isOpen, deliveryEnabled: input.deliveryEnabled, pickupEnabled: input.pickupEnabled, minimumOrder: input.minimumOrder, deliveryCharge: input.deliveryCharge } });
       if (input.operatingHours) for (const hour of input.operatingHours) await tx.sellerOperatingHour.upsert({ where: { sellerId_dayOfWeek: { sellerId: seller.id, dayOfWeek: hour.dayOfWeek } }, update: hour, create: { sellerId: seller.id, ...hour } });
@@ -196,6 +196,36 @@ sellerManagementRouter.post('/inventory/:productId/adjust', requireAuth, async (
     if (!product?.inventory) { response.status(404).json({ error: { code: 'INVENTORY_NOT_FOUND', message: 'Tracked inventory not found' } }); return; }
     const inventory = await prisma.$transaction(async tx => { const current = await tx.inventory.findUniqueOrThrow({ where: { productId } }); const nextQuantity = current.quantity + input.quantityDelta; if (nextQuantity < 0) throw new Error('STOCK_CANNOT_BE_NEGATIVE'); const updated = await tx.inventory.update({ where: { productId }, data: { quantity: nextQuantity } }); await tx.inventoryMovement.create({ data: { productId, inventoryId: current.id, type: input.quantityDelta >= 0 ? 'MANUAL_ADD' : 'MANUAL_REMOVE', quantity: input.quantityDelta, reason: input.reason } }); return updated; });
     response.json(inventory);
+  } catch (error) { next(error); }
+});
+
+sellerManagementRouter.get('/advertisements', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId);
+    if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
+    response.json(await prisma.advertisementRequest.findMany({ where: { sellerId: seller.id }, orderBy: { createdAt: 'desc' } }));
+  } catch (error) { next(error); }
+});
+
+sellerManagementRouter.post('/advertisements', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId);
+    if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
+    const input = z.object({ title: z.string().trim().min(2).max(180), description: z.string().max(3000).optional(), imageUrls: z.array(z.string().url()).min(1).max(10), startAt: z.coerce.date().optional(), endAt: z.coerce.date().optional(), priority: z.number().int().min(0).max(100).default(0) }).parse(request.body);
+    const created = await prisma.advertisementRequest.create({ data: { requesterId: request.auth!.userId, sellerId: seller.id, title: input.title, description: input.description, imageUrl: input.imageUrls[0], imageUrls: input.imageUrls, type: 'SELLER_ADVERTISEMENT', status: 'PENDING', startAt: input.startAt, endAt: input.endAt, priority: input.priority } });
+    response.status(201).json(created);
+  } catch (error) { next(error); }
+});
+
+sellerManagementRouter.delete('/advertisements/:id', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId);
+    if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
+    const ad = await prisma.advertisementRequest.findFirst({ where: { id: String(request.params.id), sellerId: seller.id } });
+    if (!ad) { response.status(404).json({ error: { code: 'ADVERTISEMENT_NOT_FOUND', message: 'Advertisement not found' } }); return; }
+    if (ad.status === 'APPROVED') { response.status(400).json({ error: { code: 'ADVERTISEMENT_ALREADY_APPROVED', message: 'Approved advertisements must be removed by an administrator.' } }); return; }
+    await prisma.advertisementRequest.delete({ where: { id: ad.id } });
+    response.json({ deleted: true });
   } catch (error) { next(error); }
 });
 
