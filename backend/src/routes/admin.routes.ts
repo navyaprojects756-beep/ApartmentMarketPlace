@@ -5,6 +5,46 @@ import { prisma } from '../lib/prisma.js';
 
 export const adminRouter = Router();
 const modeSchema = z.object({ mode: z.enum(['LOCAL_ONLY', 'OUTSIDE_ONLY', 'BOTH']) });
+const homePromotionSchema = z.object({ imageUrls: z.array(z.string().url()).min(1).max(10), endAt: z.coerce.date().nullable().optional() });
+
+adminRouter.get('/home-promotions', requireAuth, requireRole('GLOBAL_ADMIN'), async (_request, response, next) => {
+  try {
+    response.json(await prisma.advertisement.findMany({ where: { type: 'PROMOTION', sellerId: null }, orderBy: { createdAt: 'desc' } }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post('/home-promotions', requireAuth, requireRole('GLOBAL_ADMIN'), async (request, response, next) => {
+  try {
+    const input = homePromotionSchema.parse(request.body);
+    const created = await prisma.$transaction(input.imageUrls.map(imageUrl => prisma.advertisement.create({ data: { requesterId: request.auth!.userId, title: 'Home promotion', imageUrl, imageUrls: [imageUrl], type: 'PROMOTION', status: 'APPROVED', endAt: input.endAt ?? null, approvedById: request.auth!.userId, approvedAt: new Date() } })));
+    response.status(201).json(created);
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch('/home-promotions/:id', requireAuth, requireRole('GLOBAL_ADMIN'), async (request, response, next) => {
+  try {
+    const id = z.string().uuid().parse(request.params.id);
+    const input = z.object({ isActive: z.boolean().optional(), endAt: z.coerce.date().nullable().optional() }).parse(request.body);
+    const updated = await prisma.advertisement.update({ where: { id }, data: { status: input.isActive === undefined ? undefined : input.isActive ? 'APPROVED' : 'CANCELLED', endAt: input.endAt } });
+    response.json(updated);
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete('/home-promotions/:id', requireAuth, requireRole('GLOBAL_ADMIN'), async (request, response, next) => {
+  try {
+    const id = z.string().uuid().parse(request.params.id);
+    await prisma.advertisement.delete({ where: { id } });
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
 
 adminRouter.get('/settings/home-seller-display-mode', requireAuth, requireRole('GLOBAL_ADMIN'), async (_request, response, next) => {
   try {

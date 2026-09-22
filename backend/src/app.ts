@@ -42,7 +42,11 @@ app.use(cors({ origin: (origin, callback) => {
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(morgan('dev'));
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false }));
+// The admin preview makes several authenticated requests while loading each
+// workspace section. Keep production protected while allowing normal local
+// development and refresh cycles without a false "Too many requests" error.
+const requestLimit = process.env.NODE_ENV === 'production' ? 300 : 2000;
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: requestLimit, standardHeaders: true, legacyHeaders: false }));
 
 app.get('/', (_request, response) => {
   response.json({ name: 'Apartment Marketplace API', version: 'v1', status: 'running' });
