@@ -38,7 +38,7 @@ sellerManagementRouter.patch('/settings', requireAuth, async (request, response,
     const input = z.object({ businessName: z.string().trim().min(2).max(160).optional(), description: z.string().max(3000).nullable().optional(), address: z.string().max(1000).nullable().optional(), logoUrl: z.string().url().nullable().optional(), bannerUrl: z.string().url().nullable().optional(), isOpen: z.boolean().optional(), deliveryEnabled: z.boolean().optional(), pickupEnabled: z.boolean().optional(), minimumOrder: z.number().nonnegative().nullable().optional(), deliveryCharge: z.number().nonnegative().nullable().optional(), operatingHours: z.array(z.object({ dayOfWeek: z.number().int().min(0).max(6), openTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(), closeTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(), isClosed: z.boolean().default(false) })).max(7).optional() }).superRefine((value, context) => { if (value.deliveryEnabled === true && value.pickupEnabled === true) context.addIssue({ code: 'custom', path: ['pickupEnabled'], message: 'Choose Delivery or Takeaway, not both.' }); if (value.deliveryEnabled === false && value.pickupEnabled === false) context.addIssue({ code: 'custom', path: ['deliveryEnabled'], message: 'Choose Delivery or Takeaway.' }); }).parse(request.body);
     const updated = await prisma.$transaction(async tx => {
       const sellerUpdate = await tx.sellerProfile.update({ where: { id: seller.id }, data: { businessName: input.businessName, description: input.description, address: input.address, logoUrl: input.logoUrl, bannerUrl: input.bannerUrl, isOpen: input.isOpen, deliveryEnabled: input.deliveryEnabled, pickupEnabled: input.pickupEnabled, minimumOrder: input.minimumOrder, deliveryCharge: input.deliveryCharge } });
-      if (input.operatingHours) for (const hour of input.operatingHours) await tx.sellerOperatingHour.upsert({ where: { sellerId_dayOfWeek: { sellerId: seller.id, dayOfWeek: hour.dayOfWeek } }, update: hour, create: { sellerId: seller.id, ...hour } });
+      if (input.operatingHours) { const shared = input.operatingHours.find(hour => !hour.isClosed && hour.openTime && hour.closeTime); for (const hour of input.operatingHours) { const normalized = { ...hour, openTime: shared?.openTime ?? hour.openTime, closeTime: shared?.closeTime ?? hour.closeTime }; await tx.sellerOperatingHour.upsert({ where: { sellerId_dayOfWeek: { sellerId: seller.id, dayOfWeek: hour.dayOfWeek } }, update: normalized, create: { sellerId: seller.id, ...normalized } }); } }
       return sellerUpdate;
     });
     response.json(updated);
@@ -226,6 +226,19 @@ sellerManagementRouter.delete('/advertisements/:id', requireAuth, async (request
     if (ad.status === 'APPROVED') { response.status(400).json({ error: { code: 'ADVERTISEMENT_ALREADY_APPROVED', message: 'Approved advertisements must be removed by an administrator.' } }); return; }
     await prisma.advertisementRequest.delete({ where: { id: ad.id } });
     response.json({ deleted: true });
+  } catch (error) { next(error); }
+});
+
+sellerManagementRouter.patch('/advertisements/:id', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId);
+    if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
+    const input = z.object({ imageUrls: z.array(z.string().url()).min(1).max(3) }).parse(request.body);
+    const ad = await prisma.advertisementRequest.findFirst({ where: { id: String(request.params.id), sellerId: seller.id } });
+    if (!ad) { response.status(404).json({ error: { code: 'ADVERTISEMENT_NOT_FOUND', message: 'Advertisement not found' } }); return; }
+    if (ad.status === 'APPROVED') { response.status(400).json({ error: { code: 'ADVERTISEMENT_ALREADY_APPROVED', message: 'Approved advertisements must be changed by an administrator.' } }); return; }
+    const updated = await prisma.advertisementRequest.update({ where: { id: ad.id }, data: { imageUrl: input.imageUrls[0], imageUrls: input.imageUrls } });
+    response.json(updated);
   } catch (error) { next(error); }
 });
 
