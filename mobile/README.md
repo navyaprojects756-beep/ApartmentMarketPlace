@@ -1,4 +1,4 @@
-# Nivasa Mobile
+# GatedCart Mobile
 
 Expo shared mobile shell for Android and iOS.
 

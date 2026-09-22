@@ -11,7 +11,7 @@ export default function Home() {
   const canNavigateBack = useRef(false);
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (canNavigateBack.current) webViewRef.current?.injectJavaScript('window.__nivasaNativeBack?.(); true;');
+      if (canNavigateBack.current) webViewRef.current?.injectJavaScript('window.__gatedcartNativeBack?.(); true;');
       return true;
     });
     return () => subscription.remove();

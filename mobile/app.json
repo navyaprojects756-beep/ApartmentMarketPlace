@@ -1,20 +1,20 @@
 {
   "expo": {
-    "name": "Nivasa Marketplace",
-    "slug": "nivasa-marketplace",
+    "name": "GatedCart Marketplace",
+    "slug": "gatedcart-marketplace",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "nivasa",
+    "scheme": "gatedcart",
     "icon": "./assets/icon.svg",
     "splash": { "image": "./assets/splash.svg", "resizeMode": "contain", "backgroundColor": "#6d4aff" },
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nivasa.marketplace"
+      "bundleIdentifier": "com.gatedcart.marketplace"
     },
     "android": {
-      "package": "com.nivasa.marketplace",
+      "package": "com.gatedcart.marketplace",
       "adaptiveIcon": {
         "backgroundColor": "#6d4aff"
       }

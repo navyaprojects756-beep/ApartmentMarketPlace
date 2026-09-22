@@ -5,6 +5,6 @@
   <rect x="600" y="880" width="400" height="400" rx="110" fill="#fff" opacity=".14"/>
   <path d="M800 960 960 1080v190H640v-190z" fill="none" stroke="#fff" stroke-width="35" stroke-linejoin="round"/>
   <path d="M740 1270v-130h120v130" fill="none" stroke="#fff" stroke-width="28"/>
-  <text x="800" y="1480" text-anchor="middle" font-family="Arial, sans-serif" font-size="120" font-weight="700" fill="#fff">Nivasa</text>
+  <text x="800" y="1480" text-anchor="middle" font-family="Arial, sans-serif" font-size="120" font-weight="700" fill="#fff">GatedCart</text>
   <text x="800" y="1570" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="8" fill="#e6deff">YOUR COMMUNITY MARKETPLACE</text>
 </svg>

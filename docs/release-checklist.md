@@ -3,8 +3,8 @@
 ## Local build preparation
 
 - [x] Expo project exists under `mobile/`.
-- [x] Android package is `com.nivasa.marketplace`.
-- [x] iOS bundle identifier is `com.nivasa.marketplace`.
+- [x] Android package is `com.gatedcart.marketplace`.
+- [x] iOS bundle identifier is `com.gatedcart.marketplace`.
 - [x] EAS profiles exist for development, preview, and production.
 - [x] Mobile customer Home shell connects to the authenticated Home API with offline preview fallback.
 - [x] Mobile customer OTP login, Home filters, Orders history, and role API preview surfaces implemented.
@@ -19,7 +19,7 @@
 ## Google Play Console requirements
 
 - [ ] User creates or provides a Google Play Console developer account.
-- [ ] Create application with package `com.nivasa.marketplace`.
+- [ ] Create application with package `com.gatedcart.marketplace`.
 - [ ] Configure app signing and upload key.
 - [ ] Add store name, descriptions, screenshots, icon, feature graphic, and category.
 - [ ] Add privacy policy URL and support contact.

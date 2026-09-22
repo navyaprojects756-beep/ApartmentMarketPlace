@@ -162,8 +162,8 @@ Global Admin important-alert creation creates targeted `IMPORTANT_ALERT` notific
 
 Expo configuration and Android bundle export are verified with:
 
-- Android package: `com.nivasa.marketplace`
-- iOS bundle identifier: `com.nivasa.marketplace`
+- Android package: `com.gatedcart.marketplace`
+- iOS bundle identifier: `com.gatedcart.marketplace`
 
 Production Android/iOS builds still require EAS credentials, signing configuration, and store account metadata.
 The Android preview export has been revalidated from the `mobile` workspace after the native mode-control fix.

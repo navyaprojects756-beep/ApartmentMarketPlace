@@ -1,4 +1,4 @@
-# Nivasa Marketplace
+# GatedCart Marketplace
 
 Apartment/community marketplace platform with responsive web, PostgreSQL persistence, REST APIs, and an Expo Android/iOS client shell.
 
