@@ -35,3 +35,7 @@
 - [ ] Provisioning/signing configuration through EAS.
 - [ ] App privacy details, screenshots, description, and support URL.
 - [ ] TestFlight review and production submission.
+
+## Local APK handoff — 2026-09-23
+
+The preview build target is the Expo `preview` profile. Before installing on a phone, set `EXPO_PUBLIC_WEB_APP_URL` and `EXPO_PUBLIC_API_URL` to the computer's LAN address, start the web app with `npm run dev -- --host 0.0.0.0`, start the API, and ensure Windows Firewall permits the development ports. The generated APK is for local testing only and is not a signed Play Store release.

@@ -242,6 +242,14 @@ Verification checkpoint: database migration status, web build, backend build, An
 
 ## Known technical follow-ups
 
+## 2026-09-23 checkpoint
+
+- Restored the built-in HTML/CSS splash screen after removing the external SVG splash experiment.
+- Refined splash branding: Local Products wording, centered marketplace caption, and GatedCart text on the shopping bag.
+- OTP entry now shows dashes instead of a row of zeros before input.
+- Web production build passes with `npm run build`.
+- The next device-validation artifact is an Android preview APK from the Expo/EAS mobile wrapper. Physical-device testing requires the web/API URLs to be reachable from the phone over the local network.
+
 - Prisma's development dependency tree reports four high npm audit advisories in the current Prisma CLI toolchain; resolve through a reviewed Prisma upgrade rather than applying `npm audit fix --force` blindly.
 - 2026-09-19: Improved order workflows. Seller orders now load complete customer delivery context, line items, totals and printable PDFs; status changes use clear action buttons instead of a native dropdown. Customer order tracking now exposes address, items, payment, timeline, cancellation and print actions. Removed the customer-facing “Become a seller” section from Profile.
 - 2026-09-19: Unified responsive dashboard navigation. Seller/admin navigation remains visible on tablet widths and becomes a labeled bottom navigation bar on phones instead of an empty/collapsed sidebar. Customer profile no longer exposes seller-only promotion/application actions.

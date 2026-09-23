@@ -98,3 +98,11 @@ npm run db:status
 - Technical architecture: `docs/technical-architecture.md`
 - Development checkpoint: `docs/development-progress.md`
 - API reference: `docs/api.md`
+
+## Current implementation checkpoint — 2026-09-23
+
+- The active web customer, seller, delivery, and admin workspaces share the same authenticated application and backend API.
+- The customer splash screen uses the built-in responsive HTML/CSS artwork; the previously tested external SVG splash asset is not part of the active app.
+- OTP entry displays dash placeholders until the user enters the code. Local development OTP validation still uses the last five phone digits.
+- The database should remain empty for fresh manual testing unless `npm run db:seed` is intentionally run. Seed data is test-only and is not required for the schema or application structure.
+- The mobile wrapper uses the device-accessible web URL and API URL. A preview APK is the recommended artifact for physical-device testing; production signing and Play Store release remain separate steps.

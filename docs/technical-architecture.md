@@ -195,3 +195,7 @@ The current repository is a working V1 MVP rather than a finished production rel
 | 2026-09-19 | The existing visual prototype remains the first web UI reference while backend implementation begins. |
 - Order views use the authenticated commerce and seller-order APIs. Both order queries include seller/customer context, apartment, block, flat, saved address, items, delivery assignment and status history. Seller print uses the protected `/exports/seller/orders/:orderId/print.pdf` endpoint; customer print uses the browser print action. Seller status transitions are presented as explicit actions mapped to the backend transition rules.
 - Dashboard navigation is role-aware at the application entry point: customers use Home, Orders and Profile; sellers use their fulfilment workspace; Global Admin uses the admin workspace. Responsive CSS keeps the same navigation model on desktop, tablet and phone layouts, with phone dashboards using a labeled bottom navigation bar.
+
+## Current UI and mobile packaging checkpoint — 2026-09-23
+
+The active splash is implemented as React markup and CSS rather than an external image asset, allowing the logo, captions, marketplace wording, and bag label to remain responsive. The mobile project is an Expo WebView shell around the same web application, so APK testing exercises the same routes and API behavior as browser testing. Android package identifier: `com.gatedcart.marketplace`.

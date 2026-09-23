@@ -18,3 +18,13 @@ The Android/iOS package identifiers and branded icon/splash assets are configure
 For production builds, `EXPO_PUBLIC_WEB_APP_URL` must point to the hosted web application. This guarantees that browser, Android, and iOS use the same login, routes, navigation, and marketplace workflows.
 
 The mobile shell intentionally does not maintain a separate role UI. After website login, the shared web application routes customers, sellers, delivery staff, and Global Admins to the same role workspace used in the browser.
+
+## Physical Android testing
+
+For a preview APK, run from this directory:
+
+```bash
+npx eas build --platform android --profile preview
+```
+
+The preview profile uses internal distribution and produces an installable Android APK when the EAS build completes. Set `EXPO_PUBLIC_WEB_APP_URL` and `EXPO_PUBLIC_API_URL` to the computer's LAN IP before building; the phone must be on the same network and the web/API ports must be reachable. This is a local test build, not a Play Store production artifact.
