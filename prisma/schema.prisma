@@ -188,6 +188,7 @@ model OtpRequest {
 model Apartment {
   id                 String                                @id @default(uuid()) @db.Uuid
   name               String                                @db.VarChar(160)
+  sellerDisplayMode  HomeSellerDisplayMode                 @default(BOTH) @map("seller_display_mode")
   address            String?                               @db.Text
   city               String?                               @db.VarChar(100)
   state              String?                               @db.VarChar(100)

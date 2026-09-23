@@ -40,7 +40,11 @@ sellerApplicationRouter.patch('/:sellerId/status', requireAuth, requireRole('GLO
     const sellerId = z.string().uuid().parse(request.params.sellerId);
     const { status } = z.object({ status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED', 'INACTIVE']) }).parse(request.body);
     const updated = await prisma.sellerProfile.update({ where: { id: sellerId }, data: { status } });
-    await prisma.auditLog.create({ data: { actorId: request.auth!.userId, action: 'SELLER_STATUS_CHANGED', entityType: 'SellerProfile', entityId: sellerId, afterData: { status } } });
+    try {
+      await prisma.auditLog.create({ data: { actorId: request.auth!.userId, action: 'SELLER_STATUS_CHANGED', entityType: 'SellerProfile', entityId: sellerId, afterData: { status } } });
+    } catch (auditError) {
+      console.error('Seller approval audit failed after the status was saved', auditError);
+    }
     response.json(updated);
   } catch (error) {
     next(error);

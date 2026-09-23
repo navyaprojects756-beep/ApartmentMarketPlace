@@ -60,10 +60,10 @@ app.get('/api-docs/openapi.json', (_request, response) => response.json(openapi)
 app.use('/api/v1/health', healthRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/home', homeRouter);
+app.use('/api/v1/sellers', sellerApplicationRouter);
 app.use('/api/v1/sellers', sellerRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/apartments', apartmentRouter);
-app.use('/api/v1/sellers', sellerApplicationRouter);
 app.use('/api/v1', commerceRouter);
 app.use('/api/v1/delivery', deliveryRouter);
 app.use('/api/v1/advertisements', advertisementRouter);

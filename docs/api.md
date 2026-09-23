@@ -49,7 +49,7 @@ Authorization: Bearer <accessToken>
 
 ## Admin and reporting
 
-- `GET/PATCH /admin/settings/home-seller-display-mode`
+- `PATCH /admin/apartments/:apartmentId` with `{ sellerDisplayMode: "LOCAL_ONLY" | "OUTSIDE_ONLY" | "BOTH" }` updates seller visibility for one apartment. The UI labels `LOCAL_ONLY` as `Community Sellers`.
 - `PATCH /sellers/:sellerId/status`
 - `POST /advertisements/requests`
 - `GET /advertisements/requests`

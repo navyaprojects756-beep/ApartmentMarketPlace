@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma.js';
+import { getSellerAvailability } from '../utils/seller-hours.js';
 
 export async function getPrimaryApartment(userId: string) {
   const association = await prisma.userApartment.findFirst({ where: { userId }, orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }], include: { apartment: true, block: true, flat: true } });
@@ -7,11 +8,10 @@ export async function getPrimaryApartment(userId: string) {
 
 export async function getHomeData(userId: string) {
   const association = await getPrimaryApartment(userId);
-  const setting = await prisma.platformSetting.findUnique({ where: { key: 'home_seller_display_mode' } });
-  const mode = setting?.value === 'LOCAL_ONLY' || setting?.value === 'OUTSIDE_ONLY' ? setting.value : 'BOTH';
+  const mode = association?.apartment.sellerDisplayMode ?? 'BOTH';
   if (!association) return { mode, apartment: null, localSellers: [], outsideSellers: [], advertisements: [], homePromotions: [] };
 
-  const sellerSelect = { id: true, sellerName: true, businessName: true, description: true, logoUrl: true, bannerUrl: true, sellerType: true, isOpen: true, deliveryEnabled: true, pickupEnabled: true } as const;
+  const sellerSelect = { id: true, sellerName: true, businessName: true, description: true, logoUrl: true, bannerUrl: true, sellerType: true, isOpen: true, deliveryEnabled: true, pickupEnabled: true, operatingHours: { select: { dayOfWeek: true, openTime: true, closeTime: true, isClosed: true } } } as const;
   const [localSellers, outsideSellers, advertisements, homePromotions] = await Promise.all([
     mode === 'OUTSIDE_ONLY' ? [] : prisma.sellerProfile.findMany({ where: { sellerType: 'APARTMENT', status: 'APPROVED', apartmentId: association.apartmentId }, select: sellerSelect, orderBy: { createdAt: 'asc' } }),
     mode === 'LOCAL_ONLY' ? [] : prisma.sellerProfile.findMany({ where: { sellerType: 'OUTSIDE', status: 'APPROVED', deliveryAreas: { some: { apartmentId: association.apartmentId, isApproved: true } } }, select: sellerSelect, orderBy: { createdAt: 'asc' } }),
@@ -19,5 +19,6 @@ export async function getHomeData(userId: string) {
     prisma.advertisement.findMany({ where: { type: 'PROMOTION', sellerId: null, status: 'APPROVED', OR: [{ startAt: null }, { startAt: { lte: new Date() } }], AND: [{ OR: [{ endAt: null }, { endAt: { gte: new Date() } }] }] }, orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }], take: 10 }),
   ]);
 
-  return { mode, apartment: association, localSellers, outsideSellers, advertisements, homePromotions };
+  const available = (sellers: typeof localSellers) => sellers.filter(seller => getSellerAvailability(seller).isOpen);
+  return { mode, apartment: association, localSellers: available(localSellers), outsideSellers: available(outsideSellers), advertisements, homePromotions };
 }

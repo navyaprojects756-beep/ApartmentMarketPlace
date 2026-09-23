@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
 import { getPrimaryApartment } from '../services/home.service.js';
+import { getSellerAvailability } from '../utils/seller-hours.js';
 
 export const sellerRouter = Router();
 
@@ -18,15 +19,12 @@ sellerRouter.get('/', requireAuth, async (request, response, next) => {
       where: {
         status: 'APPROVED',
         ...(type ? { sellerType: type } : {}),
-        OR: [
-          { sellerType: 'APARTMENT', apartmentId: context.apartmentId },
-          { sellerType: 'OUTSIDE', deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true } } },
-        ],
+        ...(context.apartment.sellerDisplayMode === 'LOCAL_ONLY' ? { sellerType: 'APARTMENT', apartmentId: context.apartmentId } : context.apartment.sellerDisplayMode === 'OUTSIDE_ONLY' ? { sellerType: 'OUTSIDE', deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true } } } : { OR: [{ sellerType: 'APARTMENT', apartmentId: context.apartmentId }, { sellerType: 'OUTSIDE', deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true } } }] }),
       },
-      include: { categories: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
+      include: { operatingHours: true, categories: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
       orderBy: { createdAt: 'asc' },
     });
-    response.json(sellers);
+    response.json(sellers.filter(seller => getSellerAvailability(seller).isOpen));
   } catch (error) {
     next(error);
   }
@@ -40,9 +38,18 @@ sellerRouter.get('/:sellerId', requireAuth, async (request, response, next) => {
       response.status(403).json({ error: { code: 'COMMUNITY_REQUIRED', message: 'Select an apartment first' } });
       return;
     }
-    const seller = await prisma.sellerProfile.findFirst({ where: { id: sellerId, status: 'APPROVED', OR: [{ sellerType: 'APARTMENT', apartmentId: context.apartmentId }, { sellerType: 'OUTSIDE', deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true } } }] }, include: { operatingHours: { orderBy: { dayOfWeek: 'asc' } }, categories: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } }, advertisements: { where: { status: 'APPROVED', OR: [{ startAt: null }, { startAt: { lte: new Date() } }], AND: [{ OR: [{ endAt: null }, { endAt: { gte: new Date() } }] }] }, orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }], take: 3 }, advertisementReqs: { where: { status: 'PENDING', type: 'SELLER_ADVERTISEMENT' }, orderBy: { createdAt: 'desc' }, take: 3 }, products: { where: { availability: true }, include: { images: { orderBy: { sortOrder: 'asc' } }, category: true }, orderBy: { createdAt: 'asc' } } } });
+    const visibility = context.apartment.sellerDisplayMode === 'LOCAL_ONLY'
+      ? { sellerType: 'APARTMENT' as const, apartmentId: context.apartmentId }
+      : context.apartment.sellerDisplayMode === 'OUTSIDE_ONLY'
+        ? { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true } } }
+        : { OR: [{ sellerType: 'APARTMENT' as const, apartmentId: context.apartmentId }, { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true } } }] };
+    const seller = await prisma.sellerProfile.findFirst({ where: { id: sellerId, status: 'APPROVED', ...visibility }, include: { operatingHours: { orderBy: { dayOfWeek: 'asc' } }, categories: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } }, advertisements: { where: { status: 'APPROVED', OR: [{ startAt: null }, { startAt: { lte: new Date() } }], AND: [{ OR: [{ endAt: null }, { endAt: { gte: new Date() } }] }] }, orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }], take: 3 }, advertisementReqs: { where: { status: 'PENDING', type: 'SELLER_ADVERTISEMENT' }, orderBy: { createdAt: 'desc' }, take: 3 }, products: { where: { availability: true }, include: { images: { orderBy: { sortOrder: 'asc' } }, category: true }, orderBy: { createdAt: 'asc' } } } });
     if (!seller) {
       response.status(404).json({ error: { code: 'SELLER_NOT_FOUND', message: 'Seller is not available in your apartment' } });
+      return;
+    }
+    if (!getSellerAvailability(seller).isOpen) {
+      response.status(404).json({ error: { code: 'SELLER_CLOSED', message: 'This seller is currently closed' } });
       return;
     }
     response.json(seller);

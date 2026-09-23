@@ -22,9 +22,13 @@ adminResourcesRouter.post('/apartments', ...adminOnly, async (request, response,
 adminResourcesRouter.patch('/apartments/:apartmentId', ...adminOnly, async (request, response, next) => {
   try {
     const apartmentId = z.string().uuid().parse(request.params.apartmentId);
-    const input = z.object({ name: z.string().trim().min(2).max(160).optional(), address: z.string().max(1000).nullable().optional(), city: z.string().max(100).nullable().optional(), state: z.string().max(100).nullable().optional(), pincode: z.string().max(20).nullable().optional(), hasBlocks: z.boolean().optional(), hasPredefinedFlats: z.boolean().optional(), isActive: z.boolean().optional() }).parse(request.body);
+    const input = z.object({ name: z.string().trim().min(2).max(160).optional(), address: z.string().max(1000).nullable().optional(), city: z.string().max(100).nullable().optional(), state: z.string().max(100).nullable().optional(), pincode: z.string().max(20).nullable().optional(), hasBlocks: z.boolean().optional(), hasPredefinedFlats: z.boolean().optional(), isActive: z.boolean().optional(), sellerDisplayMode: z.enum(['LOCAL_ONLY', 'OUTSIDE_ONLY', 'BOTH']).optional() }).parse(request.body);
     const updated = await prisma.apartment.update({ where: { id: apartmentId }, data: input });
-    await prisma.auditLog.create({ data: { actorId: request.auth!.userId, action: 'APARTMENT_UPDATED', entityType: 'Apartment', entityId: apartmentId, afterData: input } });
+    try {
+      await prisma.auditLog.create({ data: { actorId: request.auth!.userId, action: input.sellerDisplayMode ? 'APARTMENT_SELLER_DISPLAY_MODE_CHANGED' : 'APARTMENT_UPDATED', entityType: 'Apartment', entityId: apartmentId, afterData: input } });
+    } catch (auditError) {
+      console.error('Apartment update audit failed after the setting was saved', auditError);
+    }
     response.json(updated);
   } catch (error) { next(error); }
 });
@@ -99,7 +103,7 @@ adminResourcesRouter.patch('/users/:userId', ...adminOnly, async (request, respo
 });
 
 adminResourcesRouter.get('/sellers', ...adminOnly, async (_request, response, next) => {
-  try { response.json(await prisma.sellerProfile.findMany({ include: { user: true, apartment: true, deliveryAreas: { include: { apartment: true } } }, orderBy: { createdAt: 'desc' } })); } catch (error) { next(error); }
+  try { response.json(await prisma.sellerProfile.findMany({ include: { user: { include: { apartments: { include: { apartment: true, block: true, flat: true }, orderBy: { isPrimary: 'desc' } } } }, apartment: true, deliveryAreas: { include: { apartment: true } } }, orderBy: [{ status: 'asc' }, { createdAt: 'desc' }] })); } catch (error) { next(error); }
 });
 
 adminResourcesRouter.post('/alerts', ...adminOnly, async (request, response, next) => {

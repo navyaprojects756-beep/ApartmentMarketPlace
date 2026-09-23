@@ -8,8 +8,8 @@ export const adminMonitoringRouter = Router();
 adminMonitoringRouter.get('/dashboard', requireAuth, requireRole('GLOBAL_ADMIN'), async (_request, response, next) => {
   try {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const [users, sellers, apartments, ordersToday, pendingAds, activeAds] = await Promise.all([prisma.user.count(), prisma.sellerProfile.count(), prisma.apartment.count({ where: { isActive: true } }), prisma.order.count({ where: { createdAt: { gte: today } } }), prisma.advertisementRequest.count({ where: { status: 'PENDING' } }), prisma.advertisement.count({ where: { status: 'APPROVED' } })]);
-    response.json({ users, sellers, apartments, ordersToday, pendingAds, activeAds });
+    const [users, sellers, apartments, ordersToday, pendingApprovals, activeAds] = await Promise.all([prisma.user.count(), prisma.sellerProfile.count({ where: { status: 'APPROVED' } }), prisma.apartment.count({ where: { isActive: true } }), prisma.order.count({ where: { createdAt: { gte: today } } }), prisma.sellerProfile.count({ where: { status: 'PENDING' } }), prisma.advertisement.count({ where: { status: 'APPROVED' } })]);
+    response.json({ users, sellers, apartments, ordersToday, pendingAds: pendingApprovals, pendingApprovals, activeAds });
   } catch (error) { next(error); }
 });
 

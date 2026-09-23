@@ -91,15 +91,15 @@ backend/                     Backend API service (being implemented)
 - Historical order data is protected with restrictive foreign keys where appropriate.
 - Soft deactivation fields are used for apartments, sellers, products, categories, and users.
 - Seller visibility is always resolved on the backend.
-- `PlatformSetting` stores business configuration such as `home_seller_display_mode`.
+- `Apartment.sellerDisplayMode` stores seller visibility separately for each apartment.
 - Money values use PostgreSQL `numeric` through Prisma `Decimal`.
 - Inventory changes and order creation must use transactions and row-level protection.
 
 ## Home seller visibility
 
-`home_seller_display_mode` accepts:
+The apartment seller visibility setting accepts:
 
-- `LOCAL_ONLY`
+- `LOCAL_ONLY` (shown in the UI as `Community Sellers`)
 - `OUTSIDE_ONLY`
 - `BOTH`
 
