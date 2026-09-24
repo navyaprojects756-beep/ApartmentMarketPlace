@@ -2410,6 +2410,8 @@ The repository currently contains a working V1 web/API implementation plus an Ex
 
 Deployment details are maintained in `README.md`, `docs/release-checklist.md`, `docs/technical-architecture.md`, `docs/api.md`, and `mobile/README.md`. The Render API uses the internal PostgreSQL URL, while local pgAdmin uses the external PostgreSQL URL with SSL mode `require`. The deployed frontend receives `VITE_API_URL`; EAS receives `EXPO_PUBLIC_WEB_APP_URL` and `EXPO_PUBLIC_API_URL`. No database seed is run automatically during deployment.
 
+The Expo native launch screen is intentionally a short Android system splash with the centered GatedCart icon on a warm background. The full responsive branded splash is displayed by the hosted web application after the WebView loads. The exact native icon and launch behavior must be validated with an installed EAS preview APK rather than Expo Go.
+
 Do not create a superficial demo.
 
 Create a properly structured full-stack application with:

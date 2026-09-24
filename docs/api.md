@@ -95,3 +95,4 @@ The web and Expo wrapper currently use the same authenticated API-backed applica
 - Expo/EAS builds read the API base URL from `EXPO_PUBLIC_API_URL` and the hosted web URL from `EXPO_PUBLIC_WEB_APP_URL`.
 - The backend CORS setting must use `FRONTEND_URL=https://gatedcart.cheritech.com`.
 - Render services should use the internal PostgreSQL connection URL. External PostgreSQL credentials are only for local tools such as pgAdmin.
+- The native launch screen and launcher icon are packaged by Expo and are independent of the API; the WebView then loads the hosted frontend and uses the API base URL above.

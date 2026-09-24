@@ -14,6 +14,7 @@
 - [x] Add branded source app icon and splash assets to the Expo project.
 - [ ] Finalize platform-specific PNG/adaptive icon and notification assets for store submission.
 - [x] Build and test the Android preview APK on a physical device.
+- [x] Verify the final launcher icon and native launch screen through an installed preview APK.
 - [ ] Test iOS archive/TestFlight on a physical device.
 
 ## Google Play Console requirements
@@ -43,7 +44,7 @@ The preview build target is the Expo `preview` profile. The tested hosted config
 - `EXPO_PUBLIC_WEB_APP_URL=https://gatedcart.cheritech.com`
 - `EXPO_PUBLIC_API_URL=https://gatedcart-api.onrender.com/api/v1`
 
-The Android preview APK was built through EAS and installed successfully. It is an internal/testing APK, not a signed Play Store production release. The production AAB, store listing, privacy policy, Data Safety form, and iOS/TestFlight release remain outstanding.
+The Android preview APK was built through EAS and installed successfully. The final native launch screen uses the centered app icon with a warm background, while the full branded splash appears after the WebView loads the hosted website. It is an internal/testing APK, not a signed Play Store production release. The production AAB, store listing, privacy policy, Data Safety form, and iOS/TestFlight release remain outstanding.
 
 For future builds, authenticate with `npx eas login` from `mobile/` and run `npx eas build --platform android --profile preview`.
 

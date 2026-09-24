@@ -253,6 +253,7 @@ Verification checkpoint: database migration status, web build, backend build, An
 - Render environment variables are configured for the static site (`VITE_API_URL`) and API (`DATABASE_URL`, `FRONTEND_URL`, `PORT`, and JWT secrets). The API uses Prisma migrations at startup and does not run seed data automatically.
 - The Expo/EAS preview environment now points to the hosted web/API URLs through `EXPO_PUBLIC_WEB_APP_URL` and `EXPO_PUBLIC_API_URL`.
 - The hosted Android preview APK was built successfully through EAS and installed/tested on a physical Android device. The APK is for internal testing; Play Store production AAB work remains separate.
+- The final native splash configuration was changed to a warm Android system launch screen with the centered GatedCart icon; the full branded artwork remains the hosted website splash.
 - Local pgAdmin connections use the Render PostgreSQL External Database URL, port `5432`, the generated database/user/password, and SSL mode `require`. Render services use the Internal Database URL.
 
 - Prisma's development dependency tree reports four high npm audit advisories in the current Prisma CLI toolchain; resolve through a reviewed Prisma upgrade rather than applying `npm audit fix --force` blindly.

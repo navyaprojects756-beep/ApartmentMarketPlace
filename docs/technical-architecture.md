@@ -198,7 +198,7 @@ The current repository is a working V1 MVP rather than a finished production rel
 
 ## Current UI, mobile packaging, and hosting checkpoint — 2026-09-24
 
-The active splash is implemented as React markup and CSS rather than an external image asset, allowing the logo, captions, marketplace wording, and bag label to remain responsive. The mobile project is an Expo WebView shell around the same web application, so APK testing exercises the same routes and API behavior as browser testing. Android package identifier: `com.gatedcart.marketplace`.
+The hosted website splash uses the responsive `public/splash.png` artwork. The mobile project is an Expo WebView shell around the same web application, so APK testing exercises the same routes and API behavior as browser testing. The native Android launch screen uses the centered `mobile/assets/icon.png` on `#fff9ef`; Android may display this system launch screen briefly before the WebView starts. Android package identifier: `com.gatedcart.marketplace`.
 
 The completed hosted topology is:
 

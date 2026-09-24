@@ -17,6 +17,8 @@ The Android/iOS package identifiers and branded icon/splash assets are configure
 
 The native Expo launch screen uses the centered `assets/icon.png` with the warm `#fff9ef` background through the `expo-splash-screen` plugin. Android may show this system launch screen briefly before the WebView starts; it cannot be removed completely. The hosted website splash uses the full `splash.png` artwork copied to the root `public/splash.png`; changing that asset requires a new website deployment, while changing the native icon/splash configuration requires a new APK build.
 
+The exact icon and native launch screen can only be verified by installing an EAS preview APK. Expo Go previews the web application but does not reproduce the final installed app icon or native Android launch screen.
+
 For hosted builds, use:
 
 ```env

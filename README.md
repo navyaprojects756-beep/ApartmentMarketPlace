@@ -115,3 +115,4 @@ npm run db:status
 - The static site build uses `npm ci && npm run build`, publishes `dist`, and receives `VITE_API_URL=https://gatedcart-api.onrender.com/api/v1` through Render environment variables.
 - The API service uses `npx prisma migrate deploy --schema prisma/schema.prisma && npm run api:start` as its start command and receives `FRONTEND_URL=https://gatedcart.cheritech.com` and `PORT=10000` through Render environment variables. No seed command is part of deployment.
 - The Expo/EAS preview environment uses `EXPO_PUBLIC_WEB_APP_URL=https://gatedcart.cheritech.com` and `EXPO_PUBLIC_API_URL=https://gatedcart-api.onrender.com/api/v1`. The Android preview APK was built successfully and tested against the hosted services.
+- The final native launch configuration uses the centered `mobile/assets/icon.png` on a warm `#fff9ef` background; the full `mobile/assets/splash.png` artwork is used by the hosted website splash after the WebView starts.
