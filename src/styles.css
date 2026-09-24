@@ -403,3 +403,5 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .grocery-bag .grocery-bag-brand b { color: #14213d; }
 .grocery-bag .grocery-bag-brand strong { color: #14213d; }
 .splash-brand-lockup .gatedcart-logo-word small { left: 50%; width: max-content; transform: translateX(-50%); text-align: center; }
+.gatedcart-image-splash { min-height: 100dvh; padding: 0; background: #fff9ef; cursor: pointer; }
+.gatedcart-image-splash img { display: block; width: 100%; height: 100dvh; object-fit: cover; object-position: center; }

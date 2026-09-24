@@ -196,6 +196,17 @@ The current repository is a working V1 MVP rather than a finished production rel
 - Order views use the authenticated commerce and seller-order APIs. Both order queries include seller/customer context, apartment, block, flat, saved address, items, delivery assignment and status history. Seller print uses the protected `/exports/seller/orders/:orderId/print.pdf` endpoint; customer print uses the browser print action. Seller status transitions are presented as explicit actions mapped to the backend transition rules.
 - Dashboard navigation is role-aware at the application entry point: customers use Home, Orders and Profile; sellers use their fulfilment workspace; Global Admin uses the admin workspace. Responsive CSS keeps the same navigation model on desktop, tablet and phone layouts, with phone dashboards using a labeled bottom navigation bar.
 
-## Current UI and mobile packaging checkpoint — 2026-09-23
+## Current UI, mobile packaging, and hosting checkpoint — 2026-09-24
 
 The active splash is implemented as React markup and CSS rather than an external image asset, allowing the logo, captions, marketplace wording, and bag label to remain responsive. The mobile project is an Expo WebView shell around the same web application, so APK testing exercises the same routes and API behavior as browser testing. Android package identifier: `com.gatedcart.marketplace`.
+
+The completed hosted topology is:
+
+| Component | Deployment | URL/configuration |
+|---|---|---|
+| Web frontend | Render Static Site | `https://gatedcart.cheritech.com` |
+| REST API | Render Web Service | `https://gatedcart-api.onrender.com/api/v1` |
+| Database | Render PostgreSQL | Internal URL for the API; external URL plus SSL `require` for pgAdmin |
+| Android client | Expo/EAS WebView APK | Loads the hosted frontend and calls the hosted API |
+
+The frontend is built with `VITE_API_URL=https://gatedcart-api.onrender.com/api/v1`. The Expo/EAS preview environment uses `EXPO_PUBLIC_WEB_APP_URL=https://gatedcart.cheritech.com` and `EXPO_PUBLIC_API_URL=https://gatedcart-api.onrender.com/api/v1`. The Android preview APK build completed successfully and was tested with the hosted services. Render's generated `onrender.com` API hostname is intentionally used; a second custom domain is not required.

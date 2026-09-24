@@ -99,10 +99,19 @@ npm run db:status
 - Development checkpoint: `docs/development-progress.md`
 - API reference: `docs/api.md`
 
-## Current implementation checkpoint — 2026-09-23
+## Current implementation checkpoint — 2026-09-24
 
 - The active web customer, seller, delivery, and admin workspaces share the same authenticated application and backend API.
 - The customer splash screen uses the built-in responsive HTML/CSS artwork; the previously tested external SVG splash asset is not part of the active app.
 - OTP entry displays dash placeholders until the user enters the code. Local development OTP validation still uses the last five phone digits.
 - The database should remain empty for fresh manual testing unless `npm run db:seed` is intentionally run. Seed data is test-only and is not required for the schema or application structure.
 - The mobile wrapper uses the device-accessible web URL and API URL. A preview APK is the recommended artifact for physical-device testing; production signing and Play Store release remain separate steps.
+
+## Hosted deployment checkpoint — 2026-09-24
+
+- The web application is hosted as a Render Static Site at `https://gatedcart.cheritech.com`.
+- The backend is hosted as a Render Web Service at `https://gatedcart-api.onrender.com`; API routes use the `/api/v1` prefix.
+- The Render PostgreSQL database is the production persistence target. The API uses Render's internal database URL; local pgAdmin uses the database's external URL with PostgreSQL SSL mode `require`.
+- The static site build uses `npm ci && npm run build`, publishes `dist`, and receives `VITE_API_URL=https://gatedcart-api.onrender.com/api/v1` through Render environment variables.
+- The API service uses `npx prisma migrate deploy --schema prisma/schema.prisma && npm run api:start` as its start command and receives `FRONTEND_URL=https://gatedcart.cheritech.com` and `PORT=10000` through Render environment variables. No seed command is part of deployment.
+- The Expo/EAS preview environment uses `EXPO_PUBLIC_WEB_APP_URL=https://gatedcart.cheritech.com` and `EXPO_PUBLIC_API_URL=https://gatedcart-api.onrender.com/api/v1`. The Android preview APK was built successfully and tested against the hosted services.

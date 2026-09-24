@@ -270,6 +270,11 @@ function GatedCartSplashScreen({ onContinue }) {
   return <main className="gatedcart-splash" onClick={onContinue}><div className="splash-orb splash-orb-one" /><div className="splash-orb splash-orb-two" /><section className="splash-content"><div className="splash-brand-lockup"><GatedCartLogo /><strong>Right at your Doorstep.</strong></div><div className="splash-benefits"><span><i>⌁</i><b>Local<br />Products</b></span><span><i>●</i><b>Local<br />Vendors</b></span><span><i>♟</i><b>Stronger<br />Communities</b></span></div><div className="splash-grocery-art"><div className="grocery-leaf leaf-a" /><div className="grocery-leaf leaf-b" /><div className="grocery-item tomato" /><div className="grocery-item apple" /><div className="grocery-item orange" /><div className="grocery-item bottle" /><div className="grocery-bag"><span className="grocery-bag-brand"><b>Gated</b><strong>Cart</strong></span></div></div></section><div className="splash-community-note">SHOP <i /> SUPPORT LOCAL <i /> STRONGER TOGETHER</div><div className="splash-dots"><b /><i /><i /></div></main>;
 }
 
+function HostedImageSplashScreen({ onContinue }) {
+  useEffect(() => { const timer = window.setTimeout(onContinue, 2200); return () => window.clearTimeout(timer); }, [onContinue]);
+  return <main className="gatedcart-splash gatedcart-image-splash" onClick={onContinue}><img src="/splash.png" alt="GatedCart — Your Community Marketplace" /></main>;
+}
+
 function GatedCartLoginScreen({ onAuthenticated }) {
   const [phone, setPhone] = useState(''); const [otp, setOtp] = useState(''); const [step, setStep] = useState('phone'); const [developmentOtp, setDevelopmentOtp] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
   useEffect(() => { if (step === 'otp') document.querySelectorAll('.otp-input').forEach(input => { input.placeholder = '-----'; }); }, [step]);
@@ -280,7 +285,7 @@ function GatedCartLoginScreen({ onAuthenticated }) {
 
 function LoginScreen({ onAuthenticated }) {
   const [showSplash, setShowSplash] = useState(true);
-  return showSplash ? <GatedCartSplashScreen onContinue={() => setShowSplash(false)} /> : <GatedCartLoginScreen onAuthenticated={onAuthenticated} />;
+  return showSplash ? <HostedImageSplashScreen onContinue={() => setShowSplash(false)} /> : <GatedCartLoginScreen onAuthenticated={onAuthenticated} />;
 }
 
 function AdminLoginScreen({ onAuthenticated }) {

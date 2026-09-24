@@ -2404,9 +2404,11 @@ Build in this order:
 
 # 84. Final Instruction to Code Generator
 
-## Current repository checkpoint — 2026-09-23
+## Current repository checkpoint — 2026-09-24
 
-The repository currently contains a working V1 web/API implementation plus an Expo WebView mobile shell. The active splash uses the built-in responsive HTML/CSS artwork, with Local Products wording, centered marketplace caption, and GatedCart bag branding. OTP fields use dash placeholders while retaining the documented dummy OTP validation. The database can be kept empty for fresh testing; seed data is optional and must be loaded deliberately. Android device testing is performed through the Expo/EAS preview APK using the LAN-accessible web and API URLs.
+The repository currently contains a working V1 web/API implementation plus an Expo WebView mobile shell. The active splash uses the built-in responsive HTML/CSS artwork, with Local Products wording, centered marketplace caption, and GatedCart bag branding. OTP fields use dash placeholders while retaining the documented dummy OTP validation. The database can be kept empty for fresh testing; seed data is optional and must be loaded deliberately. The hosted deployment uses Render for the frontend, API, and PostgreSQL database, with the web app at `https://gatedcart.cheritech.com` and the API at `https://gatedcart-api.onrender.com/api/v1`. The Expo/EAS preview APK has been built and tested against those hosted URLs.
+
+Deployment details are maintained in `README.md`, `docs/release-checklist.md`, `docs/technical-architecture.md`, `docs/api.md`, and `mobile/README.md`. The Render API uses the internal PostgreSQL URL, while local pgAdmin uses the external PostgreSQL URL with SSL mode `require`. The deployed frontend receives `VITE_API_URL`; EAS receives `EXPO_PUBLIC_WEB_APP_URL` and `EXPO_PUBLIC_API_URL`. No database seed is run automatically during deployment.
 
 Do not create a superficial demo.
 

@@ -10,10 +10,10 @@
 - [x] Mobile customer OTP login, Home filters, Orders history, and role API preview surfaces implemented.
 - [x] Android Metro export smoke test passes with Expo SDK-compatible dependencies.
 - [~] Connect remaining seller, delivery, and admin mobile screens to authenticated API services; core role queue/status/settings actions are connected and product/report/admin-resource parity remains.
-- [ ] Add production API URL through EAS environment variables.
+- [x] Add hosted web/API URLs through the Expo/EAS preview environment variables.
 - [x] Add branded source app icon and splash assets to the Expo project.
 - [ ] Finalize platform-specific PNG/adaptive icon and notification assets for store submission.
-- [ ] Test Android APK/AAB on physical devices.
+- [x] Build and test the Android preview APK on a physical device.
 - [ ] Test iOS archive/TestFlight on a physical device.
 
 ## Google Play Console requirements
@@ -36,8 +36,24 @@
 - [ ] App privacy details, screenshots, description, and support URL.
 - [ ] TestFlight review and production submission.
 
-## Local APK handoff — 2026-09-23
+## APK and hosted-service handoff — 2026-09-24
 
-The preview build target is the Expo `preview` profile. Before installing on a phone, set `EXPO_PUBLIC_WEB_APP_URL` and `EXPO_PUBLIC_API_URL` to the computer's LAN address, start the web app with `npm run dev -- --host 0.0.0.0`, start the API, and ensure Windows Firewall permits the development ports. The generated APK is for local testing only and is not a signed Play Store release.
+The preview build target is the Expo `preview` profile. The tested hosted configuration is:
 
-Current limitation: this workspace is not logged into EAS, so the cloud APK build is waiting for Expo account authentication. Run `npx eas login` from `mobile/`, then rerun the preview build command.
+- `EXPO_PUBLIC_WEB_APP_URL=https://gatedcart.cheritech.com`
+- `EXPO_PUBLIC_API_URL=https://gatedcart-api.onrender.com/api/v1`
+
+The Android preview APK was built through EAS and installed successfully. It is an internal/testing APK, not a signed Play Store production release. The production AAB, store listing, privacy policy, Data Safety form, and iOS/TestFlight release remain outstanding.
+
+For future builds, authenticate with `npx eas login` from `mobile/` and run `npx eas build --platform android --profile preview`.
+
+## Render deployment checklist
+
+- [x] Render Static Site deployed at `gatedcart.cheritech.com`.
+- [x] Render Web Service deployed at `gatedcart-api.onrender.com`.
+- [x] Render PostgreSQL database provisioned.
+- [x] API configured with the Render internal database URL, JWT secrets, `FRONTEND_URL`, and `PORT=10000`.
+- [x] Prisma migrations configured through the API start command.
+- [x] Static site configured with `VITE_API_URL`.
+- [x] GoDaddy CNAME `gatedcart` configured for the Render static site and HTTPS certificate verified.
+- [ ] Add persistent/object storage for uploaded product images before production scale; Render service local storage is not durable across redeploys.

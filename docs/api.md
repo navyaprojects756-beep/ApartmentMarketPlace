@@ -83,6 +83,15 @@ Authorization: Bearer <accessToken>
 
 The implementation uses backend scope checks for apartment sellers, outside seller delivery areas, delivery-boy seller/apartment links, order ownership, and admin roles.
 
-## Current client checkpoint — 2026-09-23
+## Current client and deployment checkpoint — 2026-09-24
 
 The web and Expo wrapper currently use the same authenticated API-backed application. Customer OTP login, community setup, seller application/status, seller workspace navigation, cart/checkout, order tracking, seller order actions, and admin navigation are wired through the documented API boundary. The OTP input uses a visual dash placeholder only; the backend contract remains unchanged and still validates the development OTP.
+
+### Hosted API configuration
+
+- Production API base URL: `https://gatedcart-api.onrender.com/api/v1`
+- Production web origin: `https://gatedcart.cheritech.com`
+- Browser builds read the API base URL from `VITE_API_URL`.
+- Expo/EAS builds read the API base URL from `EXPO_PUBLIC_API_URL` and the hosted web URL from `EXPO_PUBLIC_WEB_APP_URL`.
+- The backend CORS setting must use `FRONTEND_URL=https://gatedcart.cheritech.com`.
+- Render services should use the internal PostgreSQL connection URL. External PostgreSQL credentials are only for local tools such as pgAdmin.

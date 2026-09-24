@@ -242,13 +242,18 @@ Verification checkpoint: database migration status, web build, backend build, An
 
 ## Known technical follow-ups
 
-## 2026-09-23 checkpoint
+## 2026-09-24 checkpoint
 
 - Restored the built-in HTML/CSS splash screen after removing the external SVG splash experiment.
 - Refined splash branding: Local Products wording, centered marketplace caption, and GatedCart text on the shopping bag.
 - OTP entry now shows dashes instead of a row of zeros before input.
 - Web production build passes with `npm run build`.
-- The next device-validation artifact is an Android preview APK from the Expo/EAS mobile wrapper. Physical-device testing requires the web/API URLs to be reachable from the phone over the local network.
+- The Android preview APK from the Expo/EAS mobile wrapper has been built and tested against the hosted web/API URLs.
+- Render hosting is now configured: the frontend is available at `https://gatedcart.cheritech.com`, the API is available at `https://gatedcart-api.onrender.com/api/v1`, and Render PostgreSQL is the hosted persistence target.
+- Render environment variables are configured for the static site (`VITE_API_URL`) and API (`DATABASE_URL`, `FRONTEND_URL`, `PORT`, and JWT secrets). The API uses Prisma migrations at startup and does not run seed data automatically.
+- The Expo/EAS preview environment now points to the hosted web/API URLs through `EXPO_PUBLIC_WEB_APP_URL` and `EXPO_PUBLIC_API_URL`.
+- The hosted Android preview APK was built successfully through EAS and installed/tested on a physical Android device. The APK is for internal testing; Play Store production AAB work remains separate.
+- Local pgAdmin connections use the Render PostgreSQL External Database URL, port `5432`, the generated database/user/password, and SSL mode `require`. Render services use the Internal Database URL.
 
 - Prisma's development dependency tree reports four high npm audit advisories in the current Prisma CLI toolchain; resolve through a reviewed Prisma upgrade rather than applying `npm audit fix --force` blindly.
 - 2026-09-19: Improved order workflows. Seller orders now load complete customer delivery context, line items, totals and printable PDFs; status changes use clear action buttons instead of a native dropdown. Customer order tracking now exposes address, items, payment, timeline, cancellation and print actions. Removed the customer-facing “Become a seller” section from Profile.
