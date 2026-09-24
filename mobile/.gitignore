@@ -1,0 +1,6 @@
+.expo
+.expo/
+dist-preview/
+.env
+.env.*
+!.env.example

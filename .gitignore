@@ -1,6 +1,8 @@
 node_modules/
 dist/
 mobile/dist-preview/
+.expo/
+mobile/.expo/
 .env
 .env.*
 !.env.example

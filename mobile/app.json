@@ -6,20 +6,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "gatedcart",
-    "icon": "./assets/icon.svg",
-    "splash": {
-      "image": "./assets/splash.svg",
-      "resizeMode": "contain",
-      "backgroundColor": "#fff8ec"
-    },
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gatedcart.marketplace"
     },
     "android": {
       "package": "com.gatedcart.marketplace",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#ff6b00"
       }
@@ -29,7 +24,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-splash-screen"
     ],
     "extra": {
       "router": {},
