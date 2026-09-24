@@ -28,3 +28,5 @@ npx eas build --platform android --profile preview
 ```
 
 The preview profile uses internal distribution and produces an installable Android APK when the EAS build completes. Set `EXPO_PUBLIC_WEB_APP_URL` and `EXPO_PUBLIC_API_URL` to the computer's LAN IP before building; the phone must be on the same network and the web/API ports must be reachable. This is a local test build, not a Play Store production artifact.
+
+EAS requires an authenticated Expo account. If the build asks for authentication, run `npx eas login` once and rerun the preview command. The local Metro Android export has been verified, but it is a bundle export and not an installable APK.

@@ -1,12 +1,17 @@
 {
   "expo": {
-    "name": "GatedCart Marketplace",
+    "name": "GatedCart",
+    "owner": "www.cheritech.com",
     "slug": "gatedcart-marketplace",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "gatedcart",
     "icon": "./assets/icon.svg",
-    "splash": { "image": "./assets/splash.svg", "resizeMode": "contain", "backgroundColor": "#fff8ec" },
+    "splash": {
+      "image": "./assets/splash.svg",
+      "resizeMode": "contain",
+      "backgroundColor": "#fff8ec"
+    },
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
@@ -25,6 +30,12 @@
     "plugins": [
       "expo-router",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f1bcf10f-eeb8-4ad1-9a42-070b7da16cf6"
+      }
+    }
   }
 }
