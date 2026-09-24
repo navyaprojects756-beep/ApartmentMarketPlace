@@ -16,7 +16,7 @@
       "package": "com.gatedcart.marketplace",
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
-        "backgroundColor": "#ff6b00"
+        "backgroundColor": "#fff9ef"
       }
     },
     "web": {
@@ -28,10 +28,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash.png",
-          "resizeMode": "cover",
+          "image": "./assets/icon.png",
+          "resizeMode": "contain",
           "backgroundColor": "#fff9ef",
-          "imageWidth": 330
+          "imageWidth": 220
         }
       ]
     ],

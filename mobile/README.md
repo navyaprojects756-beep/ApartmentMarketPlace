@@ -15,7 +15,7 @@ npx expo export --platform android --output-dir dist-preview --no-minify
 
 The Android/iOS package identifiers and branded icon/splash assets are configured in `app.json`. The app renders the same web application used by the browser through `react-native-webview`, so set `EXPO_PUBLIC_WEB_APP_URL` to the device-accessible web URL and set `EXPO_PUBLIC_API_URL` to the device-accessible API URL. For an Android emulator, use `http://10.0.2.2:5173` and `http://10.0.2.2:5000/api/v1`; for a physical device, use the computer's LAN IP and start Vite with `npm run dev -- --host 0.0.0.0`.
 
-The native Expo launch screen uses `assets/splash.png` through the `expo-splash-screen` plugin with the warm `#fff9ef` background. The hosted website splash uses the same artwork copied to the root `public/splash.png`; changing the asset requires a new website deployment and a new APK build for the native launch screen.
+The native Expo launch screen uses the centered `assets/icon.png` with the warm `#fff9ef` background through the `expo-splash-screen` plugin. Android may show this system launch screen briefly before the WebView starts; it cannot be removed completely. The hosted website splash uses the full `splash.png` artwork copied to the root `public/splash.png`; changing that asset requires a new website deployment, while changing the native icon/splash configuration requires a new APK build.
 
 For hosted builds, use:
 
