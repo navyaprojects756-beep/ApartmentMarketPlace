@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "api:dev": "tsx watch backend/src/server.ts",
+    "preapi:build": "prisma generate --schema prisma/schema.prisma",
     "api:build": "tsc -p backend/tsconfig.json",
     "api:start": "node backend/dist/server.js",
     "db:status": "prisma migrate status --schema prisma/schema.prisma",

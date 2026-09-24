@@ -91,6 +91,10 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => 
     response.status(error.code === 'P2025' ? 404 : 409).json({ error: { code: error.code, message: 'The requested database operation could not be completed' } });
     return;
   }
+  if (error instanceof Prisma.PrismaClientValidationError) {
+    response.status(500).json({ error: { code: 'PRISMA_CLIENT_OUT_OF_DATE', message: 'The API database client is out of date. Redeploy the API so Prisma regenerates from the current schema.' } });
+    return;
+  }
   response.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } });
 };
 
