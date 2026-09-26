@@ -33,6 +33,36 @@ adminResourcesRouter.patch('/apartments/:apartmentId', ...adminOnly, async (requ
   } catch (error) { next(error); }
 });
 
+adminResourcesRouter.get('/categories', ...adminOnly, async (_request, response, next) => {
+  try { response.json(await prisma.globalCategory.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { _count: { select: { products: true } } } })); } catch (error) { next(error); }
+});
+
+adminResourcesRouter.post('/categories', ...adminOnly, async (request, response, next) => {
+  try {
+    const input = z.object({ name: z.string().trim().min(2).max(100), imageUrl: z.string().url().nullable().optional(), sortOrder: z.number().int().default(0) }).parse(request.body);
+    response.status(201).json(await prisma.globalCategory.create({ data: input }));
+  } catch (error) { next(error); }
+});
+
+adminResourcesRouter.patch('/categories/:categoryId', ...adminOnly, async (request, response, next) => {
+  try {
+    const categoryId = z.string().uuid().parse(request.params.categoryId);
+    const input = z.object({ name: z.string().trim().min(2).max(100).optional(), imageUrl: z.string().url().nullable().optional(), sortOrder: z.number().int().optional(), isActive: z.boolean().optional() }).parse(request.body);
+    response.json(await prisma.globalCategory.update({ where: { id: categoryId }, data: input, include: { _count: { select: { products: true } } } }));
+  } catch (error) { next(error); }
+});
+
+adminResourcesRouter.delete('/categories/:categoryId', ...adminOnly, async (request, response, next) => {
+  try {
+    const categoryId = z.string().uuid().parse(request.params.categoryId);
+    const category = await prisma.globalCategory.findUnique({ where: { id: categoryId }, include: { _count: { select: { products: true } } } });
+    if (!category) { response.status(404).json({ error: { code: 'CATEGORY_NOT_FOUND', message: 'Category not found' } }); return; }
+    if (category._count.products > 0) { response.status(409).json({ error: { code: 'CATEGORY_IN_USE', message: 'Deactivate this category instead because products are assigned to it.' } }); return; }
+    await prisma.globalCategory.delete({ where: { id: categoryId } });
+    response.status(204).send();
+  } catch (error) { next(error); }
+});
+
 adminResourcesRouter.post('/apartments/:apartmentId/blocks', ...adminOnly, async (request, response, next) => {
   try { const apartmentId = z.string().uuid().parse(request.params.apartmentId); const input = z.object({ name: z.string().trim().min(1).max(80) }).parse(request.body); response.status(201).json(await prisma.block.create({ data: { apartmentId, name: input.name } })); } catch (error) { next(error); }
 });
