@@ -13,7 +13,7 @@ This is the restart/checkpoint document. Update it whenever a meaningful develop
 
 Current phase: Client integration, end-to-end workflows, and release verification.
 
-Last checkpoint: 2026-09-19
+Last checkpoint: 2026-09-26
 
 Verification checkpoint: database migration status, web build, backend build, Android export, and 11 database-backed HTTP/core tests pass.
 
@@ -224,7 +224,7 @@ Verification checkpoint: database migration status, web build, backend build, An
 - [x] Delivery queue API now supports scoped apartment/seller/status filters and configurable grouping by apartment, seller, or status.
 - [x] Reworked the active customer storefront interaction: product quantities use minus/count/plus controls, cart summary exposes a direct Go to cart action, and cart state is shared across storefront navigation.
 - [x] Customer navigation now preserves the access token in local storage, opens Profile from the top account chip, exposes Orders through bottom navigation, shows apartment/block/flat details, keeps seller registration and advertisement requests, and provides explicit logout from Profile.
-- [x] Customer cart is now restricted to one seller at a time; adding from another seller shows a confirmation toast, and confirmation clears the old cart before adding the new item.
+- [x] Customer cart now supports products from multiple sellers; cart items are grouped by seller and checkout creates one order per seller.
 - [x] Customer storefront now keeps Go to cart as a bottom action bar only, while Profile provides an editable apartment/block/flat registration form backed by `POST /api/v1/apartments/me`.
 - [x] Re-ran the idempotent database seed and verified dummy role data: 46 users, 4 apartments, 3 blocks, 6 flats, 6 sellers, 1 delivery profile, 107 products, 14 categories, 13 orders, and 38 apartment associations currently exist in PostgreSQL.
 - [x] Reset PostgreSQL data while preserving the Prisma table structure, reapplied the initial migration, and reseeded the clean database: 10 users, 4 apartments, 3 blocks, 4 flats, 6 sellers, 1 delivery profile, 68 products, 14 categories, and 10 orders.
@@ -276,3 +276,15 @@ Verification checkpoint: database migration status, web build, backend build, An
 - 2026-09-19: Replaced deprecated React Native `SafeAreaView` with `react-native-safe-area-context` and added `SafeAreaProvider` to the Expo root layout; Android export completed successfully.
 - 2026-09-19: Reworked the mobile customer shell navigation with working Home, Orders, Profile and logout/back flows, plus a persistent bottom navigation bar; Android export verified after the change.
 - 2026-09-20: Replaced the divergent native Expo customer shell with a WebView wrapper around the same web application; Android and iOS now use the exact website login, routes, navigation, seller workflows, checkout, orders, profile, seller, delivery, and admin screens. Added device-accessible web/API URL documentation; Android export and web build verified.
+## 2026-09-26 customer commerce and UI checkpoint
+
+- [x] Category products now navigate to the shared product-details view.
+- [x] Product-details imagery uses a contained, consistently sized frame with rounded corners and reduced excess whitespace.
+- [x] Category/product cards use stable image areas and fixed locations for quantity controls, whether or not product instructions exist.
+- [x] Empty product categories use a designed empty state with category context instead of an empty page.
+- [x] Customer storefront and category/product pages expose the orange-themed `Go to cart` action consistently; the cart header icon is hidden on the cart screen.
+- [x] Cart product rows navigate to product details and support inline quantity increase/decrease controls.
+- [x] Multi-seller cart checkout creates separate seller orders and passes the placed orders to the animated confirmation screen.
+- [x] Order confirmation includes animated success treatment, order-number summary, `Track order`, and `Continue shopping` actions. Tracking opens detailed order view with the newest order expanded.
+- [x] Seller fulfillment labels distinguish delivery-enabled sellers from takeaway/pickup-only sellers.
+- [x] Render deployment documentation distinguishes automatic Prisma schema migrations from intentionally manual seed/data operations.

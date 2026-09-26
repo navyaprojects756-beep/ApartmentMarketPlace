@@ -126,6 +126,20 @@ npm run db:status
 - Apartment settings contain seller visibility (`Community`, `Outside`, or `Both`) and apartment-specific carousel uploads.
 - Carousel images use a consistent responsive display frame with automatic rotation and pointer/touch swiping. Recommended carousel assets are `1200 × 500 px` (12:5); product images are recommended at `1000 × 1000 px`.
 
+## Customer commerce and UI update - 2026-09-26
+
+- Category browsing opens the shared product-details view for every product, with corrected image framing, rounded corners, fixed product-card image areas, and stable quantity controls.
+- Empty categories use a designed empty state instead of a blank page.
+- Storefront, category, and product-detail pages expose the orange-themed `Go to cart` action consistently; the cart header icon is hidden on the cart screen.
+- Customers can add products from multiple sellers in one cart. Items are grouped by seller and checkout creates one order per seller.
+- Cart items link back to product details and support increasing/decreasing quantity directly from the cart.
+- Seller fulfillment labels show delivery only for delivery-enabled sellers; pickup-only sellers are shown as takeaway.
+- After checkout, customers see an animated order-confirmation page with order numbers, tracking, and expanded order details.
+
+## Database deployment note
+
+Render applies committed Prisma schema migrations during API startup through `prisma migrate deploy`. Existing business records are preserved. The deployment does not automatically run `prisma/seed.ts`; seed/demo records require an intentional `npm run db:seed` execution.
+
 When the Prisma schema changes, run before starting the API:
 
 ```bash

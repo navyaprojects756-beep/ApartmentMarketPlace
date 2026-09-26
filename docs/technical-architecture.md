@@ -219,3 +219,11 @@ The frontend is built with `VITE_API_URL=https://gatedcart-api.onrender.com/api/
 - Home carousel promotions are either application-wide or apartment-targeted through `AdvertisementTargetApartment`. Customer Home combines both scopes for the user's primary apartment.
 - The web carousel uses a fixed responsive 12:5 frame, contains the whole image, auto-rotates, and supports touch/pointer swiping.
 - Apartment settings manage seller visibility and apartment-specific carousel uploads. Seller product forms consume only active Global Admin categories.
+## 2026-09-26 customer commerce and deployment update
+
+- The customer cart supports multiple sellers. Items are grouped by seller and checkout creates one order per seller.
+- Cart rows support inline quantity changes and navigation to product details. Category and storefront products use the same product-details view.
+- Product and category cards use stable image areas and fixed quantity-control placement. Empty categories use a designed empty state.
+- Seller fulfillment presentation is capability-based: delivery is shown only when the seller is delivery-enabled; otherwise the customer sees pickup/takeaway.
+- Checkout passes the created seller orders to an animated confirmation page. Tracking opens detailed order information with the newest order expanded.
+- Render runs `prisma migrate deploy` from the API start command, so committed migrations update database structure during deployment. Existing business records remain in PostgreSQL; seed scripts are not run automatically.

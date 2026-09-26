@@ -50,6 +50,16 @@ For future builds, authenticate with `npx eas login` from `mobile/` and run `npx
 
 ## Render deployment checklist
 
+## Current customer commerce verification
+
+- [x] Category and storefront products open the shared product-details view.
+- [x] Product images, product-card image areas, rounded corners, and quantity-control placement are consistent across responsive customer screens.
+- [x] Empty categories show a designed empty state.
+- [x] Multi-seller cart groups items by seller and creates one order per seller.
+- [x] Cart rows support product-details navigation and quantity increase/decrease controls.
+- [x] Checkout opens the animated order-confirmation page with order tracking.
+- [x] Render API startup applies committed Prisma migrations and does not run seed data automatically.
+
 - [x] Render Static Site deployed at `gatedcart.cheritech.com`.
 - [x] Render Web Service deployed at `gatedcart-api.onrender.com`.
 - [x] Render PostgreSQL database provisioned.

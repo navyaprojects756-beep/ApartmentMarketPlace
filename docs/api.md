@@ -107,3 +107,8 @@ The web and Expo wrapper currently use the same authenticated API-backed applica
 - The backend CORS setting must use `FRONTEND_URL=https://gatedcart.cheritech.com`.
 - Render services should use the internal PostgreSQL connection URL. External PostgreSQL credentials are only for local tools such as pgAdmin.
 - The native launch screen and launcher icon are packaged by Expo and are independent of the API; the WebView then loads the hosted frontend and uses the API base URL above.
+## Multi-seller checkout and deployment behavior
+
+The customer cart groups items by seller and submits one `POST /orders` request for each seller. Each request creates an independent order with its own status history, inventory changes, seller queue entry, and order number. Customer order tracking retrieves the resulting orders through `GET /orders`.
+
+The Render API start command runs `npx prisma migrate deploy --schema prisma/schema.prisma`. Committed Prisma migrations are applied automatically during API deployment. Existing records are preserved unless a migration explicitly changes data. `prisma/seed.ts` is not part of the Render start command and does not run automatically.
