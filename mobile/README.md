@@ -43,3 +43,7 @@ The preview profile uses internal distribution and produces an installable Andro
 EAS requires an authenticated Expo account. Run `npx eas login` once before building. The successful hosted build was created with `npx eas build --platform android --profile preview`; the resulting APK was installed and tested on a physical Android device. The local Metro Android export is only a bundle export and is not an installable APK.
 
 The Expo project is owned by the `www.cheritech.com` organization, uses slug `gatedcart-marketplace`, and has Android package `com.gatedcart.marketplace` and iOS bundle identifier `com.gatedcart.marketplace`. The EAS project ID is recorded in `app.json`.
+
+## Shared marketplace update — 2026-09-26
+
+The WebView now includes Global Admin-managed product categories, apartment-scoped category product browsing, application-wide plus apartment-targeted home carousel images, apartment seller visibility settings, and touch/swipe carousel navigation. These features require the deployed API to run the latest Prisma migration before building or testing the mobile shell.

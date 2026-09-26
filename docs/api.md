@@ -36,6 +36,13 @@ Authorization: Bearer <accessToken>
 - `POST /reviews`
 - `POST /uploads/image` — authenticated local JPEG/PNG/WebP image upload from a data URL
 
+### Global categories and category browsing
+
+- `GET /home/categories` — active global product categories for the authenticated customer.
+- `GET /home/categories/:categoryId/products` — products in a global category from approved/open sellers serving the customer's primary apartment.
+- `GET/POST/PATCH/DELETE /admin/categories` — Global Admin category management, including image URL, ordering, active status, and safe deletion checks.
+- `GET /seller/catalog-categories` — active global categories available to seller product forms.
+
 ## Commerce and delivery
 
 - `GET /carts/:sellerId`
@@ -50,6 +57,8 @@ Authorization: Bearer <accessToken>
 ## Admin and reporting
 
 - `PATCH /admin/apartments/:apartmentId` with `{ sellerDisplayMode: "LOCAL_ONLY" | "OUTSIDE_ONLY" | "BOTH" }` updates seller visibility for one apartment. The UI labels `LOCAL_ONLY` as `Community Sellers`.
+- `GET/POST /admin/home-promotions` — application-wide home carousel images.
+- `GET/POST /admin/apartments/:apartmentId/home-promotions` — apartment-targeted home carousel images.
 - `PATCH /sellers/:sellerId/status`
 - `POST /advertisements/requests`
 - `GET /advertisements/requests`
@@ -80,6 +89,8 @@ Authorization: Bearer <accessToken>
 - `GET /exports/seller/orders.pdf`
 - `GET /exports/seller/orders/:orderId/print.pdf`
 - `GET /health`
+
+Seller-category endpoints remain available only for backward compatibility with existing records; the active seller UI uses `/seller/catalog-categories` and `Product.globalCategoryId` for new and edited products.
 
 The implementation uses backend scope checks for apartment sellers, outside seller delivery areas, delivery-boy seller/apartment links, order ownership, and admin roles.
 

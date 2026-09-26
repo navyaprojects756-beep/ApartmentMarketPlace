@@ -210,3 +210,12 @@ The completed hosted topology is:
 | Android client | Expo/EAS WebView APK | Loads the hosted frontend and calls the hosted API |
 
 The frontend is built with `VITE_API_URL=https://gatedcart-api.onrender.com/api/v1`. The Expo/EAS preview environment uses `EXPO_PUBLIC_WEB_APP_URL=https://gatedcart.cheritech.com` and `EXPO_PUBLIC_API_URL=https://gatedcart-api.onrender.com/api/v1`. The Android preview APK build completed successfully and was tested with the hosted services. Render's generated `onrender.com` API hostname is intentionally used; a second custom domain is not required.
+
+## 2026-09-26 implementation update
+
+- `GlobalCategory` is the shared product taxonomy managed by Global Admin. Products reference it through `Product.globalCategoryId`; the legacy seller-category relation remains for backward compatibility.
+- Global Admin category CRUD supports optional images, ordering, active/deactive state, and safe deletion checks.
+- Customer category discovery is apartment-scoped: results include products from approved/open community sellers in the apartment and approved/open outside sellers with an approved delivery area.
+- Home carousel promotions are either application-wide or apartment-targeted through `AdvertisementTargetApartment`. Customer Home combines both scopes for the user's primary apartment.
+- The web carousel uses a fixed responsive 12:5 frame, contains the whole image, auto-rotates, and supports touch/pointer swiping.
+- Apartment settings manage seller visibility and apartment-specific carousel uploads. Seller product forms consume only active Global Admin categories.

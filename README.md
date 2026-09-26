@@ -116,3 +116,19 @@ npm run db:status
 - The API service uses `npx prisma migrate deploy --schema prisma/schema.prisma && npm run api:start` as its start command and receives `FRONTEND_URL=https://gatedcart.cheritech.com` and `PORT=10000` through Render environment variables. No seed command is part of deployment.
 - The Expo/EAS preview environment uses `EXPO_PUBLIC_WEB_APP_URL=https://gatedcart.cheritech.com` and `EXPO_PUBLIC_API_URL=https://gatedcart-api.onrender.com/api/v1`. The Android preview APK was built successfully and tested against the hosted services.
 - The final native launch configuration uses the centered `mobile/assets/icon.png` on a warm `#fff9ef` background; the full `mobile/assets/splash.png` artwork is used by the hosted website splash after the WebView starts.
+
+## Latest marketplace features — 2026-09-26
+
+- Global Admin now manages shared product categories, including category images and active/inactive status.
+- Seller product creation uses active global categories; seller-owned category management is removed from the active seller navigation. Products may use `Other` when no shared category applies.
+- Customer Home displays global category chips with images. Selecting a category opens products from all approved/open sellers serving the customer's apartment.
+- Home carousel promotions support application-wide images and apartment-targeted images. Customers receive both global images and images targeted to their primary apartment.
+- Apartment settings contain seller visibility (`Community`, `Outside`, or `Both`) and apartment-specific carousel uploads.
+- Carousel images use a consistent responsive display frame with automatic rotation and pointer/touch swiping. Recommended carousel assets are `1200 × 500 px` (12:5); product images are recommended at `1000 × 1000 px`.
+
+When the Prisma schema changes, run before starting the API:
+
+```bash
+npx prisma generate --schema prisma/schema.prisma
+npx prisma migrate deploy --schema prisma/schema.prisma
+```
