@@ -9,3 +9,6 @@ mobile/.expo/
 *.log
 coverage/
 uploads/
+firebase-service-account.json
+firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json

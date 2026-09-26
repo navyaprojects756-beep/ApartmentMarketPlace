@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { readFileSync } from 'node:fs';
+import { getApp, getApps, initializeApp, cert } from 'firebase-admin/app';
+import { getAuth as getFirebaseAuth } from 'firebase-admin/auth';
 import { z } from 'zod';
 import type { RoleCode } from '@prisma/client';
 import { env } from '../config/env.js';
@@ -15,8 +18,9 @@ function normalizePhone(phone: string) {
 }
 
 function canonicalPhone(phone: string) {
-  const normalized = normalizePhone(phone).replace(/^\+91/, '');
-  return normalized === '9000000001' ? '9493499405' : normalizePhone(phone);
+  const normalized = normalizePhone(phone);
+  const canonical = normalized.replace(/^\+91/, '');
+  return canonical === '9000000001' ? '9493499405' : canonical;
 }
 
 function dummyOtp(phone: string) {
@@ -33,6 +37,42 @@ const bootstrapRoles: Array<{ code: RoleCode; name: string }> = [
 
 async function ensureSystemRoles() {
   for (const role of bootstrapRoles) await prisma.role.upsert({ where: { code: role.code }, update: { name: role.name }, create: role });
+}
+
+let firebaseAdminAuth: ReturnType<typeof getFirebaseAuth> | null = null;
+
+function getFirebaseAdminAuth() {
+  if (firebaseAdminAuth) return firebaseAdminAuth;
+  const serviceAccount = env.FIREBASE_SERVICE_ACCOUNT_PATH
+    ? JSON.parse(readFileSync(env.FIREBASE_SERVICE_ACCOUNT_PATH, 'utf8'))
+    : env.FIREBASE_PROJECT_ID && env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY
+      ? { projectId: env.FIREBASE_PROJECT_ID, clientEmail: env.FIREBASE_CLIENT_EMAIL, privateKey: env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') }
+      : null;
+  if (!serviceAccount) throw new Error('Firebase Admin credentials are not configured.');
+  const app = getApps().length ? getApp() : initializeApp({ credential: cert(serviceAccount) });
+  firebaseAdminAuth = getFirebaseAuth(app);
+  return firebaseAdminAuth;
+}
+
+async function upsertPhoneUser(phone: string, name?: string) {
+  await ensureSystemRoles();
+  const privilegedPhone = phone === '9493499405';
+  const roleCode: RoleCode = privilegedPhone ? 'GLOBAL_ADMIN' : 'CUSTOMER';
+  const role = await prisma.role.findUniqueOrThrow({ where: { code: roleCode } });
+  const user = await prisma.user.upsert({
+    where: { phone },
+    update: name ? { name } : {},
+    create: { phone, name, roles: { create: { roleId: role.id } } },
+  });
+  if (!(await prisma.userRole.findUnique({ where: { userId_roleId: { userId: user.id, roleId: role.id } } }))) await prisma.userRole.create({ data: { userId: user.id, roleId: role.id } });
+  const assignedRoles = await prisma.userRole.findMany({ where: { userId: user.id }, include: { role: true } });
+  const sellerRole = assignedRoles.find(item => ['APARTMENT_SELLER', 'OUTSIDE_SELLER'].includes(item.role.code));
+  if (sellerRole && !(await prisma.sellerProfile.findUnique({ where: { userId: user.id } }))) {
+    const sellerType = sellerRole.role.code === 'OUTSIDE_SELLER' ? 'OUTSIDE' : 'APARTMENT';
+    const primaryApartment = await prisma.userApartment.findFirst({ where: { userId: user.id, isPrimary: true } });
+    await prisma.sellerProfile.create({ data: { userId: user.id, sellerType, sellerName: user.name || user.phone, businessName: user.name || user.phone, apartmentId: sellerType === 'APARTMENT' ? primaryApartment?.apartmentId : undefined, status: 'PENDING', isOpen: false } });
+  }
+  return user;
 }
 
 function createAccessToken(userId: string, roles: RoleCode[]) {
@@ -69,23 +109,7 @@ authRouter.post('/request-otp', async (request, response, next) => {
   try {
     const { phone: rawPhone, name } = phoneSchema.parse(request.body);
     const phone = canonicalPhone(rawPhone);
-    await ensureSystemRoles();
-    const privilegedPhone = phone === '9493499405';
-    const roleCode: RoleCode = privilegedPhone ? 'GLOBAL_ADMIN' : 'CUSTOMER';
-    const role = await prisma.role.findUniqueOrThrow({ where: { code: roleCode } });
-    const user = await prisma.user.upsert({
-      where: { phone },
-      update: name ? { name } : {},
-      create: { phone, name, roles: { create: { roleId: role.id } } },
-    });
-    if (!(await prisma.userRole.findUnique({ where: { userId_roleId: { userId: user.id, roleId: role.id } } }))) await prisma.userRole.create({ data: { userId: user.id, roleId: role.id } });
-    const assignedRoles = await prisma.userRole.findMany({ where: { userId: user.id }, include: { role: true } });
-    const sellerRole = assignedRoles.find(item => ['APARTMENT_SELLER', 'OUTSIDE_SELLER'].includes(item.role.code));
-    if (sellerRole && !(await prisma.sellerProfile.findUnique({ where: { userId: user.id } }))) {
-      const sellerType = sellerRole.role.code === 'OUTSIDE_SELLER' ? 'OUTSIDE' : 'APARTMENT';
-      const primaryApartment = await prisma.userApartment.findFirst({ where: { userId: user.id, isPrimary: true } });
-      await prisma.sellerProfile.create({ data: { userId: user.id, sellerType, sellerName: user.name || user.phone, businessName: user.name || user.phone, apartmentId: sellerType === 'APARTMENT' ? primaryApartment?.apartmentId : undefined, status: 'PENDING', isOpen: false } });
-    }
+    const user = await upsertPhoneUser(phone, name);
     const otp = dummyOtp(phone);
     await prisma.otpRequest.create({
       data: {
@@ -112,6 +136,21 @@ authRouter.post('/verify-otp', async (request, response, next) => {
     }
     await prisma.otpRequest.update({ where: { id: record.id }, data: { verifiedAt: new Date() } });
     response.json(await sessionResponse(record.userId!));
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.post('/firebase/exchange', async (request, response, next) => {
+  try {
+    const { idToken, name } = z.object({ idToken: z.string().min(1), name: z.string().trim().min(2).max(120).optional() }).parse(request.body);
+    const decoded = await getFirebaseAdminAuth().verifyIdToken(idToken);
+    if (!decoded.phone_number) {
+      response.status(401).json({ error: { code: 'FIREBASE_PHONE_REQUIRED', message: 'A verified phone number is required.' } });
+      return;
+    }
+    const user = await upsertPhoneUser(canonicalPhone(decoded.phone_number), name || decoded.name);
+    response.json(await sessionResponse(user.id));
   } catch (error) {
     next(error);
   }

@@ -1,11 +1,56 @@
 import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import './styles.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000/api/v1` : 'http://localhost:5000/api/v1');
 const products = [];
 const API_ORIGIN = API_BASE.replace(/\/api\/v1\/?$/, '');
 const MEDIA_ORIGIN = typeof window !== 'undefined' && ['localhost', '127.0.0.1', '0.0.0.0'].includes(new URL(API_ORIGIN).hostname) ? `${window.location.protocol}//${window.location.hostname}:5000` : API_ORIGIN;
+const AUTH_PROVIDER = import.meta.env.VITE_AUTH_PROVIDER || 'dummy';
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+};
+let firebaseConfirmationResult = null;
+
+function getFirebaseClientAuth() {
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  return getAuth(app);
+}
+
+function firebasePhoneNumber(phone) {
+  const normalized = String(phone).replace(/[\s()-]/g, '');
+  return normalized.startsWith('+') ? normalized : `+91${normalized}`;
+}
+
+async function requestFirebaseOtp(phone) {
+  const auth = getFirebaseClientAuth();
+  if (!document.getElementById('firebase-recaptcha-container')) {
+    const container = document.createElement('div');
+    container.id = 'firebase-recaptcha-container';
+    document.body.appendChild(container);
+  }
+  if (!window.__gatedcartRecaptchaVerifier) {
+    window.__gatedcartRecaptchaVerifier = new RecaptchaVerifier(auth, 'firebase-recaptcha-container', { size: 'invisible' });
+  }
+  firebaseConfirmationResult = await signInWithPhoneNumber(auth, firebasePhoneNumber(phone), window.__gatedcartRecaptchaVerifier);
+}
+
+async function verifyFirebaseOtp(otp, name) {
+  if (!firebaseConfirmationResult) throw new Error('Request an OTP first.');
+  const credential = await firebaseConfirmationResult.confirm(otp);
+  const idToken = await credential.user.getIdToken();
+  const response = await fetch(`${API_BASE}/auth/firebase/exchange`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken, name }) });
+  const data = await readApiResponse(response);
+  if (!response.ok) throw new Error(data.error?.message || 'Unable to create your session.');
+  return data;
+}
 
 function assetUrl(url) {
   if (!url) return '';
@@ -378,9 +423,10 @@ function HostedImageSplashScreen({ onContinue }) {
 
 function GatedCartLoginScreen({ onAuthenticated }) {
   const [phone, setPhone] = useState(''); const [otp, setOtp] = useState(''); const [step, setStep] = useState('phone'); const [developmentOtp, setDevelopmentOtp] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
+  useEffect(() => { if (AUTH_PROVIDER === 'firebase') document.querySelectorAll('.gatedcart-login .otp-input').forEach(input => { input.maxLength = 6; input.placeholder = '------'; }); }, [step]);
   useEffect(() => { if (step === 'otp') document.querySelectorAll('.otp-input').forEach(input => { input.placeholder = '-----'; }); }, [step]);
-  async function requestOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { const response = await fetch(`${API_BASE}/auth/request-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) }); const data = await readApiResponse(response); if (!response.ok) throw new Error(data.error?.message || 'Unable to send OTP'); setDevelopmentOtp(data.developmentOtp || ''); setStep('otp'); } catch (requestError) { setError(requestError.message); } finally { setLoading(false); } }
-  async function verifyOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const data = await readApiResponse(response); if (!response.ok) throw new Error(data.error?.message || 'Invalid OTP'); onAuthenticated(data.accessToken); } catch (verifyError) { setError(verifyError.message); } finally { setLoading(false); } }
+  async function requestOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { if (AUTH_PROVIDER === 'firebase') { await requestFirebaseOtp(phone); setDevelopmentOtp(''); } else { const response = await fetch(`${API_BASE}/auth/request-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) }); const data = await readApiResponse(response); if (!response.ok) throw new Error(data.error?.message || 'Unable to send OTP'); setDevelopmentOtp(data.developmentOtp || ''); } setStep('otp'); } catch (requestError) { setError(requestError.message); } finally { setLoading(false); } }
+  async function verifyOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { const data = AUTH_PROVIDER === 'firebase' ? await verifyFirebaseOtp(otp) : await (async () => { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const result = await readApiResponse(response); if (!response.ok) throw new Error(result.error?.message || 'Invalid OTP'); return result; })(); onAuthenticated(data.accessToken); } catch (verifyError) { setError(verifyError.message); } finally { setLoading(false); } }
   return <main className="gatedcart-login"><div className="login-cloud cloud-a" /><div className="login-cloud cloud-b" /><header><GatedCartLogo /><div className="login-local-note">Shop Local<br /><strong>Live Better</strong><i /></div></header><section className="gatedcart-login-content"><div className="login-copy"><h1>{step === 'phone' ? 'Welcome Back!' : 'Verify your number'}</h1><p>{step === 'phone' ? 'Enter your mobile number to continue' : `Enter the 5-digit OTP sent to ${phone}`}</p></div>{step === 'phone' ? <form onSubmit={requestOtp}><label className="phone-field"><span className="phone-icon">▯</span><b>+91</b><span className="phone-chevron">⌄</span><i /><input value={phone} onChange={event => setPhone(event.target.value)} placeholder="Enter mobile number" inputMode="tel" required /></label><button className="gatedcart-orange-button" disabled={loading}>{loading ? 'Sending…' : 'Send OTP'} <span>→</span></button><small className="login-helper">We’ll send a 6-digit OTP to your mobile number</small></form> : <form onSubmit={verifyOtp}><label className="auth-label">One-time password</label><input className="auth-input otp-input" value={otp} onChange={event => setOtp(event.target.value)} placeholder="00000" inputMode="numeric" maxLength={5} autoFocus required />{developmentOtp && <p className="dev-otp">Development OTP: <strong>{developmentOtp}</strong></p>}<button className="gatedcart-orange-button" disabled={loading}>{loading ? 'Checking…' : 'Verify OTP'} <span>→</span></button><button type="button" className="auth-back" onClick={() => setStep('phone')}>Use a different number</button></form>}{error && <p className="auth-error">{error}</p>}</section><div className="delivery-illustration"><svg className="delivery-scene" viewBox="0 0 900 300" preserveAspectRatio="none" role="img" aria-label="A delivery rider on a scooter arriving at a leafy community gate"><rect width="900" height="300" fill="#fff" /><path d="M0 202h900v98H0z" fill="#f5fafc" /><g opacity=".72" fill="#dce8e8"><path d="M255 151h64V90h34v61h31v-81h54v81h48v-52h43v52h48v-68h55v68h68v-43h38v43h45v-25h52v25H255z" /><path d="M45 172h70V119h35v53h32v-68h52v68h40v-43h40v43H45z" /></g><g fill="#fff"><rect x="283" y="111" width="10" height="15"/><rect x="352" y="94" width="10" height="15"/><rect x="405" y="121" width="10" height="15"/><rect x="486" y="105" width="10" height="15"/><rect x="574" y="111" width="10" height="15"/><rect x="674" y="145" width="10" height="15"/></g><g fill="#b5d889"><circle cx="76" cy="166" r="41"/><circle cx="111" cy="148" r="39"/><circle cx="146" cy="171" r="45"/><circle cx="748" cy="175" r="42"/><circle cx="789" cy="147" r="48"/><circle cx="832" cy="175" r="40"/></g><g fill="#86be68"><path d="M82 198h12l-8-65h-9zM135 199h12l7-67h-9zM778 207h13l-2-71h-9zM824 205h12l9-65h-9z"/><path d="M35 179q38-37 76 0-38 30-76 0ZM735 184q45-48 91 0-42 35-91 0Z"/></g><g fill="none" stroke="#9bca94" stroke-width="12"><path d="M697 254V177c0-62 92-62 92 0v77"/><path d="M790 254V180c0-61 83-61 83 0v74"/><path d="M692 254h196"/></g><path d="M0 272Q370 184 900 248v52H0z" fill="#edf6f9"/><g transform="translate(112 176) scale(1.55)"><path d="M8 52h143c12 0 17-17 4-22l-35-12-28-25H45L19 19 0 28z" fill="#ff6808"/><path d="M35 8h55l17 20H20z" fill="#f7f8f5"/><path d="M48 1c1-25 18-36 32-31 15 5 22 20 17 34L85 17H54z" fill="#ff8030"/><path d="m74-26 21 9-5 17-22-4z" fill="#14213d"/><path d="M95-20 116 5l-8 4L91-13z" fill="#14213d"/><path d="M112 6h27l9 24-12 3-14-17z" fill="#ff6808"/><rect x="53" y="17" width="25" height="6" rx="3" fill="#fff"/><path d="M15 14 0 3l9-7 23 17z" fill="#ff6808"/><circle cx="36" cy="57" r="17" fill="#14213d"/><circle cx="36" cy="57" r="8" fill="#fff"/><circle cx="130" cy="57" r="17" fill="#14213d"/><circle cx="130" cy="57" r="8" fill="#fff"/><path d="M3 36h-24" stroke="#ff6808" stroke-width="5" stroke-linecap="round"/><path d="M-5 46h-40" stroke="#ff6808" stroke-width="3" stroke-linecap="round"/><path d="M-13 57h-23" stroke="#ff6808" stroke-width="3" stroke-linecap="round"/></g></svg></div><footer>SHOP <i /> SUPPORT LOCAL <i /> STRONGER TOGETHER</footer></main>;
 }
 
