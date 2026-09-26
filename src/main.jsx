@@ -1088,10 +1088,10 @@ function SellerCrudPortal({ accessToken, onLogout }) {
       const metric = event.target.closest?.('.dashboard-shell .metric-card');
       if (!metric) return;
       const label = metric.querySelector('span')?.textContent?.toLowerCase() || '';
-      if (label.includes('order')) document.querySelector('.dashboard-side button:nth-child(2)')?.click();
-      if (label.includes('product')) document.querySelector('.dashboard-side button:nth-child(3)')?.click();
-      if (label.includes('low stock')) document.querySelector('.dashboard-side button:nth-child(5)')?.click();
-      if (label.includes('store status')) document.querySelector('.dashboard-side button:nth-child(10)')?.click();
+      if (label.includes('order')) setTab('orders');
+      if (label.includes('product')) setTab('products');
+      if (label.includes('low stock')) setTab('inventory');
+      if (label.includes('store status')) setTab('settings');
     }
     document.addEventListener('click', handleSellerWorkspaceClick);
     return () => document.removeEventListener('click', handleSellerWorkspaceClick);
@@ -1144,7 +1144,7 @@ function SellerCrudPortal({ accessToken, onLogout }) {
 }
 
 function SellerArea({ accessToken, onLogout, onBack, onNavigate }) {
-  return <div className="seller-area-shell"><SellerCrudPortal accessToken={accessToken} onLogout={onLogout} /> </div>;
+  return <div className="seller-area-shell"><button type="button" className="seller-customer-return" onClick={onBack}>← Customer view</button><SellerCrudPortal accessToken={accessToken} onLogout={onLogout} /> </div>;
 }
 
 function App() {
