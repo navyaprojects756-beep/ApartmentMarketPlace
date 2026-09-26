@@ -212,7 +212,29 @@ button { cursor: pointer; border: 0; background: transparent; color: inherit; }
  .order-success-animation { display: grid; place-items: center; width: 42px; height: 42px; margin: 14px auto; border-radius: 50%; color: #fff; background: #35aa72; animation: order-success-pop .45s ease-out both; }
  .order-success-animation span { font-size: 24px; font-weight: 800; animation: order-success-check .35s .12s ease-out both; }
  @keyframes order-success-pop { from { opacity: 0; transform: scale(.45); } to { opacity: 1; transform: scale(1); } }
- @keyframes order-success-check { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+@keyframes order-success-check { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+.order-success-page { min-height: 100vh; background: linear-gradient(180deg, #fffaf4 0%, #fbfaff 100%); }
+.order-success-content { display: flex; min-height: calc(100vh - 70px); flex-direction: column; align-items: center; justify-content: center; padding: 82px 20px 112px; text-align: center; }
+.success-orbit { position: relative; width: 150px; height: 150px; margin-bottom: 20px; }
+.success-orbit::before { content: ''; position: absolute; inset: 14px; border: 1px dashed #ffd2b3; border-radius: 50%; animation: success-spin 12s linear infinite; }
+.success-check { position: absolute; inset: 32px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #ff6b00, #ff9a58); font-size: 52px; font-weight: 800; box-shadow: 0 14px 28px rgba(255, 107, 0, .24); animation: success-pop .7s cubic-bezier(.2, .8, .2, 1) both; }
+.success-spark { position: absolute; color: #ff6b00; font-weight: 800; animation: success-float 1.8s ease-in-out infinite alternate; }
+.spark-one { top: 10px; right: 9px; font-size: 24px; }
+.spark-two { bottom: 25px; left: 7px; font-size: 18px; animation-delay: .25s; }
+.spark-three { right: 17px; bottom: 7px; font-size: 28px; animation-delay: .5s; }
+.order-success-content .eyebrow { margin: 0 0 8px; color: #ff6b00; }
+.order-success-content h1 { margin: 0 0 10px; color: var(--ink); font-size: 32px; }
+.order-success-copy { max-width: 360px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.success-order-summary { width: min(360px, 100%); margin: 24px 0 18px; padding: 15px 18px; border: 1px solid #ffe0c8; border-radius: 16px; background: #fff; box-shadow: 0 8px 20px rgba(255, 107, 0, .07); }
+.success-order-summary > span { display: block; color: var(--muted); font-size: 11px; }
+.success-order-summary div { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 9px; }
+.success-order-summary strong { padding: 6px 9px; border-radius: 8px; color: #f05b12; background: #fff2e9; font-size: 11px; }
+.success-track-button { width: min(360px, 100%); margin: 0; }
+.success-secondary-button { margin-top: 13px; padding: 10px 14px; border-radius: 10px; color: #f05b12; background: transparent; font-size: 12px; font-weight: 800; }
+@keyframes success-pop { 0% { opacity: 0; transform: scale(.35); } 70% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes success-spin { to { transform: rotate(360deg); } }
+@keyframes success-float { from { transform: translateY(0) rotate(-8deg); } to { transform: translateY(-8px) rotate(8deg); } }
+@media (max-width: 560px) { .order-success-content h1 { font-size: 28px; } .success-orbit { width: 132px; height: 132px; } .success-check { inset: 28px; font-size: 44px; } }
  .admin-apartment-detail .nested-row { display: flex; align-items: center; margin-top: 8px; padding: 9px 12px; border-left: 2px solid #d9ccff; border-radius: 0 8px 8px 0; color: #615a70; background: #faf8ff; font-size: 11px; }
  .admin-apartment-detail .nested-row::before { content: '↳'; margin-right: 8px; color: #7654e8; font-weight: 700; }
  .admin-apartment-detail .nested-row form { display: none; }
