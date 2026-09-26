@@ -1,15 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, BackHandler, StyleSheet, View } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
+// Expo Go cannot use Android remote notifications from SDK 53 onward. Keep
+// Expo Go usable for UI testing, while loading notifications in standalone
+// and development builds where the native module is available.
+const Notifications = Constants.appOwnership === 'expo' ? null : require('expo-notifications');
+
 const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.46:5000/api/v1';
 const webUrl = process.env.EXPO_PUBLIC_WEB_APP_URL || 'http://192.168.1.46:5173';
 
-Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }) });
+Notifications?.setNotificationHandler({ handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }) });
 
 export default function Home() {
   const webViewRef = useRef(null);
@@ -31,6 +35,10 @@ export default function Home() {
     return () => subscription.remove();
   }, []);
   useEffect(() => {
+    if (!Notifications) {
+      console.log('[push] Expo Go detected; native remote notifications are skipped. Use an APK/development build for push testing.');
+      return undefined;
+    }
     let active = true;
     async function registerNotifications() {
       console.log('[push] starting native notification registration', { platform: Platform.OS });

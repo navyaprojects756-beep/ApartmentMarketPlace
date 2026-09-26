@@ -1392,20 +1392,23 @@ function App() {
   useEffect(() => { if (!accessToken) { setSellerStatus(null); return undefined; } fetch(`${API_BASE}/sellers/mine`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()).then(data => setSellerStatus(data?.status || null)).catch(() => setSellerStatus(null)); return undefined; }, [accessToken]);
   useEffect(() => {
     if (!accessToken) return undefined;
+    let registeredToken = '';
     const registerPushToken = event => {
       const token = event?.detail?.token || window.__gatedcartNativePushToken;
-      if (!token) return;
-      fetch(`${API_BASE}/push-devices`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ token, platform: event?.detail?.platform || 'android', deviceId: event?.detail?.deviceId }) }).then(response => { if (!response.ok) console.error('[push] device registration failed', response.status); else console.info('[push] device registered'); }).catch(error => console.error('[push] device registration request failed', error));
+      if (!token || token === registeredToken) return;
+      registeredToken = token;
+      fetch(`${API_BASE}/push-devices`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ token, platform: event?.detail?.platform || window.__gatedcartNativePushPlatform || 'android', deviceId: event?.detail?.deviceId }) }).then(response => { if (!response.ok) { registeredToken = ''; console.error('[push] device registration failed', response.status); } else console.info('[push] device registered'); }).catch(error => { registeredToken = ''; console.error('[push] device registration request failed', error); });
     };
     window.addEventListener('gatedcart-push-token', registerPushToken);
     registerPushToken({ detail: { token: window.__gatedcartNativePushToken, platform: window.__gatedcartNativePushPlatform } });
+    const retryTimer = window.setInterval(() => registerPushToken({ detail: { token: window.__gatedcartNativePushToken, platform: window.__gatedcartNativePushPlatform } }), 1000);
     window.__gatedcartNativeNotification = data => {
       if (data?.orderId) setNotificationOrderId(data.orderId);
       if (data?.route === 'seller-orders') setScreen('seller');
       else setScreen('orders');
     };
     if (window.__gatedcartPendingNotification) { window.__gatedcartNativeNotification(window.__gatedcartPendingNotification); delete window.__gatedcartPendingNotification; }
-    return () => { window.removeEventListener('gatedcart-push-token', registerPushToken); if (window.__gatedcartNativeNotification) delete window.__gatedcartNativeNotification; };
+    return () => { window.clearInterval(retryTimer); window.removeEventListener('gatedcart-push-token', registerPushToken); if (window.__gatedcartNativeNotification) delete window.__gatedcartNativeNotification; };
   }, [accessToken]);
   if (previewRole === 'seller') return <SellerDashboardScreen />;
   if (previewRole === 'delivery') return <DeliveryDashboardScreen />;
