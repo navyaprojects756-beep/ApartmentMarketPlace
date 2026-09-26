@@ -18,6 +18,7 @@ export default function Home() {
   const pendingNotification = useRef(null);
   const injectPushContext = () => {
     if (!webViewRef.current) return;
+    console.log('[push] injecting native push context into WebView', { hasToken: Boolean(pushToken.current), hasPendingNotification: Boolean(pendingNotification.current) });
     const tokenScript = pushToken.current ? `window.__gatedcartNativePushToken=${JSON.stringify(pushToken.current)};window.__gatedcartNativePushPlatform=${JSON.stringify(Platform.OS)};window.dispatchEvent(new CustomEvent('gatedcart-push-token',{detail:{token:${JSON.stringify(pushToken.current)},platform:${JSON.stringify(Platform.OS)}}});` : '';
     const notificationScript = pendingNotification.current ? `window.__gatedcartPendingNotification=${JSON.stringify(pendingNotification.current)};window.__gatedcartNativeNotification?.(window.__gatedcartPendingNotification);` : '';
     webViewRef.current.injectJavaScript(`${tokenScript}${notificationScript}true;`);
@@ -32,17 +33,21 @@ export default function Home() {
   useEffect(() => {
     let active = true;
     async function registerNotifications() {
+      console.log('[push] starting native notification registration', { platform: Platform.OS });
       if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync('orders', { name: 'Orders', importance: Notifications.AndroidImportance.MAX, sound: 'default', vibrationPattern: [0, 250, 250, 250] });
       const permissions = await Notifications.getPermissionsAsync();
+      console.log('[push] existing notification permission', permissions.status);
       const finalStatus = permissions.status === 'granted' ? permissions.status : (await Notifications.requestPermissionsAsync()).status;
+      console.log('[push] final notification permission', finalStatus);
       if (finalStatus !== 'granted') return;
       const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+      console.log('[push] resolved EAS project ID', projectId || 'missing');
       if (!projectId) throw new Error('Expo EAS project ID is missing from the native build.');
       const result = await Notifications.getExpoPushTokenAsync({ projectId });
-      console.log('Expo push token acquired for project', projectId);
+      console.log('[push] Expo push token acquired', { projectId, tokenSuffix: result.data.slice(-8) });
       if (active) { pushToken.current = result.data; injectPushContext(); }
     }
-    void registerNotifications().catch(error => console.warn('Push registration failed', error));
+    void registerNotifications().catch(error => console.error('[push] registration failed', error?.message || error));
     const received = Notifications.addNotificationReceivedListener(() => injectPushContext());
     const response = Notifications.addNotificationResponseReceivedListener(event => { pendingNotification.current = event.notification.request.content.data; injectPushContext(); });
     return () => { active = false; received.remove(); response.remove(); };
