@@ -287,4 +287,6 @@ Verification checkpoint: database migration status, web build, backend build, An
 - [x] Multi-seller cart checkout creates separate seller orders and passes the placed orders to the animated confirmation screen.
 - [x] Order confirmation includes animated success treatment, order-number summary, `Track order`, and `Continue shopping` actions. Tracking opens detailed order view with the newest order expanded.
 - [x] Seller fulfillment labels distinguish delivery-enabled sellers from takeaway/pickup-only sellers.
+- [x] Expo push notification registration is wired for the Android/iOS WebView app, including default sound, background/closed-app delivery, and tap routing data.
+- [x] Customers receive order-status push notifications and sellers receive new-order push notifications.
 - [x] Render deployment documentation distinguishes automatic Prisma schema migrations from intentionally manual seed/data operations.

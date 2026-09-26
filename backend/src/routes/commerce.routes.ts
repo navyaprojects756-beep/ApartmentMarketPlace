@@ -5,6 +5,7 @@ import { requireAuth } from '../middleware/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
 import { getPrimaryApartment } from '../services/home.service.js';
 import { getSellerAvailability } from '../utils/seller-hours.js';
+import { orderStatusMessage, sendPushNotifications } from '../services/push.service.js';
 
 export const commerceRouter = Router();
 
@@ -91,8 +92,14 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
         if (product.inventoryTracking) await tx.inventoryMovement.create({ data: { productId: product.id, type: 'SALE', quantity: -item.quantity, orderId: created.id, reason: `Order ${created.orderNumber}` } });
       }
       await tx.notification.create({ data: { userId: request.auth!.userId, type: 'ORDER_PLACED', title: 'Order placed', message: `Your order ${created.orderNumber} has been placed.` } });
+      await tx.notification.create({ data: { userId: seller.userId, type: 'ORDER_PLACED', title: 'New order received', message: `New order ${created.orderNumber} has been placed.` } });
       return created;
     });
+    const seller = await prisma.sellerProfile.findUnique({ where: { id: order.sellerId }, select: { userId: true } });
+    void sendPushNotifications([
+      { userId: order.customerId, title: 'Order placed', body: `Your order ${order.orderNumber} has been placed.`, data: { route: 'orders', orderId: order.id } },
+      ...(seller ? [{ userId: seller.userId, title: 'New order received', body: `New order ${order.orderNumber} has been placed.`, data: { route: 'seller-orders', orderId: order.id } }] : []),
+    ]);
     response.status(201).json(order);
   } catch (error) {
     next(error);
@@ -138,6 +145,9 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
         }
       });
     }
+    const notificationType = ({ ACCEPTED: 'ORDER_ACCEPTED', REJECTED: 'ORDER_REJECTED', PREPARING: 'ORDER_PREPARING', READY_FOR_PICKUP: 'ORDER_READY', ASSIGNED_TO_DELIVERY_BOY: 'DELIVERY_ASSIGNED', PICKED_UP: 'ORDER_PICKED_UP', OUT_FOR_DELIVERY: 'ORDER_OUT_FOR_DELIVERY', DELIVERED: 'ORDER_DELIVERED' } as Record<string, string>)[status] || 'SYSTEM';
+    await prisma.notification.create({ data: { userId: order.customerId, type: notificationType as never, title: 'Order update', message: orderStatusMessage(status), data: { route: 'orders', orderId: order.id, status } } });
+    void sendPushNotifications([{ userId: order.customerId, title: 'Order update', body: orderStatusMessage(status), data: { route: 'orders', orderId: order.id, status } }]);
     response.json(updated);
   } catch (error) {
     next(error);

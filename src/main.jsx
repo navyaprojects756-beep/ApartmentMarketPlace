@@ -1367,6 +1367,7 @@ function App() {
   const [sellerStatus, setSellerStatus] = useState(null);
   const [sessionReady, setSessionReady] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState([]);
+  const [notificationOrderId, setNotificationOrderId] = useState(null);
   useEffect(() => {
     const goBack = () => {
       if (screen === 'store') setScreen('home');
@@ -1389,6 +1390,23 @@ function App() {
     return undefined;
   }, []);
   useEffect(() => { if (!accessToken) { setSellerStatus(null); return undefined; } fetch(`${API_BASE}/sellers/mine`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()).then(data => setSellerStatus(data?.status || null)).catch(() => setSellerStatus(null)); return undefined; }, [accessToken]);
+  useEffect(() => {
+    if (!accessToken) return undefined;
+    const registerPushToken = event => {
+      const token = event?.detail?.token || window.__gatedcartNativePushToken;
+      if (!token) return;
+      fetch(`${API_BASE}/push-devices`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ token, platform: event?.detail?.platform || 'android', deviceId: event?.detail?.deviceId }) }).catch(() => {});
+    };
+    window.addEventListener('gatedcart-push-token', registerPushToken);
+    registerPushToken({ detail: { token: window.__gatedcartNativePushToken, platform: window.__gatedcartNativePushPlatform } });
+    window.__gatedcartNativeNotification = data => {
+      if (data?.orderId) setNotificationOrderId(data.orderId);
+      if (data?.route === 'seller-orders') setScreen('seller');
+      else setScreen('orders');
+    };
+    if (window.__gatedcartPendingNotification) { window.__gatedcartNativeNotification(window.__gatedcartPendingNotification); delete window.__gatedcartPendingNotification; }
+    return () => { window.removeEventListener('gatedcart-push-token', registerPushToken); if (window.__gatedcartNativeNotification) delete window.__gatedcartNativeNotification; };
+  }, [accessToken]);
   if (previewRole === 'seller') return <SellerDashboardScreen />;
   if (previewRole === 'delivery') return <DeliveryDashboardScreen />;
   if (previewRole === 'admin') return <AdminDashboardScreen />;
@@ -1421,7 +1439,7 @@ function App() {
     return <InteractiveMultiSellerCartScreen cart={cart} accessToken={accessToken} onAdd={addToCart} onRemove={removeFromCart} onBack={() => setScreen(returnScreen)} onComplete={orders => { setCart([]); setOrderSuccess(Array.isArray(orders) ? orders : []); setScreen('success'); }} showSeller={isApprovedSeller} onNavigate={navigateFromCart} />;
   }
   if (screen === 'success') return <OrderSuccessScreen orders={orderSuccess} onTrack={() => setScreen('orders')} onContinue={() => setScreen('home')} />;
-  if (screen === 'orders') return <DetailedOrdersScreen accessToken={accessToken} onBack={() => setScreen('home')} onProfile={() => setScreen('profile')} showSeller={isApprovedSeller} initialOrderId={orderSuccess?.[0]?.id} />;
+  if (screen === 'orders') return <DetailedOrdersScreen accessToken={accessToken} onBack={() => setScreen('home')} onProfile={() => setScreen('profile')} showSeller={isApprovedSeller} initialOrderId={notificationOrderId || orderSuccess?.[0]?.id} />;
   if (screen === 'category') return <CategoryProductsScreen categoryId={selectedCategory} accessToken={accessToken} onBack={() => setScreen('home')} onAdd={addToCart} onRemove={removeFromCart} cart={cart} cartCount={cartCount} showSeller={isApprovedSeller} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('cart') : target === 'profile' ? setScreen('profile') : undefined} />;
   if (screen === 'profile') return <ProfileScreen accessToken={accessToken} showSeller={isApprovedSeller} onBack={() => setScreen('home')} onOrders={() => setScreen('orders')} onSeller={() => setScreen('seller')} onSellerStatusChange={setSellerStatus} onLogout={() => { window.localStorage.removeItem('gatedcart_access_token'); setAccessToken(null); }} />;
   if (screen === 'seller') return <SellerArea accessToken={accessToken} onBack={() => setScreen('home')} onLogout={logout} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('orders') : target === 'profile' ? setScreen('profile') : undefined} />;

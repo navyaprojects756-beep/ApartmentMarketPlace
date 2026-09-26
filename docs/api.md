@@ -92,6 +92,13 @@ Authorization: Bearer <accessToken>
 
 Seller-category endpoints remain available only for backward compatibility with existing records; the active seller UI uses `/seller/catalog-categories` and `Product.globalCategoryId` for new and edited products.
 
+### Push notifications
+
+- `POST /push-devices` — authenticated mobile clients register an Expo push token with `token`, `platform` (`android` or `ios`), and optional `deviceId`.
+- `DELETE /push-devices/:token` — authenticated clients deactivate their push token during logout or uninstall cleanup.
+
+The API stores device tokens in `push_devices`. New orders notify the customer and seller; order status changes notify the customer. Push payloads use the default notification sound and include `route` and `orderId` data for mobile tap navigation.
+
 The implementation uses backend scope checks for apartment sellers, outside seller delivery areas, delivery-boy seller/apartment links, order ownership, and admin roles.
 
 ## Current client and deployment checkpoint — 2026-09-24

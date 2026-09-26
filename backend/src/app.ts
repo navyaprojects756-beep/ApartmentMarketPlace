@@ -24,6 +24,7 @@ import { exportRouter } from './routes/export.routes.js';
 import { adminResourcesRouter } from './routes/admin-resources.routes.js';
 import { uploadRouter } from './routes/upload.routes.js';
 import { searchRouter } from './routes/search.routes.js';
+import { pushRouter } from './routes/push.routes.js';
 import { openapi } from './openapi.js';
 import path from 'node:path';
 
@@ -75,6 +76,7 @@ app.use('/api/v1/admin', adminResourcesRouter);
 app.use('/api/v1/exports', exportRouter);
 app.use('/api/v1/uploads', uploadRouter);
 app.use('/api/v1/search', searchRouter);
+app.use('/api/v1', pushRouter);
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
 app.use((_request, response) => {
