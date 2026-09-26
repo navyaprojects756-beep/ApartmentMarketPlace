@@ -128,6 +128,16 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
       return;
     }
     const updated = await prisma.$transaction(async tx => { const item = await tx.order.update({ where: { id: orderId }, data: { status, ...(status === 'ACCEPTED' ? { acceptedAt: new Date() } : {}), ...(status === 'PREPARING' ? { preparingAt: new Date() } : {}), ...(status === 'READY_FOR_PICKUP' ? { readyAt: new Date() } : {}), ...(status === 'PICKED_UP' ? { pickedUpAt: new Date() } : {}), ...(status === 'DELIVERED' ? { deliveredAt: new Date() } : {}), ...(status === 'CANCELLED' ? { cancelledAt: new Date() } : {}) } }); if (status === 'CANCELLED' && order.status !== 'CANCELLED') { for (const orderItem of order.items) { const product = await tx.product.findUnique({ where: { id: orderItem.productId }, select: { inventoryTracking: true } }); if (product?.inventoryTracking) { const inventory = await tx.inventory.update({ where: { productId: orderItem.productId }, data: { quantity: { increment: orderItem.quantity } } }); await tx.inventoryMovement.create({ data: { productId: orderItem.productId, inventoryId: inventory.id, type: 'CANCELLED_ORDER', quantity: orderItem.quantity, orderId, reason: `Order ${order.orderNumber} cancelled` } }); } } } await tx.orderStatusHistory.create({ data: { orderId, fromStatus: order.status, toStatus: status, changedById: request.auth!.userId, note } }); await tx.auditLog.create({ data: { actorId: request.auth!.userId, action: 'ORDER_STATUS_CHANGED', entityType: 'Order', entityId: orderId, beforeData: { status: order.status }, afterData: { status }, } }); return item; });
+    if (status === 'REJECTED' && order.status !== 'REJECTED') {
+      await prisma.$transaction(async tx => {
+        for (const orderItem of order.items) {
+          const product = await tx.product.findUnique({ where: { id: orderItem.productId }, select: { inventoryTracking: true } });
+          if (!product?.inventoryTracking) continue;
+          const inventory = await tx.inventory.update({ where: { productId: orderItem.productId }, data: { quantity: { increment: orderItem.quantity } } });
+          await tx.inventoryMovement.create({ data: { productId: orderItem.productId, inventoryId: inventory.id, type: 'CANCELLED_ORDER', quantity: orderItem.quantity, orderId, reason: `Order ${order.orderNumber} rejected` } });
+        }
+      });
+    }
     response.json(updated);
   } catch (error) {
     next(error);

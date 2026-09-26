@@ -95,6 +95,18 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => 
     response.status(500).json({ error: { code: 'PRISMA_CLIENT_OUT_OF_DATE', message: 'The API database client is out of date. Redeploy the API so Prisma regenerates from the current schema.' } });
     return;
   }
+  if (error instanceof Error) {
+    const businessMessages: Record<string, string> = {
+      INSUFFICIENT_STOCK: 'This item is no longer available in the requested quantity.',
+      MAXIMUM_QUANTITY_EXCEEDED: 'The requested quantity is above the product limit.',
+      MINIMUM_QUANTITY_NOT_MET: 'The requested quantity is below the product minimum.',
+      STORE_CLOSED: 'This seller is currently closed.',
+    };
+    if (businessMessages[error.message]) {
+      response.status(409).json({ error: { code: error.message, message: businessMessages[error.message] } });
+      return;
+    }
+  }
   response.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } });
 };
 
