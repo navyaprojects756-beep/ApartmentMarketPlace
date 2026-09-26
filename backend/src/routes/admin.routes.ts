@@ -9,7 +9,27 @@ const homePromotionSchema = z.object({ imageUrls: z.array(z.string().url()).min(
 
 adminRouter.get('/home-promotions', requireAuth, requireRole('GLOBAL_ADMIN'), async (_request, response, next) => {
   try {
-    response.json(await prisma.advertisement.findMany({ where: { type: 'PROMOTION', sellerId: null }, orderBy: { createdAt: 'desc' } }));
+    response.json(await prisma.advertisement.findMany({ where: { type: 'PROMOTION', sellerId: null, targets: { none: {} } }, orderBy: { createdAt: 'desc' } }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get('/apartments/:apartmentId/home-promotions', requireAuth, requireRole('GLOBAL_ADMIN'), async (request, response, next) => {
+  try {
+    const apartmentId = z.string().uuid().parse(request.params.apartmentId);
+    response.json(await prisma.advertisement.findMany({ where: { type: 'PROMOTION', sellerId: null, targets: { some: { apartmentId } } }, orderBy: { createdAt: 'desc' } }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post('/apartments/:apartmentId/home-promotions', requireAuth, requireRole('GLOBAL_ADMIN'), async (request, response, next) => {
+  try {
+    const apartmentId = z.string().uuid().parse(request.params.apartmentId);
+    const input = homePromotionSchema.parse(request.body);
+    const created = await prisma.$transaction(input.imageUrls.map(imageUrl => prisma.advertisement.create({ data: { requesterId: request.auth!.userId, title: 'Apartment home promotion', imageUrl, imageUrls: [imageUrl], type: 'PROMOTION', status: 'APPROVED', endAt: input.endAt ?? null, approvedById: request.auth!.userId, approvedAt: new Date(), targets: { create: { apartmentId } } } })));
+    response.status(201).json(created);
   } catch (error) {
     next(error);
   }

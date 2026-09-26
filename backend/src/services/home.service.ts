@@ -16,7 +16,7 @@ export async function getHomeData(userId: string) {
     mode === 'OUTSIDE_ONLY' ? [] : prisma.sellerProfile.findMany({ where: { sellerType: 'APARTMENT', status: 'APPROVED', apartmentId: association.apartmentId }, select: sellerSelect, orderBy: { createdAt: 'asc' } }),
     mode === 'LOCAL_ONLY' ? [] : prisma.sellerProfile.findMany({ where: { sellerType: 'OUTSIDE', status: 'APPROVED', deliveryAreas: { some: { apartmentId: association.apartmentId, isApproved: true } } }, select: sellerSelect, orderBy: { createdAt: 'asc' } }),
     prisma.advertisement.findMany({ where: { status: 'APPROVED', type: { not: 'PROMOTION' }, AND: [{ OR: [{ startAt: null }, { startAt: { lte: new Date() } }] }, { OR: [{ endAt: null }, { endAt: { gte: new Date() } }] }, { OR: [{ targets: { none: {} } }, { targets: { some: { apartmentId: association.apartmentId } } }] }] }, orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }], take: 10 }),
-    prisma.advertisement.findMany({ where: { type: 'PROMOTION', sellerId: null, status: 'APPROVED', OR: [{ startAt: null }, { startAt: { lte: new Date() } }], AND: [{ OR: [{ endAt: null }, { endAt: { gte: new Date() } }] }] }, orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }], take: 10 }),
+    prisma.advertisement.findMany({ where: { type: 'PROMOTION', sellerId: null, status: 'APPROVED', OR: [{ startAt: null }, { startAt: { lte: new Date() } }], AND: [{ OR: [{ endAt: null }, { endAt: { gte: new Date() } }] }, { OR: [{ targets: { none: {} } }, { targets: { some: { apartmentId: association.apartmentId } } }] }] }, orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }], take: 10 }),
   ]);
 
   const available = (sellers: typeof localSellers) => sellers.filter(seller => getSellerAvailability(seller).isOpen);
