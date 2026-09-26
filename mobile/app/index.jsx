@@ -10,8 +10,7 @@ import { WebView } from 'react-native-webview';
 // and development builds where the native module is available.
 const Notifications = Constants.appOwnership === 'expo' ? null : require('expo-notifications');
 
-const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.46:5000/api/v1';
-const webUrl = process.env.EXPO_PUBLIC_WEB_APP_URL || 'http://192.168.1.46:5173';
+const webUrl = process.env.EXPO_PUBLIC_WEB_APP_URL || 'https://gatedcart.cheritech.com';
 
 Notifications?.setNotificationHandler({ handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }) });
 
