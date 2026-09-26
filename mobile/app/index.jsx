@@ -36,8 +36,10 @@ export default function Home() {
       const permissions = await Notifications.getPermissionsAsync();
       const finalStatus = permissions.status === 'granted' ? permissions.status : (await Notifications.requestPermissionsAsync()).status;
       if (finalStatus !== 'granted') return;
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-      const result = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+      if (!projectId) throw new Error('Expo EAS project ID is missing from the native build.');
+      const result = await Notifications.getExpoPushTokenAsync({ projectId });
+      console.log('Expo push token acquired for project', projectId);
       if (active) { pushToken.current = result.data; injectPushContext(); }
     }
     void registerNotifications().catch(error => console.warn('Push registration failed', error));
