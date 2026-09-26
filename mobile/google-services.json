@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "316530384743",
+    "project_id": "apartmentmarketplace-1336a",
+    "storage_bucket": "apartmentmarketplace-1336a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:316530384743:android:b35219e6fc15d88cc799c2",
+        "android_client_info": {
+          "package_name": "com.gatedcart.marketplace"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKNRVSNMcLadrEzVHk6QirWjbOJOyK-HQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
