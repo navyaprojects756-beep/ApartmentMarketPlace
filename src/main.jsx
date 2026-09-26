@@ -5,6 +5,50 @@ import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth
 import './styles.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000/api/v1` : 'http://localhost:5000/api/v1');
+const registerNativePushDevice = (token, platform = 'android', deviceId) => {
+  if (typeof window === 'undefined' || !token) return;
+  const accessToken = window.localStorage.getItem('gatedcart_access_token');
+  if (!accessToken || window.__gatedcartPushRegistrationToken === token) return;
+  window.__gatedcartPushRegistrationToken = token;
+  fetch(`${API_BASE}/push-devices`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ token, platform, deviceId }),
+  }).then(response => {
+    if (!response.ok) {
+      window.__gatedcartPushRegistrationToken = '';
+      console.error('[push] device registration failed', response.status);
+    } else {
+      console.info('[push] device registered');
+    }
+  }).catch(error => {
+    window.__gatedcartPushRegistrationToken = '';
+    console.error('[push] device registration request failed', error);
+  });
+};
+
+if (typeof window !== 'undefined' && !window.__gatedcartPushRegistrationBound) {
+  window.__gatedcartPushRegistrationBound = true;
+  const rememberAndRegister = event => {
+    const detail = event?.detail || {};
+    const token = detail.token || window.__gatedcartNativePushToken;
+    if (!token) return;
+    window.__gatedcartPendingNativePush = {
+      token,
+      platform: detail.platform || window.__gatedcartNativePushPlatform || 'android',
+      deviceId: detail.deviceId,
+    };
+    registerNativePushDevice(token, window.__gatedcartPendingNativePush.platform, detail.deviceId);
+  };
+  window.addEventListener('gatedcart-push-token', rememberAndRegister);
+  window.__gatedcartPushRegistrationTimer = window.setInterval(() => {
+    const pending = window.__gatedcartPendingNativePush || {
+      token: window.__gatedcartNativePushToken,
+      platform: window.__gatedcartNativePushPlatform || 'android',
+    };
+    if (pending.token) registerNativePushDevice(pending.token, pending.platform, pending.deviceId);
+  }, 1000);
+}
 const products = [];
 const API_ORIGIN = API_BASE.replace(/\/api\/v1\/?$/, '');
 const MEDIA_ORIGIN = typeof window !== 'undefined' && ['localhost', '127.0.0.1', '0.0.0.0'].includes(new URL(API_ORIGIN).hostname) ? `${window.location.protocol}//${window.location.hostname}:5000` : API_ORIGIN;
@@ -1392,23 +1436,14 @@ function App() {
   useEffect(() => { if (!accessToken) { setSellerStatus(null); return undefined; } fetch(`${API_BASE}/sellers/mine`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()).then(data => setSellerStatus(data?.status || null)).catch(() => setSellerStatus(null)); return undefined; }, [accessToken]);
   useEffect(() => {
     if (!accessToken) return undefined;
-    let registeredToken = '';
-    const registerPushToken = event => {
-      const token = event?.detail?.token || window.__gatedcartNativePushToken;
-      if (!token || token === registeredToken) return;
-      registeredToken = token;
-      fetch(`${API_BASE}/push-devices`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ token, platform: event?.detail?.platform || window.__gatedcartNativePushPlatform || 'android', deviceId: event?.detail?.deviceId }) }).then(response => { if (!response.ok) { registeredToken = ''; console.error('[push] device registration failed', response.status); } else console.info('[push] device registered'); }).catch(error => { registeredToken = ''; console.error('[push] device registration request failed', error); });
-    };
-    window.addEventListener('gatedcart-push-token', registerPushToken);
-    registerPushToken({ detail: { token: window.__gatedcartNativePushToken, platform: window.__gatedcartNativePushPlatform } });
-    const retryTimer = window.setInterval(() => registerPushToken({ detail: { token: window.__gatedcartNativePushToken, platform: window.__gatedcartNativePushPlatform } }), 1000);
+    registerNativePushDevice(window.__gatedcartNativePushToken, window.__gatedcartNativePushPlatform || 'android');
     window.__gatedcartNativeNotification = data => {
       if (data?.orderId) setNotificationOrderId(data.orderId);
       if (data?.route === 'seller-orders') setScreen('seller');
       else setScreen('orders');
     };
     if (window.__gatedcartPendingNotification) { window.__gatedcartNativeNotification(window.__gatedcartPendingNotification); delete window.__gatedcartPendingNotification; }
-    return () => { window.clearInterval(retryTimer); window.removeEventListener('gatedcart-push-token', registerPushToken); if (window.__gatedcartNativeNotification) delete window.__gatedcartNativeNotification; };
+    return () => { if (window.__gatedcartNativeNotification) delete window.__gatedcartNativeNotification; };
   }, [accessToken]);
   if (previewRole === 'seller') return <SellerDashboardScreen />;
   if (previewRole === 'delivery') return <DeliveryDashboardScreen />;
