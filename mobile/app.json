@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "gatedcart",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon-padded.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -16,6 +16,7 @@
       "package": "com.gatedcart.marketplace",
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
+        "foregroundImage": "./assets/icon-padded.png",
         "backgroundColor": "#fff9ef"
       }
     },
