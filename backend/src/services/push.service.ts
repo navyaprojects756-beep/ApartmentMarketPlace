@@ -17,6 +17,7 @@ export async function sendPushNotifications(messages: PushMessage[]) {
   if (!messages.length) return;
   try {
     const devices = (await Promise.all([...new Set(messages.map(message => message.userId))].map(userId => prisma.$queryRaw<Array<{ id: string; userId: string; token: string }>>`SELECT id, user_id AS "userId", token FROM push_devices WHERE user_id = ${userId}::uuid AND is_active = true`))).flat();
+    console.log(`[push] preparing ${messages.length} message(s) for ${devices.length} active device(s)`);
     const messageByUser = new Map(messages.map(message => [message.userId, message]));
     const validDevices = devices.filter(device => isExpoToken(device.token));
     for (let index = 0; index < validDevices.length; index += 100) {
@@ -31,6 +32,7 @@ export async function sendPushNotifications(messages: PushMessage[]) {
       });
       if (!response.ok) console.error('Expo push request failed:', response.status, await response.text());
       const result = await response.json().catch(() => null) as { data?: Array<{ status?: string; details?: { error?: string } }> } | null;
+      console.log('[push] Expo ticket result:', JSON.stringify(result));
       const invalidIds = batch.filter((_device, batchIndex) => result?.data?.[batchIndex]?.details?.error === 'DeviceNotRegistered').map(device => device.id);
       for (const id of invalidIds) await prisma.$executeRaw`UPDATE push_devices SET is_active = false WHERE id = ${id}::uuid`;
     }

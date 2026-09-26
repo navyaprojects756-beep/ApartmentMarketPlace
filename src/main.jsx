@@ -1395,7 +1395,7 @@ function App() {
     const registerPushToken = event => {
       const token = event?.detail?.token || window.__gatedcartNativePushToken;
       if (!token) return;
-      fetch(`${API_BASE}/push-devices`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ token, platform: event?.detail?.platform || 'android', deviceId: event?.detail?.deviceId }) }).catch(() => {});
+      fetch(`${API_BASE}/push-devices`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ token, platform: event?.detail?.platform || 'android', deviceId: event?.detail?.deviceId }) }).then(response => { if (!response.ok) console.error('[push] device registration failed', response.status); else console.info('[push] device registered'); }).catch(error => console.error('[push] device registration request failed', error));
     };
     window.addEventListener('gatedcart-push-token', registerPushToken);
     registerPushToken({ detail: { token: window.__gatedcartNativePushToken, platform: window.__gatedcartNativePushPlatform } });
