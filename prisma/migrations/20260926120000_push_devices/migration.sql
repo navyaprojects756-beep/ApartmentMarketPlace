@@ -17,4 +17,4 @@ CREATE UNIQUE INDEX "push_devices_token_key" ON "push_devices"("token");
 CREATE INDEX "push_devices_user_id_is_active_idx" ON "push_devices"("user_id", "is_active");
 
 ALTER TABLE "push_devices" ADD CONSTRAINT "push_devices_user_id_fkey"
-  FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
