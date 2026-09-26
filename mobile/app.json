@@ -27,7 +27,13 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "orders",
+          "color": "#ff6800"
+        }
+      ],
       [
         "expo-splash-screen",
         {
