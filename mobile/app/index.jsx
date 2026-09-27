@@ -11,6 +11,7 @@ import { WebView } from 'react-native-webview';
 const Notifications = Constants.appOwnership === 'expo' ? null : require('expo-notifications');
 
 const webUrl = process.env.EXPO_PUBLIC_WEB_APP_URL || 'https://gatedcart.cheritech.com';
+const apiUrl = 'https://gatedcart-api.onrender.com/api/v1';
 
 Notifications?.setNotificationHandler({ handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }) });
 
@@ -22,7 +23,7 @@ export default function Home() {
   const injectPushContext = () => {
     if (!webViewRef.current) return;
     console.log('[push] injecting native push context into WebView', { hasToken: Boolean(pushToken.current), hasPendingNotification: Boolean(pendingNotification.current) });
-    const tokenScript = pushToken.current ? `window.__gatedcartNativePushToken=${JSON.stringify(pushToken.current)};window.__gatedcartNativePushPlatform=${JSON.stringify(Platform.OS)};window.dispatchEvent(new CustomEvent('gatedcart-push-token',{detail:{token:${JSON.stringify(pushToken.current)},platform:${JSON.stringify(Platform.OS)}}});` : '';
+    const tokenScript = pushToken.current ? `window.__gatedcartNativePushToken=${JSON.stringify(pushToken.current)};window.__gatedcartNativePushPlatform=${JSON.stringify(Platform.OS)};window.dispatchEvent(new CustomEvent('gatedcart-push-token',{detail:{token:${JSON.stringify(pushToken.current)},platform:${JSON.stringify(Platform.OS)}}});(function(){if(window.__gatedcartNativePushTimer)clearInterval(window.__gatedcartNativePushTimer);var token=${JSON.stringify(pushToken.current)};var register=function(){var auth=window.localStorage.getItem('gatedcart_access_token');window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:'push-debug',hasToken:true,hasAccessToken:Boolean(auth),url:window.location.href}));if(!auth||window.__gatedcartPushRegistrationToken===token)return;window.__gatedcartPushRegistrationToken=token;fetch('${apiUrl}/push-devices',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+auth},body:JSON.stringify({token:token,platform:${JSON.stringify(Platform.OS)}})}).then(function(response){window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:'push-registration',status:response.status}));if(!response.ok)window.__gatedcartPushRegistrationToken='';else clearInterval(window.__gatedcartNativePushTimer)}).catch(function(error){window.__gatedcartPushRegistrationToken='';window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:'push-registration-error',message:String(error)}))})};register();window.__gatedcartNativePushTimer=setInterval(register,1000);})();` : '';
     const notificationScript = pendingNotification.current ? `window.__gatedcartPendingNotification=${JSON.stringify(pendingNotification.current)};window.__gatedcartNativeNotification?.(window.__gatedcartPendingNotification);` : '';
     webViewRef.current.injectJavaScript(`${tokenScript}${notificationScript}true;`);
   };
@@ -60,7 +61,13 @@ export default function Home() {
     return () => { active = false; received.remove(); response.remove(); };
   }, []);
   function handleMessage(event) {
-    try { canNavigateBack.current = Boolean(JSON.parse(event.nativeEvent.data).canGoBack); } catch { canNavigateBack.current = false; }
+    try {
+      const message = JSON.parse(event.nativeEvent.data);
+      if (message.type === 'push-debug') console.log('[push] WebView state', message);
+      if (message.type === 'push-registration') console.log('[push] WebView registration response', message.status);
+      if (message.type === 'push-registration-error') console.error('[push] WebView registration error', message.message);
+      canNavigateBack.current = Boolean(message.canGoBack);
+    } catch { canNavigateBack.current = false; }
   }
   return <SafeAreaView style={styles.safe} edges={['top', 'bottom']}><WebView ref={webViewRef} source={{ uri: webUrl }} onMessage={handleMessage} onLoadEnd={injectPushContext} startInLoadingState renderLoading={() => <View style={styles.loading}><ActivityIndicator size="large" color="#6d4aff" /></View>} javaScriptEnabled domStorageEnabled allowsBackForwardNavigationGestures /></SafeAreaView>;
 }
