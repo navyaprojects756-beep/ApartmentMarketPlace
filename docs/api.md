@@ -76,6 +76,7 @@ Authorization: Bearer <accessToken>
 - `GET /admin/dashboard`
 - `GET /admin/orders`
 - `GET /admin/audit-logs`
+- `GET /admin/error-logs` — Global Admin error diagnostics with request, user, status, and technical details.
 - `GET/POST/PATCH /admin/apartments`
 - `POST /admin/apartments/:apartmentId/blocks`
 - `PATCH /admin/blocks/:blockId`

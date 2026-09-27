@@ -136,6 +136,31 @@ model User {
   reviews           Review[]
   auditLogs         AuditLog[]             @relation("AuditActor")
   createdSettings   PlatformSetting[]      @relation("SettingCreator")
+  errorLogs         ErrorLog[]
+}
+
+model ErrorLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  requestId   String?  @map("request_id") @db.VarChar(80)
+  severity    String   @default("ERROR") @db.VarChar(20)
+  source      String   @default("API") @db.VarChar(30)
+  code        String?  @db.VarChar(120)
+  message     String   @db.Text
+  details     Json?
+  method      String?  @db.VarChar(12)
+  route       String?  @db.VarChar(500)
+  statusCode  Int?     @map("status_code")
+  ipAddress   String?  @map("ip_address") @db.VarChar(120)
+  userAgent   String?  @map("user_agent") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([severity, createdAt])
+  @@index([source, createdAt])
+  @@index([userId, createdAt])
+  @@map("error_logs")
 }
 
 model Role {

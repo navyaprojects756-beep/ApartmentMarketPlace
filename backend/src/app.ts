@@ -28,6 +28,9 @@ import { pushRouter } from './routes/push.routes.js';
 import { adminNotificationsRouter } from './routes/admin-notifications.routes.js';
 import { openapi } from './openapi.js';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { recordErrorLog } from './services/error-log.service.js';
+import { clientErrorsRouter } from './routes/client-errors.routes.js';
 
 export const app = express();
 
@@ -47,6 +50,12 @@ app.use(cors({ origin: (origin, callback) => {
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(morgan('dev'));
+app.use((request, response, next) => {
+  const requestId = typeof request.headers['x-request-id'] === 'string' ? request.headers['x-request-id'] : randomUUID();
+  response.setHeader('X-Request-Id', requestId);
+  (request as typeof request & { requestId: string }).requestId = requestId;
+  next();
+});
 // The admin preview makes several authenticated requests while loading each
 // workspace section. Keep production protected while allowing normal local
 // development and refresh cycles without a false "Too many requests" error.
@@ -82,14 +91,20 @@ app.use('/api/v1/exports', exportRouter);
 app.use('/api/v1/uploads', uploadRouter);
 app.use('/api/v1/search', searchRouter);
 app.use('/api/v1', pushRouter);
+app.use('/api/v1', clientErrorsRouter);
+app.use('/api/v1/admin', clientErrorsRouter);
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
-app.use((_request, response) => {
+app.use((request, response) => {
+  recordErrorLog({ source: 'API', code: 'NOT_FOUND', message: 'Route not found', request: { ...request, id: (request as typeof request & { requestId?: string }).requestId } as never, statusCode: 404, userId: null });
   response.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found' } });
 });
 
-const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
+const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
   console.error(error);
+  const requestId = (request as typeof request & { requestId?: string }).requestId;
+  const statusCode = error instanceof ZodError ? 400 : error instanceof Prisma.PrismaClientKnownRequestError ? (error.code === 'P2025' ? 404 : 409) : error instanceof Prisma.PrismaClientValidationError ? 500 : 500;
+  recordErrorLog({ error, code: error instanceof ZodError ? 'VALIDATION_ERROR' : error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined, request: { ...request, id: requestId } as never, statusCode, userId: (request as typeof request & { auth?: { userId?: string } }).auth?.userId });
   if (error instanceof ZodError) {
     response.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Request validation failed', details: error.flatten() } });
     return;
