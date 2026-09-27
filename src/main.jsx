@@ -8,13 +8,14 @@ const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' 
 const registerNativePushDevice = (token, platform = 'android', deviceId) => {
   if (typeof window === 'undefined' || !token) return;
   const accessToken = window.localStorage.getItem('gatedcart_access_token');
+  const currentDeviceId = deviceId || window.__gatedcartNativePushDeviceId;
   if (!accessToken || window.__gatedcartWebPushRegistrationToken === token) return;
   console.info('[push] attempting device registration', { api: `${API_BASE}/push-devices`, platform, tokenSuffix: token.slice(-8), hasAccessToken: true });
   window.__gatedcartWebPushRegistrationToken = token;
   fetch(`${API_BASE}/push-devices`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify({ token, platform, deviceId }),
+    body: JSON.stringify({ token, platform, deviceId: currentDeviceId }),
   }).then(async response => {
     const responseText = await response.text().catch(() => '');
     console.info('[push] device registration response', { status: response.status, body: responseText.slice(0, 300) });
@@ -29,6 +30,11 @@ const registerNativePushDevice = (token, platform = 'android', deviceId) => {
     console.error('[push] device registration request failed', error);
   });
 };
+const unregisterNativePushDevice = (token, accessToken) => {
+  if (typeof window === 'undefined' || !token || !accessToken) return;
+  void fetch(`${API_BASE}/push-devices/${encodeURIComponent(token)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => {});
+  window.__gatedcartWebPushRegistrationToken = '';
+};
 
 if (typeof window !== 'undefined' && !window.__gatedcartPushRegistrationBound) {
   window.__gatedcartPushRegistrationBound = true;
@@ -39,15 +45,16 @@ if (typeof window !== 'undefined' && !window.__gatedcartPushRegistrationBound) {
     window.__gatedcartPendingNativePush = {
       token,
       platform: detail.platform || window.__gatedcartNativePushPlatform || 'android',
-      deviceId: detail.deviceId,
+      deviceId: detail.deviceId || window.__gatedcartNativePushDeviceId,
     };
-    registerNativePushDevice(token, window.__gatedcartPendingNativePush.platform, detail.deviceId);
+    registerNativePushDevice(token, window.__gatedcartPendingNativePush.platform, window.__gatedcartPendingNativePush.deviceId);
   };
   window.addEventListener('gatedcart-push-token', rememberAndRegister);
   window.__gatedcartPushRegistrationTimer = window.setInterval(() => {
     const pending = window.__gatedcartPendingNativePush || {
       token: window.__gatedcartNativePushToken,
       platform: window.__gatedcartNativePushPlatform || 'android',
+      deviceId: window.__gatedcartNativePushDeviceId,
     };
     if (pending.token) registerNativePushDevice(pending.token, pending.platform, pending.deviceId);
   }, 1000);
@@ -1500,7 +1507,7 @@ function App() {
   useEffect(() => { if (!accessToken) { setSellerStatus(null); return undefined; } fetch(`${API_BASE}/sellers/mine`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()).then(data => setSellerStatus(data?.status || null)).catch(() => setSellerStatus(null)); return undefined; }, [accessToken]);
   useEffect(() => {
     if (!accessToken) return undefined;
-    registerNativePushDevice(window.__gatedcartNativePushToken, window.__gatedcartNativePushPlatform || 'android');
+    registerNativePushDevice(window.__gatedcartNativePushToken, window.__gatedcartNativePushPlatform || 'android', window.__gatedcartNativePushDeviceId);
     window.__gatedcartNativeNotification = data => {
       if (data?.orderId) setNotificationOrderId(data.orderId);
       if (data?.route === 'seller-orders') setScreen('seller');
@@ -1516,7 +1523,7 @@ function App() {
   if (!sessionReady) return <main className="auth-screen"><div className="auth-card session-loading"><Logo /><p className="auth-copy">Checking your GatedCart session…</p></div></main>;
   if (!accessToken) return <LoginScreen onAuthenticated={token => { window.localStorage.setItem('gatedcart_access_token', token); setAccessToken(token); fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).then(response => response.json()).then(setSessionUser).catch(() => {}); }} />;
   const roleCodes = (sessionUser?.roles || []).map(role => typeof role === 'string' ? role : role?.code || role?.role?.code).filter(Boolean);
-  const logout = () => { window.localStorage.removeItem('gatedcart_access_token'); setAccessToken(null); setSessionUser(null); };
+  const logout = () => { unregisterNativePushDevice(window.__gatedcartNativePushToken, accessToken); window.localStorage.removeItem('gatedcart_access_token'); setAccessToken(null); setSessionUser(null); };
   if (roleCodes.includes('GLOBAL_ADMIN')) return <AdminWorkspace token={accessToken} onLogout={logout} />;
   const isApprovedSeller = sellerStatus === 'APPROVED';
   const appendToCart = item => setCart(current => {
@@ -1543,9 +1550,9 @@ function App() {
   if (screen === 'success') return <OrderSuccessScreen orders={orderSuccess} onTrack={() => setScreen('orders')} onContinue={() => setScreen('home')} />;
   if (screen === 'orders') return <DetailedOrdersScreen accessToken={accessToken} onBack={() => setScreen('home')} onProfile={() => setScreen('profile')} showSeller={isApprovedSeller} initialOrderId={notificationOrderId || orderSuccess?.[0]?.id} />;
   if (screen === 'category') return <CategoryProductsScreen categoryId={selectedCategory} accessToken={accessToken} onBack={() => setScreen('home')} onAdd={addToCart} onRemove={removeFromCart} cart={cart} cartCount={cartCount} showSeller={isApprovedSeller} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('cart') : target === 'profile' ? setScreen('profile') : undefined} />;
-  if (screen === 'profile') return <ProfileScreen accessToken={accessToken} showSeller={isApprovedSeller} onBack={() => setScreen('home')} onOrders={() => setScreen('orders')} onSeller={() => setScreen('seller')} onSellerStatusChange={setSellerStatus} onLogout={() => { window.localStorage.removeItem('gatedcart_access_token'); setAccessToken(null); }} />;
+  if (screen === 'profile') return <ProfileScreen accessToken={accessToken} showSeller={isApprovedSeller} onBack={() => setScreen('home')} onOrders={() => setScreen('orders')} onSeller={() => setScreen('seller')} onSellerStatusChange={setSellerStatus} onLogout={logout} />;
   if (screen === 'seller') return <SellerArea accessToken={accessToken} onBack={() => setScreen('home')} onLogout={logout} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('orders') : target === 'profile' ? setScreen('profile') : undefined} />;
-  return screen === 'home' ? <HomeScreen accessToken={accessToken} showSeller={isApprovedSeller} cartCount={cartCount} onCart={() => setScreen('cart')} cartConflictItem={cartConflictItem} onConfirmCartConflict={confirmCartConflict} onCancelCartConflict={cancelCartConflict} onOrders={() => setScreen('orders')} onProfile={() => setScreen('profile')} onSeller={() => setScreen('seller')} onLogout={() => { window.localStorage.removeItem('gatedcart_access_token'); setAccessToken(null); }} onOpenCategory={categoryId => { setSelectedCategory(categoryId); setScreen('category'); }} onOpenSeller={(seller) => { setSelectedSeller(seller); setScreen('store'); }} /> : <CustomerStorefront seller={selectedSeller} accessToken={accessToken} onBack={() => setScreen('home')} onAdd={addToCart} onRemove={removeFromCart} onCart={() => setScreen('cart')} cart={cart} cartCount={cartCount} showSeller={isApprovedSeller} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('orders') : target === 'profile' ? setScreen('profile') : target === 'seller' ? setScreen('seller') : undefined} cartConflictItem={cartConflictItem} onConfirmCartConflict={confirmCartConflict} onCancelCartConflict={cancelCartConflict} stockNotice={stockNotice} onDismissStockNotice={() => setStockNotice('')} />;
+  return screen === 'home' ? <HomeScreen accessToken={accessToken} showSeller={isApprovedSeller} cartCount={cartCount} onCart={() => setScreen('cart')} cartConflictItem={cartConflictItem} onConfirmCartConflict={confirmCartConflict} onCancelCartConflict={cancelCartConflict} onOrders={() => setScreen('orders')} onProfile={() => setScreen('profile')} onSeller={() => setScreen('seller')} onLogout={logout} onOpenCategory={categoryId => { setSelectedCategory(categoryId); setScreen('category'); }} onOpenSeller={(seller) => { setSelectedSeller(seller); setScreen('store'); }} /> : <CustomerStorefront seller={selectedSeller} accessToken={accessToken} onBack={() => setScreen('home')} onAdd={addToCart} onRemove={removeFromCart} onCart={() => setScreen('cart')} cart={cart} cartCount={cartCount} showSeller={isApprovedSeller} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('orders') : target === 'profile' ? setScreen('profile') : target === 'seller' ? setScreen('seller') : undefined} cartConflictItem={cartConflictItem} onConfirmCartConflict={confirmCartConflict} onCancelCartConflict={cancelCartConflict} stockNotice={stockNotice} onDismissStockNotice={() => setStockNotice('')} />;
 }
 
 class ApplicationErrorBoundary extends Component {

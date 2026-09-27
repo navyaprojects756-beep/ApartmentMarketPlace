@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, BackHandler, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import { Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -20,6 +21,7 @@ export default function Home() {
   const canNavigateBack = useRef(false);
   const pushToken = useRef(null);
   const pendingNotification = useRef(null);
+  const deviceId = Application.androidId || Constants.deviceId || undefined;
   const injectPushContext = () => {
     if (!webViewRef.current) return;
     const tokenScript = pushToken.current ? `
@@ -30,15 +32,16 @@ export default function Home() {
         const send = payload => { try { window.ReactNativeWebView?.postMessage(JSON.stringify(payload)); } catch (error) {} };
         window.__gatedcartNativePushToken = token;
         window.__gatedcartNativePushPlatform = platform;
-        window.dispatchEvent(new CustomEvent('gatedcart-push-token', { detail: { token, platform } }));
+        window.__gatedcartNativePushDeviceId = ${JSON.stringify(deviceId)};
+        window.dispatchEvent(new CustomEvent('gatedcart-push-token', { detail: { token, platform, deviceId: window.__gatedcartNativePushDeviceId } }));
         if (window.__gatedcartNativePushTimer) clearInterval(window.__gatedcartNativePushTimer);
         const register = () => {
           let auth = '';
           try { auth = window.localStorage.getItem('gatedcart_access_token') || ''; } catch (error) { send({ type: 'push-registration-error', message: 'Unable to read the web session.' }); }
           if (!auth || window.__gatedcartNativePushRegistrationToken === token) return;
           window.__gatedcartNativePushRegistrationToken = token;
-          fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + auth }, body: JSON.stringify({ token, platform }) })
-            .then(async response => { await response.text(); send({ type: 'push-registration', status: response.status }); if (!response.ok) window.__gatedcartNativePushRegistrationToken = ''; else clearInterval(window.__gatedcartNativePushTimer); })
+          fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + auth }, body: JSON.stringify({ token, platform, deviceId }) })
+            .then(async response => { await response.text(); send({ type: 'push-registration', status: response.status, deviceId }); if (!response.ok) window.__gatedcartNativePushRegistrationToken = ''; else clearInterval(window.__gatedcartNativePushTimer); })
             .catch(error => { window.__gatedcartNativePushRegistrationToken = ''; send({ type: 'push-registration-error', message: String(error) }); });
         };
         register();
