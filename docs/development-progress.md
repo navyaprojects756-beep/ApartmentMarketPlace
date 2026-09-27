@@ -240,6 +240,20 @@ Verification checkpoint: database migration status, web build, backend build, An
 - [x] Verified customer visibility end to end for `9000000010`: restored Global Admin home visibility to `BOTH`; the customer Home now returns `Shop one` and its 3 available products for the matching apartment.
 - [ ] Add a dedicated lint configuration/script; the repository currently has no `lint` npm script.
 
+## 2026-09-27 push-notification diagnostic checkpoint
+
+- [x] Firebase Phone Authentication remains the login/session provider; Expo Push Service remains the notification transport for Android and iOS.
+- [x] Android FCM V1 credentials are configured in EAS for `com.gatedcart.marketplace`; the APK successfully acquires an Expo push token.
+- [x] Production WebView URL, notification permission, Android `orders` channel, default sound, and EAS project ID were verified in Android logcat.
+- [x] Frontend registration and native WebView fallback now register the token through authenticated `POST /api/v1/push-devices` and retry until the web session exists.
+- [x] Native, frontend, and API diagnostics log only safe metadata such as booleans, status values, and token suffixes.
+- [x] Render/Express proxy handling was corrected with `app.set('trust proxy', 1)` for `X-Forwarded-For` rate-limit validation.
+- [x] Frontend build, backend TypeScript validation, and Expo Android bundle export pass after the diagnostic changes.
+
+### Current investigation result
+
+Native token acquisition and production WebView loading are working. Earlier API logs showed no `POST /api/v1/push-devices`, so the remaining investigation is the WebView registration bridge—not Firebase permission or Expo token acquisition. The diagnostic APK should show `webview-probe`, `push-debug`, `push-registration-start`, and `push-registration` in `ReactNativeJS` logs. Vivo, CleverTap, Facebook, and Android system push-service logs are unrelated.
+
 ## Known technical follow-ups
 
 ## 2026-09-24 checkpoint

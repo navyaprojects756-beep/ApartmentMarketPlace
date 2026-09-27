@@ -41,12 +41,12 @@ export default function Home() {
           let auth = '';
           try { auth = window.localStorage.getItem('gatedcart_access_token') || ''; } catch (error) { send({ type: 'push-storage-error', message: String(error) }); }
           send({ type: 'push-debug', attempt: attempts, hasToken: true, tokenSuffix: token.slice(-8), hasAccessToken: Boolean(auth), url: window.location.href });
-          if (!auth || window.__gatedcartPushRegistrationToken === token) return;
-          window.__gatedcartPushRegistrationToken = token;
+          if (!auth || window.__gatedcartNativePushRegistrationToken === token) return;
+          window.__gatedcartNativePushRegistrationToken = token;
           send({ type: 'push-registration-start', api: endpoint });
           fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + auth }, body: JSON.stringify({ token, platform }) })
-            .then(async response => { const body = await response.text(); send({ type: 'push-registration', status: response.status, body: body.slice(0, 300) }); if (!response.ok) window.__gatedcartPushRegistrationToken = ''; else clearInterval(window.__gatedcartNativePushTimer); })
-            .catch(error => { window.__gatedcartPushRegistrationToken = ''; send({ type: 'push-registration-error', message: String(error) }); });
+            .then(async response => { const body = await response.text(); send({ type: 'push-registration', status: response.status, body: body.slice(0, 300) }); if (!response.ok) window.__gatedcartNativePushRegistrationToken = ''; else clearInterval(window.__gatedcartNativePushTimer); })
+            .catch(error => { window.__gatedcartNativePushRegistrationToken = ''; send({ type: 'push-registration-error', message: String(error) }); });
         };
         register();
         window.__gatedcartNativePushTimer = setInterval(register, 1000);

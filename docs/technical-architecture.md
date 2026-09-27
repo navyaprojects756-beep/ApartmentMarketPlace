@@ -186,6 +186,14 @@ When Global Admin assigns `APARTMENT_SELLER` or `OUTSIDE_SELLER`, the backend pr
 
 The current repository is a working V1 MVP rather than a finished production release. Core commerce and authorization paths are connected end to end. Remaining implementation is concentrated in global search, review/rating presentation, operating-hours and delivery-configuration management, complete pickup and delivery grouping workflows, full Global Admin management/report screens, broader concurrency/cancellation/export tests, and native screen parity. External hosting, signing, device QA, and store publication are intentionally not represented as completed local code features.
 
+## Push notification architecture and diagnostic status — 2026-09-27
+
+Firebase Phone Authentication is used for phone OTP identity and application session exchange. Push delivery uses `expo-notifications`, Expo Push Service, Android FCM V1, and Apple APNs through Expo. Device registration is independent of the authentication provider after the web session is established.
+
+The native shell loads `https://gatedcart.cheritech.com`, injects the Expo token into the WebView, and dispatches `gatedcart-push-token`. The hosted frontend and native fallback read the authenticated session and call `POST /api/v1/push-devices`. Registration is upserted by token, so repeated attempts are safe. Render's reverse proxy is trusted with `app.set('trust proxy', 1)` for rate-limit processing.
+
+Diagnostics intentionally expose only token suffixes, status values, booleans, and truncated response text. Full tokens, Firebase service-account keys, and access tokens must never be logged or committed.
+
 ## Decision log
 
 | Date | Decision |

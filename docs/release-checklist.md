@@ -68,3 +68,22 @@ For future builds, authenticate with `npx eas login` from `mobile/` and run `npx
 - [x] Static site configured with `VITE_API_URL`.
 - [x] GoDaddy CNAME `gatedcart` configured for the Render static site and HTTPS certificate verified.
 - [ ] Add persistent/object storage for uploaded product images before production scale; Render service local storage is not durable across redeploys.
+
+## Push notification release verification — 2026-09-27
+
+- [x] Firebase phone login/session exchange is live.
+- [x] Expo Android push token acquisition is verified on a physical device.
+- [x] EAS Android FCM V1 credentials are assigned to `com.gatedcart.marketplace`.
+- [x] Production WebView URL is configured for preview and production EAS profiles.
+- [x] Push-device migration and API are deployed.
+- [x] Native, WebView, frontend, and API diagnostics are included in the diagnostic build/deployment.
+- [ ] Confirm a row appears in `push_devices` after login.
+- [ ] Confirm customer and seller order notifications with sound while backgrounded/closed.
+- [ ] Confirm notification tap routing opens the relevant order screen.
+
+Trace command:
+
+```powershell
+adb logcat -c
+adb logcat -v time "ReactNativeJS:I" "*:S"
+```

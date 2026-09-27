@@ -8,9 +8,9 @@ const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' 
 const registerNativePushDevice = (token, platform = 'android', deviceId) => {
   if (typeof window === 'undefined' || !token) return;
   const accessToken = window.localStorage.getItem('gatedcart_access_token');
-  if (!accessToken || window.__gatedcartPushRegistrationToken === token) return;
+  if (!accessToken || window.__gatedcartWebPushRegistrationToken === token) return;
   console.info('[push] attempting device registration', { api: `${API_BASE}/push-devices`, platform, tokenSuffix: token.slice(-8), hasAccessToken: true });
-  window.__gatedcartPushRegistrationToken = token;
+  window.__gatedcartWebPushRegistrationToken = token;
   fetch(`${API_BASE}/push-devices`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
@@ -19,13 +19,13 @@ const registerNativePushDevice = (token, platform = 'android', deviceId) => {
     const responseText = await response.text().catch(() => '');
     console.info('[push] device registration response', { status: response.status, body: responseText.slice(0, 300) });
     if (!response.ok) {
-      window.__gatedcartPushRegistrationToken = '';
+      window.__gatedcartWebPushRegistrationToken = '';
       console.error('[push] device registration failed', response.status);
     } else {
       console.info('[push] device registered');
     }
   }).catch(error => {
-    window.__gatedcartPushRegistrationToken = '';
+    window.__gatedcartWebPushRegistrationToken = '';
     console.error('[push] device registration request failed', error);
   });
 };

@@ -99,6 +99,8 @@ Seller-category endpoints remain available only for backward compatibility with 
 
 The API stores device tokens in `push_devices`. New orders notify the customer and seller; order status changes notify the customer. Push payloads use the default notification sound and include `route` and `orderId` data for mobile tap navigation.
 
+Push registration diagnostics log request receipt, authorization presence, authenticated user ID, insert/update operation, and a token suffix only. The API trusts one Render reverse proxy (`app.set('trust proxy', 1)`) so rate-limit client-IP validation works correctly in production.
+
 The implementation uses backend scope checks for apartment sellers, outside seller delivery areas, delivery-boy seller/apartment links, order ownership, and admin roles.
 
 ## Current client and deployment checkpoint — 2026-09-24

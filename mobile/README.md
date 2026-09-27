@@ -48,3 +48,9 @@ The Expo project is owned by the `www.cheritech.com` organization, uses slug `ga
 
 The WebView now includes Global Admin-managed product categories, apartment-scoped category product browsing, application-wide plus apartment-targeted home carousel images, apartment seller visibility settings, and touch/swipe carousel navigation. These features require the deployed API to run the latest Prisma migration before building or testing the mobile shell.
 The shared WebView customer flow also includes multi-seller carts with one order created per seller, cart quantity controls, product-details navigation from category and cart views, consistent `Go to cart` actions, and the animated order-confirmation page with order tracking. The mobile shell does not maintain a separate implementation of these screens; it loads the hosted web application.
+
+## Push notification diagnostics — 2026-09-27
+
+The native shell requests permission, creates the Android `orders` channel with default sound, acquires the Expo token using the EAS project ID, and injects it into the hosted WebView. The WebView registers it against the authenticated API session.
+
+Expected log order is `Expo push token acquired`, `WebView load finished`, `webview-probe`, `push-debug`, and `push-registration`, followed by API logs for request receipt, authentication, and database registration. Vivo/CleverTap/Facebook system push logs are unrelated to GatedCart.
