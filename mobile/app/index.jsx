@@ -24,9 +24,35 @@ export default function Home() {
   const injectPushContext = () => {
     if (!webViewRef.current) return;
     console.log('[push] injecting native push context into WebView', { hasToken: Boolean(pushToken.current), tokenSuffix: pushToken.current?.slice(-8), hasPendingNotification: Boolean(pendingNotification.current) });
-    const tokenScript = pushToken.current ? `window.__gatedcartNativePushToken=${JSON.stringify(pushToken.current)};window.__gatedcartNativePushPlatform=${JSON.stringify(Platform.OS)};window.dispatchEvent(new CustomEvent('gatedcart-push-token',{detail:{token:${JSON.stringify(pushToken.current)},platform:${JSON.stringify(Platform.OS)}}});(function(){if(window.__gatedcartNativePushTimer)clearInterval(window.__gatedcartNativePushTimer);var token=${JSON.stringify(pushToken.current)};var attempts=0;var register=function(){attempts+=1;var auth=window.localStorage.getItem('gatedcart_access_token');window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:'push-debug',attempt:attempts,hasToken:true,tokenSuffix:token.slice(-8),hasAccessToken:Boolean(auth),url:window.location.href}));if(!auth||window.__gatedcartPushRegistrationToken===token)return;window.__gatedcartPushRegistrationToken=token;window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:'push-registration-start',api:'${apiUrl}/push-devices'}));fetch('${apiUrl}/push-devices',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+auth},body:JSON.stringify({token:token,platform:${JSON.stringify(Platform.OS)}})}).then(function(response){return response.text().then(function(body){window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:'push-registration',status:response.status,body:body.slice(0,300)}));if(!response.ok)window.__gatedcartPushRegistrationToken='';else clearInterval(window.__gatedcartNativePushTimer)})}).catch(function(error){window.__gatedcartPushRegistrationToken='';window.ReactNativeWebView&&window.ReactNativeWebView.postMessage(JSON.stringify({type:'push-registration-error',message:String(error)}))})};register();window.__gatedcartNativePushTimer=setInterval(register,1000);})();` : '';
+    const bridgeProbe = `(() => { try { window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'webview-probe', url: window.location.href })); } catch (error) {} })();`;
+    const tokenScript = pushToken.current ? `
+      (() => {
+        const token = ${JSON.stringify(pushToken.current)};
+        const platform = ${JSON.stringify(Platform.OS)};
+        const endpoint = ${JSON.stringify(`${apiUrl}/push-devices`)};
+        const send = payload => { try { window.ReactNativeWebView?.postMessage(JSON.stringify(payload)); } catch (error) {} };
+        window.__gatedcartNativePushToken = token;
+        window.__gatedcartNativePushPlatform = platform;
+        window.dispatchEvent(new CustomEvent('gatedcart-push-token', { detail: { token, platform } }));
+        if (window.__gatedcartNativePushTimer) clearInterval(window.__gatedcartNativePushTimer);
+        let attempts = 0;
+        const register = () => {
+          attempts += 1;
+          let auth = '';
+          try { auth = window.localStorage.getItem('gatedcart_access_token') || ''; } catch (error) { send({ type: 'push-storage-error', message: String(error) }); }
+          send({ type: 'push-debug', attempt: attempts, hasToken: true, tokenSuffix: token.slice(-8), hasAccessToken: Boolean(auth), url: window.location.href });
+          if (!auth || window.__gatedcartPushRegistrationToken === token) return;
+          window.__gatedcartPushRegistrationToken = token;
+          send({ type: 'push-registration-start', api: endpoint });
+          fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + auth }, body: JSON.stringify({ token, platform }) })
+            .then(async response => { const body = await response.text(); send({ type: 'push-registration', status: response.status, body: body.slice(0, 300) }); if (!response.ok) window.__gatedcartPushRegistrationToken = ''; else clearInterval(window.__gatedcartNativePushTimer); })
+            .catch(error => { window.__gatedcartPushRegistrationToken = ''; send({ type: 'push-registration-error', message: String(error) }); });
+        };
+        register();
+        window.__gatedcartNativePushTimer = setInterval(register, 1000);
+      })();` : '';
     const notificationScript = pendingNotification.current ? `window.__gatedcartPendingNotification=${JSON.stringify(pendingNotification.current)};window.__gatedcartNativeNotification?.(window.__gatedcartPendingNotification);` : '';
-    webViewRef.current.injectJavaScript(`${tokenScript}${notificationScript}true;`);
+    webViewRef.current.injectJavaScript(`${bridgeProbe}${tokenScript}${notificationScript}true;`);
   };
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
