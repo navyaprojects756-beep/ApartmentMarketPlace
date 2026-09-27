@@ -10,6 +10,18 @@ homeRouter.get('/categories', requireAuth, async (_request, response, next) => {
   try { response.json(await prisma.globalCategory.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] })); } catch (error) { next(error); }
 });
 
+homeRouter.get('/community-services/:serviceId/providers', requireAuth, async (request, response, next) => {
+  try {
+    const serviceId = z.string().uuid().parse(request.params.serviceId);
+    const association = await prisma.userApartment.findFirst({ where: { userId: request.auth!.userId }, orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }] });
+    if (!association) { response.json({ service: null, providers: [] }); return; }
+    const service = await prisma.communityService.findFirst({ where: { id: serviceId, isActive: true } });
+    if (!service) { response.status(404).json({ error: { code: 'SERVICE_NOT_FOUND', message: 'Community service not found' } }); return; }
+    const providers = await prisma.communityServiceProvider.findMany({ where: { serviceId, isActive: true, apartments: { some: { apartmentId: association.apartmentId } } }, orderBy: { name: 'asc' }, include: { apartments: { where: { apartmentId: association.apartmentId }, include: { apartment: { select: { name: true } } } } } });
+    response.json({ service, providers });
+  } catch (error) { next(error); }
+});
+
 homeRouter.get('/', requireAuth, async (request, response, next) => {
   try {
     response.json(await getHomeData(request.auth!.userId));

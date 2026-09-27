@@ -63,6 +63,43 @@ adminResourcesRouter.delete('/categories/:categoryId', ...adminOnly, async (requ
   } catch (error) { next(error); }
 });
 
+adminResourcesRouter.get('/community-services', ...adminOnly, async (_request, response, next) => {
+  try { response.json(await prisma.communityService.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { _count: { select: { providers: true } }, apartments: { include: { apartment: { select: { id: true, name: true } } } } } })); } catch (error) { next(error); }
+});
+
+adminResourcesRouter.post('/community-services', ...adminOnly, async (request, response, next) => {
+  try { const input = z.object({ name: z.string().trim().min(2).max(120), imageUrl: z.preprocess(value => value === '' ? null : value, z.string().url().nullable().optional()), sortOrder: z.number().int().default(0) }).parse(request.body); response.status(201).json(await prisma.communityService.create({ data: input, include: { _count: { select: { providers: true } }, apartments: true } })); } catch (error) { next(error); }
+});
+
+adminResourcesRouter.patch('/community-services/:serviceId', ...adminOnly, async (request, response, next) => {
+  try { const serviceId = z.string().uuid().parse(request.params.serviceId); const input = z.object({ name: z.string().trim().min(2).max(120).optional(), imageUrl: z.string().url().nullable().optional(), sortOrder: z.number().int().optional(), isActive: z.boolean().optional() }).parse(request.body); response.json(await prisma.communityService.update({ where: { id: serviceId }, data: input, include: { _count: { select: { providers: true } }, apartments: { include: { apartment: { select: { id: true, name: true } } } } } })); } catch (error) { next(error); }
+});
+
+adminResourcesRouter.delete('/community-services/:serviceId', ...adminOnly, async (request, response, next) => {
+  try { const serviceId = z.string().uuid().parse(request.params.serviceId); await prisma.communityService.delete({ where: { id: serviceId } }); response.status(204).send(); } catch (error) { next(error); }
+});
+
+adminResourcesRouter.get('/community-service-providers', ...adminOnly, async (_request, response, next) => {
+  try { response.json(await prisma.communityServiceProvider.findMany({ orderBy: { createdAt: 'desc' }, include: { service: true, apartments: { include: { apartment: { select: { id: true, name: true } } } } } })); } catch (error) { next(error); }
+});
+
+adminResourcesRouter.post('/community-service-providers', ...adminOnly, async (request, response, next) => {
+  try {
+    const input = z.object({ serviceId: z.string().uuid(), name: z.string().trim().min(2).max(160), description: z.string().max(3000).nullable().optional(), phone: z.string().trim().min(5).max(30), address: z.string().trim().min(2).max(1000), imageUrl: z.preprocess(value => value === '' ? null : value, z.string().url().nullable().optional()), apartmentIds: z.array(z.string().uuid()).min(1).max(100) }).parse(request.body);
+    const provider = await prisma.$transaction(async tx => { const created = await tx.communityServiceProvider.create({ data: { serviceId: input.serviceId, name: input.name, description: input.description, phone: input.phone, address: input.address, imageUrl: input.imageUrl } }); await tx.communityServiceApartment.createMany({ data: input.apartmentIds.map(apartmentId => ({ providerId: created.id, serviceId: input.serviceId, apartmentId })) }); return tx.communityServiceProvider.findUnique({ where: { id: created.id }, include: { service: true, apartments: { include: { apartment: { select: { id: true, name: true } } } } } }); });
+    response.status(201).json(provider);
+  } catch (error) { next(error); }
+});
+
+adminResourcesRouter.patch('/community-service-providers/:providerId', ...adminOnly, async (request, response, next) => {
+  try {
+    const providerId = z.string().uuid().parse(request.params.providerId);
+    const input = z.object({ name: z.string().trim().min(2).max(160).optional(), description: z.string().max(3000).nullable().optional(), phone: z.string().trim().min(5).max(30).optional(), address: z.string().trim().min(2).max(1000).optional(), imageUrl: z.preprocess(value => value === '' ? null : value, z.string().url().nullable().optional()), isActive: z.boolean().optional(), apartmentIds: z.array(z.string().uuid()).min(1).max(100).optional() }).parse(request.body);
+    const provider = await prisma.$transaction(async tx => { const updated = await tx.communityServiceProvider.update({ where: { id: providerId }, data: { name: input.name, description: input.description, phone: input.phone, address: input.address, imageUrl: input.imageUrl, isActive: input.isActive } }); if (input.apartmentIds) { await tx.communityServiceApartment.deleteMany({ where: { providerId, apartmentId: { notIn: input.apartmentIds } } }); await tx.communityServiceApartment.createMany({ data: input.apartmentIds.map(apartmentId => ({ providerId, serviceId: updated.serviceId, apartmentId })) , skipDuplicates: true }); } return tx.communityServiceProvider.findUnique({ where: { id: providerId }, include: { service: true, apartments: { include: { apartment: { select: { id: true, name: true } } } } } }); });
+    response.json(provider);
+  } catch (error) { next(error); }
+});
+
 adminResourcesRouter.post('/apartments/:apartmentId/blocks', ...adminOnly, async (request, response, next) => {
   try { const apartmentId = z.string().uuid().parse(request.params.apartmentId); const input = z.object({ name: z.string().trim().min(1).max(80) }).parse(request.body); response.status(201).json(await prisma.block.create({ data: { apartmentId, name: input.name } })); } catch (error) { next(error); }
 });

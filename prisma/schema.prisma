@@ -235,6 +235,7 @@ model Apartment {
   adRequestTargets   AdvertisementRequestTargetApartment[]
   orders             Order[]
   addresses          Address[]
+  communityServices  CommunityServiceApartment[]
 
   @@index([city, state])
   @@map("apartments")
@@ -379,6 +380,53 @@ model GlobalCategory {
 
   @@index([isActive, sortOrder])
   @@map("global_categories")
+}
+
+model CommunityService {
+  id          String                       @id @default(uuid()) @db.Uuid
+  name        String                       @unique @db.VarChar(120)
+  imageUrl    String?                      @map("image_url") @db.Text
+  sortOrder   Int                          @default(0) @map("sort_order")
+  isActive    Boolean                      @default(true) @map("is_active")
+  createdAt   DateTime                     @default(now()) @map("created_at")
+  updatedAt   DateTime                     @updatedAt @map("updated_at")
+  providers   CommunityServiceProvider[]
+  apartments  CommunityServiceApartment[]
+
+  @@index([isActive, sortOrder])
+  @@map("community_services")
+}
+
+model CommunityServiceProvider {
+  id          String                       @id @default(uuid()) @db.Uuid
+  serviceId   String                       @map("service_id") @db.Uuid
+  name        String                       @db.VarChar(160)
+  description String?                      @db.Text
+  phone       String                       @db.VarChar(30)
+  address     String                       @db.Text
+  imageUrl    String?                      @map("image_url") @db.Text
+  isActive    Boolean                      @default(true) @map("is_active")
+  createdAt   DateTime                     @default(now()) @map("created_at")
+  updatedAt   DateTime                     @updatedAt @map("updated_at")
+  service     CommunityService             @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  apartments  CommunityServiceApartment[]
+
+  @@index([serviceId, isActive])
+  @@map("community_service_providers")
+}
+
+model CommunityServiceApartment {
+  providerId   String                       @map("provider_id") @db.Uuid
+  serviceId   String                       @map("service_id") @db.Uuid
+  apartmentId String                       @map("apartment_id") @db.Uuid
+  provider     CommunityServiceProvider    @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  service     CommunityService             @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  apartment   Apartment                    @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+
+  @@id([providerId, apartmentId])
+  @@index([serviceId, apartmentId])
+  @@index([apartmentId])
+  @@map("community_service_apartments")
 }
 
 model Product {

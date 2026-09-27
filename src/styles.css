@@ -472,12 +472,35 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .apartment-visibility-control select { border: 1px solid #d8e0ec; border-radius: 10px; background: #fff; color: #10264b; padding: 9px 10px; font: inherit; }
 @media (max-width: 720px) { .admin-apartment-row { align-items: stretch; flex-wrap: wrap; } .apartment-visibility-control { width: 100%; } }
 .seller-application-card { padding: 22px 24px; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
-.home-category-strip { margin: 24px 0 28px; }
-.home-category-list { display: flex; gap: 12px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: none; }
+.home-category-strip { margin: 14px 0 16px; }
+.home-category-strip .section-heading { justify-content: flex-start; margin-bottom: 10px; text-align: left; }
+.home-category-strip .section-heading > div { width: 100%; }
+.home-category-strip .section-heading h2 { font-size: 16px; font-weight: 500; letter-spacing: -.15px; text-align: left; }
+.home-category-list { display: flex; gap: 8px; overflow-x: auto; padding: 1px 1px 4px; scrollbar-width: none; }
 .home-category-list::-webkit-scrollbar { display: none; }
-.home-category-chip { display: grid; flex: 0 0 78px; gap: 6px; justify-items: center; color: var(--ink); font-size: 10px; }
-.home-category-chip img, .home-category-chip > span { width: 58px; height: 58px; display: grid; place-items: center; border: 1px solid #eadffb; border-radius: 18px; color: #6241d3; background: #f5f1ff; object-fit: cover; font-size: 19px; font-weight: 800; }
-.home-category-chip strong { max-width: 78px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.home-category-chip { display: grid; flex: 0 0 66px; gap: 4px; justify-items: center; color: var(--ink); font-size: 9px; }
+.home-category-chip img, .home-category-chip > span { width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid #eadffb; border-radius: 14px; color: #6241d3; background: #f5f1ff; object-fit: cover; font-size: 16px; font-weight: 800; }
+.home-category-chip strong { max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 8.5px; }
+.community-service-chip.is-disabled { opacity: .56; filter: grayscale(.7); cursor: not-allowed; }
+.community-service-chip:not(.is-disabled) img, .community-service-chip:not(.is-disabled) > span { border-color: #ffe0c5; color: #f05b12; background: #fff1e5; }
+.community-service-results { display: grid; gap: 9px; margin-top: 15px; padding-top: 14px; border-top: 1px solid #f0e4d7; }
+.community-service-results .panel-heading { margin-bottom: 2px; }
+.community-service-results .panel-heading h3 { margin: 0 0 3px; color: var(--ink); font-size: 17px; }
+.community-service-results .panel-heading small { color: var(--muted); font-size: 11px; }
+.community-service-results .panel-heading button { padding: 7px 10px; border-radius: 8px; color: #f05b12; background: #fff1e5; font-size: 10px; font-weight: 700; }
+.community-service-page { padding-top: 86px; padding-bottom: 96px; }
+.community-service-page-heading { display: flex; align-items: center; gap: 12px; margin: 12px 0 18px; }
+.community-service-page-heading > img, .community-service-page-heading > span { width: 58px; height: 58px; flex: 0 0 58px; display: grid; place-items: center; border-radius: 16px; object-fit: cover; color: #f05b12; background: #fff1e5; font-size: 22px; font-weight: 700; }
+.community-service-page-heading h1 { margin: 0 0 3px; color: var(--ink); font-size: 23px; font-weight: 500; }
+.community-service-page-heading p:not(.eyebrow) { margin: 0; color: var(--muted); font-size: 11px; }
+.community-provider-list { display: grid; gap: 10px; }
+.community-provider-card { display: flex; align-items: center; gap: 11px; padding: 10px; border: 1px solid #f2e9df; border-radius: 12px; background: #fff; }
+.community-provider-card > div, .community-provider-card img { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px; object-fit: cover; }
+.community-provider-card > div { display: grid; place-items: center; color: #f05b12; background: #fff1e5; font-weight: 800; }
+.community-provider-card section { display: grid; gap: 3px; min-width: 0; }
+.community-provider-card strong { color: var(--ink); font-size: 12px; }
+.community-provider-card small, .community-provider-card a { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.community-provider-card a { color: #f05b12; font-weight: 700; text-decoration: none; }
  .category-products-page { padding-top: 104px; padding-bottom: 94px; }
 .category-back-button { margin-bottom: 18px; color: #6241d3; font-size: 12px; font-weight: 800; }
 .category-products-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
@@ -512,7 +535,8 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .admin-category-placeholder { display: grid; place-items: center; color: #6241d3; background: #f1edff; font-weight: 800; }
 .admin-category-row > div { display: grid; flex: 1; gap: 4px; }
 .admin-category-row small { color: var(--muted); font-size: 10px; }
- @media (max-width: 560px) { .home-category-strip { margin-top: 20px; }.category-products-page { padding-top: 88px; }.category-products-grid { gap: 10px; }.category-products-heading h1 { font-size: 24px; }.admin-category-row { flex-wrap: wrap; }.admin-category-row .image-upload-control-wrap { order: 3; width: 100%; } }
+@media (max-width: 560px) { .home-category-strip { margin: 12px 0 14px; }.home-category-strip .section-heading { margin-bottom: 8px; }.home-category-strip .section-heading h2 { font-size: 15px; font-weight: 500; }.category-products-page { padding-top: 88px; }.category-products-grid { gap: 10px; }.category-products-heading h1 { font-size: 24px; }.admin-category-row { flex-wrap: wrap; }.admin-category-row .image-upload-control-wrap { order: 3; width: 100%; } }
+@media (max-width: 560px) { .community-service-page { padding-top: 78px; }.community-service-page-heading h1 { font-size: 20px; }.community-service-page-heading { margin-bottom: 14px; } }
 .seller-entry-button { display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px; border: 1px solid #ffd1b2; border-radius: 10px; color: #f05b12; background: #fff7f1; font-size: 12px; font-weight: 800; }
 .seller-application-form .mode-switch button:last-child { display: none; }
 .seller-application-card h2 { margin: 4px 0 6px; }
