@@ -46,7 +46,7 @@ deliveryRouter.post('/orders/:orderId/assign', requireAuth, async (request, resp
       return;
     }
     const assignment = await prisma.$transaction(async tx => { const created = await tx.orderDeliveryAssignment.upsert({ where: { orderId }, update: { deliveryBoyId }, create: { orderId, deliveryBoyId } }); await tx.order.update({ where: { id: orderId }, data: { status: 'ASSIGNED_TO_DELIVERY_BOY' } }); await tx.orderStatusHistory.create({ data: { orderId, fromStatus: order.status, toStatus: 'ASSIGNED_TO_DELIVERY_BOY', changedById: request.auth!.userId } }); return created; });
-    void sendPushNotifications([{ userId: order.customerId, title: 'Order update', body: orderStatusMessage('ASSIGNED_TO_DELIVERY_BOY'), data: { route: 'orders', orderId: order.id, status: 'ASSIGNED_TO_DELIVERY_BOY' } }]);
+    void sendPushNotifications([{ userId: order.customerId, title: 'Order update', body: orderStatusMessage('ASSIGNED_TO_DELIVERY_BOY'), channelId: 'customer_updates', data: { route: 'orders', orderId: order.id, status: 'ASSIGNED_TO_DELIVERY_BOY' } }]);
     response.status(201).json(assignment);
   } catch (error) {
     next(error);
@@ -69,7 +69,7 @@ deliveryRouter.patch('/orders/:orderId/status', requireAuth, requireRole('DELIVE
       return;
     }
     const updated = await prisma.$transaction(async tx => { const result = await tx.order.update({ where: { id: order.id }, data: { status, ...(status === 'PICKED_UP' ? { pickedUpAt: new Date() } : {}), ...(status === 'DELIVERED' ? { deliveredAt: new Date() } : {}) } }); await tx.orderStatusHistory.create({ data: { orderId: order.id, fromStatus: order.status, toStatus: status, changedById: request.auth!.userId, note } }); return result; });
-    void sendPushNotifications([{ userId: order.customerId, title: 'Order update', body: orderStatusMessage(status), data: { route: 'orders', orderId: order.id, status } }]);
+    void sendPushNotifications([{ userId: order.customerId, title: 'Order update', body: orderStatusMessage(status), channelId: 'customer_updates', data: { route: 'orders', orderId: order.id, status } }]);
     response.json(updated);
   } catch (error) {
     next(error);

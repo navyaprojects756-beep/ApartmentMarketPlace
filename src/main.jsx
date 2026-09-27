@@ -5,6 +5,56 @@ import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth
 import './styles.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000/api/v1` : 'http://localhost:5000/api/v1');
+const ACCESS_TOKEN_KEY = 'gatedcart_access_token';
+const REFRESH_TOKEN_KEY = 'gatedcart_refresh_token';
+const nativeFetch = typeof window !== 'undefined' ? window.fetch.bind(window) : null;
+let refreshInFlight = null;
+
+function persistSession(session) {
+  if (typeof window === 'undefined' || !session?.accessToken) return;
+  window.localStorage.setItem(ACCESS_TOKEN_KEY, session.accessToken);
+  if (session.refreshToken) window.localStorage.setItem(REFRESH_TOKEN_KEY, session.refreshToken);
+}
+
+async function refreshStoredSession() {
+  if (!nativeFetch || typeof window === 'undefined') return null;
+  if (refreshInFlight) return refreshInFlight;
+  const refreshToken = window.localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refreshToken) return null;
+  refreshInFlight = (async () => {
+    try {
+      const response = await nativeFetch(`${API_BASE}/auth/refresh`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken }) });
+      const session = await response.json().catch(() => null);
+      if (!response.ok || !session?.accessToken) throw new Error('Session refresh failed');
+      persistSession(session);
+      window.dispatchEvent(new CustomEvent('gatedcart-session-refreshed', { detail: session }));
+      return session;
+    } catch {
+      window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+      window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+      return null;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
+}
+
+if (typeof window !== 'undefined' && nativeFetch && !window.__gatedcartSessionFetchBound) {
+  window.__gatedcartSessionFetchBound = true;
+  window.fetch = async (input, init = {}) => {
+    const requestUrl = typeof input === 'string' ? input : input?.url || '';
+    const isAuthRequest = ['/auth/refresh', '/auth/request-otp', '/auth/verify-otp', '/auth/firebase'].some(path => requestUrl.includes(path));
+    const response = await nativeFetch(input, init);
+    if (response.status !== 401 || !requestUrl.startsWith(API_BASE) || isAuthRequest) return response;
+    const session = await refreshStoredSession();
+    if (!session) return response;
+    const headers = new Headers(init.headers || (typeof Request !== 'undefined' && input instanceof Request ? input.headers : undefined));
+    headers.set('Authorization', `Bearer ${session.accessToken}`);
+    return nativeFetch(input, { ...init, headers });
+  };
+}
+
 const registerNativePushDevice = (token, platform = 'android', deviceId) => {
   if (typeof window === 'undefined' || !token) return;
   const accessToken = window.localStorage.getItem('gatedcart_access_token');
@@ -466,7 +516,7 @@ function LoginScreenLegacy({ onAuthenticated }) {
   }
   async function verifyOtp(event) {
     event.preventDefault(); setError(''); setLoading(true);
-    try { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error?.message || 'Invalid OTP'); onAuthenticated(data.accessToken); } catch (requestError) { setError(requestError.message); } finally { setLoading(false); }
+    try { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error?.message || 'Invalid OTP'); onAuthenticated(data); } catch (requestError) { setError(requestError.message); } finally { setLoading(false); }
   }
   return <main className="auth-screen"><div className="auth-card"><Logo /><div className="auth-art"><span>✦</span><span>⌁</span><span>✧</span></div><p className="eyebrow">YOUR COMMUNITY MARKETPLACE</p><h1>{step === 'phone' ? 'Welcome to GatedCart' : 'Check your phone'}</h1><p className="auth-copy">{step === 'phone' ? 'Good things are closer than you think. Sign in with your phone number to continue.' : `Enter the 5-digit code sent to ${phone}.`}</p>{step === 'phone' ? <form onSubmit={requestOtp}><label className="auth-label">Phone number</label><input className="auth-input" value={phone} onChange={event => setPhone(event.target.value)} placeholder="Enter phone number" inputMode="tel" /><button className="auth-button" disabled={loading}>{loading ? 'Sending…' : 'Continue'} <Icon name="arrow" size={16} /></button></form> : <form onSubmit={verifyOtp}><label className="auth-label">One-time password</label><input className="auth-input otp-input" value={otp} onChange={event => setOtp(event.target.value)} placeholder="00000" inputMode="numeric" maxLength={5} autoFocus />{developmentOtp && <p className="dev-otp">Local development OTP: <strong>{developmentOtp}</strong></p>}<button className="auth-button" disabled={loading}>{loading ? 'Verifying…' : 'Enter GatedCart'} <Icon name="arrow" size={16} /></button><button type="button" className="auth-back" onClick={() => setStep('phone')}>Use a different number</button></form>}{error && <p className="auth-error">{error}</p>}<small className="auth-footnote">By continuing, you agree to the community marketplace terms.</small></div></main>;
 }
@@ -474,14 +524,14 @@ function LoginScreenLegacy({ onAuthenticated }) {
 function LoginScreenV1({ onAuthenticated }) {
   const [phone, setPhone] = useState(''); const [otp, setOtp] = useState(''); const [step, setStep] = useState('phone'); const [developmentOtp, setDevelopmentOtp] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
   async function requestOtp(event) { event.preventDefault(); setError(''); setLoading(true); try { const response = await fetch(`${API_BASE}/auth/request-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) }); const data = await readApiResponse(response); if (!response.ok) throw new Error(data.error?.message || 'Unable to send OTP'); setDevelopmentOtp(data.developmentOtp || ''); setStep('otp'); } catch (errorValue) { setError(errorValue.message); } finally { setLoading(false); } }
-  async function verifyOtp(event) { event.preventDefault(); setError(''); setLoading(true); try { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const data = await readApiResponse(response); if (!response.ok) throw new Error(data.error?.message || 'Invalid OTP'); onAuthenticated(data.accessToken); } catch (errorValue) { setError(errorValue.message); } finally { setLoading(false); } }
+  async function verifyOtp(event) { event.preventDefault(); setError(''); setLoading(true); try { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const data = await readApiResponse(response); if (!response.ok) throw new Error(data.error?.message || 'Invalid OTP'); onAuthenticated(data); } catch (errorValue) { setError(errorValue.message); } finally { setLoading(false); } }
   return <main className="login-page"><section className="login-story"><div className="login-story-inner"><Logo /><p className="login-kicker">YOUR COMMUNITY MARKETPLACE</p><h1>Everything you need, <em>closer to home.</em></h1><p className="login-story-copy">Shop trusted local sellers, discover products from nearby communities, and get every order delivered to your apartment door.</p><div className="login-benefits"><span><b>01</b> Local sellers</span><span><b>02</b> Easy ordering</span><span><b>03</b> Community delivery</span></div><div className="login-showcase"><div className="showcase-orbit" /><div className="showcase-card showcase-card-one"><strong>Fresh Basket</strong><small>Groceries · 20–30 min</small><b>★ 4.8</b></div><div className="showcase-card showcase-card-two"><strong>Home Foods</strong><small>Fresh meals nearby</small><b>Open now</b></div><div className="showcase-bubble">✦</div></div></div></section><section className="login-panel"><div className="login-panel-inner"><div className="login-mobile-brand"><Logo /></div><div className="login-step"><span className={step === 'phone' ? 'active' : ''}>01 Mobile</span><i /><span className={step === 'otp' ? 'active' : ''}>02 Verify</span></div><h2>{step === 'phone' ? 'Welcome to GatedCart' : 'Verify your number'}</h2><p className="login-panel-copy">{step === 'phone' ? 'Sign in with your mobile number to start shopping in your community.' : `Enter the 5-digit code sent to ${phone}.`}</p>{step === 'phone' ? <form onSubmit={requestOtp}><label className="auth-label">Mobile number</label><input className="auth-input" value={phone} onChange={event => setPhone(event.target.value)} placeholder="Enter mobile number" inputMode="tel" required /><button className="auth-button" disabled={loading}>{loading ? 'Sending…' : 'Continue to marketplace'} <Icon name="arrow" size={16} /></button></form> : <form onSubmit={verifyOtp}><label className="auth-label">Verification code</label><input className="auth-input otp-input" value={otp} onChange={event => setOtp(event.target.value)} placeholder="00000" inputMode="numeric" maxLength={5} autoFocus required />{developmentOtp && <p className="dev-otp">Local development OTP: <strong>{developmentOtp}</strong></p>}<button className="auth-button" disabled={loading}>{loading ? 'Verifying…' : 'Enter marketplace'} <Icon name="arrow" size={16} /></button><button type="button" className="auth-back" onClick={() => setStep('phone')}>Use a different number</button></form>}{error && <p className="auth-error">{error}</p>}<small className="auth-footnote">Secure community access · By continuing, you agree to the GatedCart terms.</small></div></section></main>;
 }
 
 function LoginScreenV2({ onAuthenticated }) {
   const [phone, setPhone] = useState('9000000010'); const [otp, setOtp] = useState(''); const [step, setStep] = useState('phone'); const [developmentOtp, setDevelopmentOtp] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
   async function requestOtp(event) { event.preventDefault(); setError(''); setLoading(true); try { const response = await fetch(`${API_BASE}/auth/request-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) }); const data = await readApiResponse(response); if (!response.ok) throw new Error(data.error?.message || 'Unable to send OTP'); setDevelopmentOtp(data.developmentOtp || ''); setStep('otp'); } catch (errorValue) { setError(errorValue.message); } finally { setLoading(false); } }
-  async function verifyOtp(event) { event.preventDefault(); setError(''); setLoading(true); try { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const data = await readApiResponse(response); if (!response.ok) throw new Error(data.error?.message || 'Invalid OTP'); onAuthenticated(data.accessToken); } catch (errorValue) { setError(errorValue.message); } finally { setLoading(false); } }
+  async function verifyOtp(event) { event.preventDefault(); setError(''); setLoading(true); try { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const data = await readApiResponse(response); if (!response.ok) throw new Error(data.error?.message || 'Invalid OTP'); onAuthenticated(data); } catch (errorValue) { setError(errorValue.message); } finally { setLoading(false); } }
   return <main className="login-v2"><div className="login-v2-top"><Logo /><span>Neighbourhood shopping, simplified</span></div><section className="login-v2-layout"><div className="login-v2-intro"><div className="login-v2-badge">GATEDCART COMMUNITY MARKETPLACE</div><h1>Good things are<br /><em>closer than you think.</em></h1><p>Find trusted sellers, everyday essentials and fresh products available around your apartment community.</p><div className="login-v2-stats"><div><strong>Local</strong><span>community sellers</span></div><div><strong>Fast</strong><span>apartment delivery</span></div><div><strong>Simple</strong><span>mobile ordering</span></div></div></div><div className="login-v2-card"><div className="login-v2-card-top"><span>{step === 'phone' ? 'GET STARTED' : 'VERIFY ACCESS'}</span><b>{step === 'phone' ? '01 / 02' : '02 / 02'}</b></div><h2>{step === 'phone' ? 'Shop your neighbourhood' : 'Enter your code'}</h2><p>{step === 'phone' ? 'Use your mobile number to enter your private community marketplace.' : `We sent a 5-digit code to ${phone}.`}</p>{step === 'phone' ? <form onSubmit={requestOtp}><label className="auth-label">Mobile number</label><input className="auth-input" value={phone} onChange={event => setPhone(event.target.value)} placeholder="9000000010" inputMode="tel" required /><button className="login-v2-button" disabled={loading}>{loading ? 'Sending…' : 'Continue'} <Icon name="arrow" size={16} /></button></form> : <form onSubmit={verifyOtp}><label className="auth-label">One-time password</label><input className="auth-input otp-input" value={otp} onChange={event => setOtp(event.target.value)} placeholder="00000" inputMode="numeric" maxLength={5} autoFocus required />{developmentOtp && <p className="dev-otp">Development OTP: <strong>{developmentOtp}</strong></p>}<button className="login-v2-button" disabled={loading}>{loading ? 'Checking…' : 'Enter GatedCart'} <Icon name="arrow" size={16} /></button><button type="button" className="auth-back" onClick={() => setStep('phone')}>Use a different number</button></form>}{error && <p className="auth-error">{error}</p>}<small className="login-v2-terms">Secure access for your apartment community.</small></div></section></main>;
 }
 
@@ -519,7 +569,7 @@ function GatedCartLoginScreen({ onAuthenticated }) {
   useEffect(() => { if (AUTH_PROVIDER === 'firebase') document.querySelectorAll('.gatedcart-login .otp-input').forEach(input => { input.maxLength = 6; input.placeholder = '------'; }); }, [step]);
   useEffect(() => { if (step === 'otp') document.querySelectorAll('.otp-input').forEach(input => { input.placeholder = '-----'; }); }, [step]);
   async function requestOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { if (AUTH_PROVIDER === 'firebase') { await requestFirebaseOtp(phone); setDevelopmentOtp(''); } else { const response = await fetch(`${API_BASE}/auth/request-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) }); const data = await readApiResponse(response); if (!response.ok) throw new Error(data.error?.message || 'Unable to send OTP'); setDevelopmentOtp(data.developmentOtp || ''); } setStep('otp'); } catch (requestError) { reportClientError(requestError, 'login.request-otp'); setError(safeUserErrorMessage(requestError, 0)); } finally { setLoading(false); } }
-  async function verifyOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { const data = AUTH_PROVIDER === 'firebase' ? await verifyFirebaseOtp(otp) : await (async () => { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const result = await readApiResponse(response); if (!response.ok) throw new Error(result.error?.message || 'Invalid OTP'); return result; })(); onAuthenticated(data.accessToken); } catch (verifyError) { reportClientError(verifyError, 'login.verify-otp'); setError(safeUserErrorMessage(verifyError, 0)); } finally { setLoading(false); } }
+  async function verifyOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { const data = AUTH_PROVIDER === 'firebase' ? await verifyFirebaseOtp(otp) : await (async () => { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const result = await readApiResponse(response); if (!response.ok) throw new Error(result.error?.message || 'Invalid OTP'); return result; })(); onAuthenticated(data); } catch (verifyError) { reportClientError(verifyError, 'login.verify-otp'); setError(safeUserErrorMessage(verifyError, 0)); } finally { setLoading(false); } }
   return <main className="gatedcart-login"><div className="login-cloud cloud-a" /><div className="login-cloud cloud-b" /><header><GatedCartLogo /><div className="login-local-note">Shop Local<br /><strong>Live Better</strong><i /></div></header><section className="gatedcart-login-content"><div className="login-copy"><h1>{step === 'phone' ? 'Welcome Back!' : 'Verify your number'}</h1><p>{step === 'phone' ? 'Enter your mobile number to continue' : `Enter the 5-digit OTP sent to ${phone}`}</p></div>{step === 'phone' ? <form onSubmit={requestOtp}><label className="phone-field"><span className="phone-icon">▯</span><b>+91</b><span className="phone-chevron">⌄</span><i /><input value={phone} onChange={event => setPhone(event.target.value)} placeholder="Enter mobile number" inputMode="tel" required /></label><button className="gatedcart-orange-button" disabled={loading}>{loading ? 'Sending…' : 'Send OTP'} <span>→</span></button><small className="login-helper">We’ll send a 6-digit OTP to your mobile number</small></form> : <form onSubmit={verifyOtp}><label className="auth-label">One-time password</label><input className="auth-input otp-input" value={otp} onChange={event => setOtp(event.target.value)} placeholder="00000" inputMode="numeric" maxLength={5} autoFocus required />{developmentOtp && <p className="dev-otp">Development OTP: <strong>{developmentOtp}</strong></p>}<button className="gatedcart-orange-button" disabled={loading}>{loading ? 'Checking…' : 'Verify OTP'} <span>→</span></button><button type="button" className="auth-back" onClick={() => setStep('phone')}>Use a different number</button></form>}{error && <p className="auth-error">{error}</p>}</section><div className="delivery-illustration"><svg className="delivery-scene" viewBox="0 0 900 300" preserveAspectRatio="none" role="img" aria-label="A delivery rider on a scooter arriving at a leafy community gate"><rect width="900" height="300" fill="#fff" /><path d="M0 202h900v98H0z" fill="#f5fafc" /><g opacity=".72" fill="#dce8e8"><path d="M255 151h64V90h34v61h31v-81h54v81h48v-52h43v52h48v-68h55v68h68v-43h38v43h45v-25h52v25H255z" /><path d="M45 172h70V119h35v53h32v-68h52v68h40v-43h40v43H45z" /></g><g fill="#fff"><rect x="283" y="111" width="10" height="15"/><rect x="352" y="94" width="10" height="15"/><rect x="405" y="121" width="10" height="15"/><rect x="486" y="105" width="10" height="15"/><rect x="574" y="111" width="10" height="15"/><rect x="674" y="145" width="10" height="15"/></g><g fill="#b5d889"><circle cx="76" cy="166" r="41"/><circle cx="111" cy="148" r="39"/><circle cx="146" cy="171" r="45"/><circle cx="748" cy="175" r="42"/><circle cx="789" cy="147" r="48"/><circle cx="832" cy="175" r="40"/></g><g fill="#86be68"><path d="M82 198h12l-8-65h-9zM135 199h12l7-67h-9zM778 207h13l-2-71h-9zM824 205h12l9-65h-9z"/><path d="M35 179q38-37 76 0-38 30-76 0ZM735 184q45-48 91 0-42 35-91 0Z"/></g><g fill="none" stroke="#9bca94" stroke-width="12"><path d="M697 254V177c0-62 92-62 92 0v77"/><path d="M790 254V180c0-61 83-61 83 0v74"/><path d="M692 254h196"/></g><path d="M0 272Q370 184 900 248v52H0z" fill="#edf6f9"/><g transform="translate(112 176) scale(1.55)"><path d="M8 52h143c12 0 17-17 4-22l-35-12-28-25H45L19 19 0 28z" fill="#ff6808"/><path d="M35 8h55l17 20H20z" fill="#f7f8f5"/><path d="M48 1c1-25 18-36 32-31 15 5 22 20 17 34L85 17H54z" fill="#ff8030"/><path d="m74-26 21 9-5 17-22-4z" fill="#14213d"/><path d="M95-20 116 5l-8 4L91-13z" fill="#14213d"/><path d="M112 6h27l9 24-12 3-14-17z" fill="#ff6808"/><rect x="53" y="17" width="25" height="6" rx="3" fill="#fff"/><path d="M15 14 0 3l9-7 23 17z" fill="#ff6808"/><circle cx="36" cy="57" r="17" fill="#14213d"/><circle cx="36" cy="57" r="8" fill="#fff"/><circle cx="130" cy="57" r="17" fill="#14213d"/><circle cx="130" cy="57" r="8" fill="#fff"/><path d="M3 36h-24" stroke="#ff6808" stroke-width="5" stroke-linecap="round"/><path d="M-5 46h-40" stroke="#ff6808" stroke-width="3" stroke-linecap="round"/><path d="M-13 57h-23" stroke="#ff6808" stroke-width="3" stroke-linecap="round"/></g></svg></div><footer>SHOP <i /> SUPPORT LOCAL <i /> STRONGER TOGETHER</footer></main>;
 }
 
@@ -531,7 +581,7 @@ function LoginScreen({ onAuthenticated }) {
 function AdminLoginScreen({ onAuthenticated }) {
   const [name, setName] = useState('Global Admin'); const [phone, setPhone] = useState('9493499405'); const [otp, setOtp] = useState(''); const [developmentOtp, setDevelopmentOtp] = useState(''); const [step, setStep] = useState('phone'); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
   async function requestOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { const response = await fetch(`${API_BASE}/auth/request-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, phone }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error?.message || 'Unable to send OTP'); setDevelopmentOtp(data.developmentOtp || ''); setStep('otp'); } catch (requestError) { setError(requestError.message); } finally { setLoading(false); } }
-  async function verifyOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error?.message || 'Invalid OTP'); onAuthenticated(data.accessToken); } catch (verifyError) { setError(verifyError.message); } finally { setLoading(false); } }
+  async function verifyOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error?.message || 'Invalid OTP'); onAuthenticated(data); } catch (verifyError) { setError(verifyError.message); } finally { setLoading(false); } }
   return <main className="auth-screen"><div className="auth-card"><Logo /><p className="eyebrow">GATEDCART ADMIN PORTAL</p><h1>{step === 'phone' ? 'Global Admin sign in' : 'Verify admin access'}</h1><p className="auth-copy">Manage apartments, users, seller approvals, alerts and marketplace settings.</p>{step === 'phone' ? <form onSubmit={requestOtp}><label className="auth-label">Admin name</label><input className="auth-input" value={name} onChange={event => setName(event.target.value)} required /><label className="auth-label">Admin mobile number</label><input className="auth-input" value={phone} onChange={event => setPhone(event.target.value)} inputMode="tel" required /><button className="auth-button" disabled={loading}>{loading ? 'Sending…' : 'Send OTP'} <Icon name="arrow" size={16} /></button></form> : <form onSubmit={verifyOtp}><label className="auth-label">One-time password</label><input className="auth-input otp-input" value={otp} onChange={event => setOtp(event.target.value)} placeholder="00000" inputMode="numeric" maxLength={5} autoFocus />{developmentOtp && <p className="dev-otp">Local development OTP: <strong>{developmentOtp}</strong></p>}<button className="auth-button" disabled={loading}>{loading ? 'Verifying…' : 'Open admin portal'} <Icon name="arrow" size={16} /></button><button type="button" className="auth-back" onClick={() => setStep('phone')}>Use a different number</button></form>}{error && <p className="auth-error">{error}</p>}</div></main>;
 }
 
@@ -656,7 +706,7 @@ function AdminWorkspace({ token, onLogout }) {
 
 function AdminPortal() {
   const [token, setToken] = useState(() => window.localStorage.getItem('gatedcart_admin_access_token'));
-  if (!token) return <AdminLoginScreen onAuthenticated={nextToken => { window.localStorage.setItem('gatedcart_admin_access_token', nextToken); setToken(nextToken); }} />;
+  if (!token) return <AdminLoginScreen onAuthenticated={nextSession => { const nextToken = nextSession?.accessToken || nextSession; window.localStorage.setItem('gatedcart_admin_access_token', nextToken); setToken(nextToken); }} />;
   return <AdminWorkspace token={token} onLogout={() => { window.localStorage.removeItem('gatedcart_admin_access_token'); setToken(null); }} />;
 }
 
@@ -1477,7 +1527,7 @@ function App() {
   const [cart, setCart] = useState([]);
   const [cartConflictItem, setCartConflictItem] = useState(null);
   const [stockNotice, setStockNotice] = useState('');
-  const [accessToken, setAccessToken] = useState(() => window.localStorage.getItem('gatedcart_access_token'));
+  const [accessToken, setAccessToken] = useState(() => window.localStorage.getItem(ACCESS_TOKEN_KEY));
   const [sessionUser, setSessionUser] = useState(null);
   const [sellerStatus, setSellerStatus] = useState(null);
   const [sessionReady, setSessionReady] = useState(false);
@@ -1493,13 +1543,20 @@ function App() {
     window.ReactNativeWebView?.postMessage(JSON.stringify({ canGoBack: screen !== 'home' }));
     return () => { if (window.__gatedcartNativeBack === goBack) delete window.__gatedcartNativeBack; };
   }, [screen]);
+  useEffect(() => {
+    const handleSessionRefresh = event => {
+      if (event.detail?.accessToken) setAccessToken(event.detail.accessToken);
+    };
+    window.addEventListener('gatedcart-session-refreshed', handleSessionRefresh);
+    return () => window.removeEventListener('gatedcart-session-refreshed', handleSessionRefresh);
+  }, []);
   const previewRole = new URLSearchParams(window.location.search).get('role');
   const isAdminPortal = window.location.pathname === '/admin' || new URLSearchParams(window.location.search).get('admin') === '1';
   useEffect(() => {
-    const savedToken = window.localStorage.getItem('gatedcart_access_token');
+    const savedToken = window.localStorage.getItem(ACCESS_TOKEN_KEY);
     if (!savedToken) { setSessionReady(true); return undefined; }
     fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${savedToken}` } })
-      .then(async response => { if (!response.ok) { window.localStorage.removeItem('gatedcart_access_token'); setAccessToken(null); return; } setSessionUser(await response.json()); })
+      .then(async response => { if (!response.ok) { const refreshed = await refreshStoredSession(); if (!refreshed) { setAccessToken(null); return; } setAccessToken(refreshed.accessToken); setSessionUser(await (await fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${refreshed.accessToken}` } })).json()); return; } setSessionUser(await response.json()); })
       .catch(() => {})
       .finally(() => setSessionReady(true));
     return undefined;
@@ -1521,9 +1578,9 @@ function App() {
   if (previewRole === 'admin') return <AdminDashboardScreen />;
   if (isAdminPortal) return <AdminPortal />;
   if (!sessionReady) return <main className="auth-screen"><div className="auth-card session-loading"><Logo /><p className="auth-copy">Checking your GatedCart session…</p></div></main>;
-  if (!accessToken) return <LoginScreen onAuthenticated={token => { window.localStorage.setItem('gatedcart_access_token', token); setAccessToken(token); fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).then(response => response.json()).then(setSessionUser).catch(() => {}); }} />;
+  if (!accessToken) return <LoginScreen onAuthenticated={session => { persistSession(session); setAccessToken(session.accessToken); fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${session.accessToken}` } }).then(response => response.json()).then(setSessionUser).catch(() => {}); }} />;
   const roleCodes = (sessionUser?.roles || []).map(role => typeof role === 'string' ? role : role?.code || role?.role?.code).filter(Boolean);
-  const logout = () => { unregisterNativePushDevice(window.__gatedcartNativePushToken, accessToken); window.localStorage.removeItem('gatedcart_access_token'); setAccessToken(null); setSessionUser(null); };
+  const logout = () => { unregisterNativePushDevice(window.__gatedcartNativePushToken, accessToken); void fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => {}); window.localStorage.removeItem(ACCESS_TOKEN_KEY); window.localStorage.removeItem(REFRESH_TOKEN_KEY); setAccessToken(null); setSessionUser(null); };
   if (roleCodes.includes('GLOBAL_ADMIN')) return <AdminWorkspace token={accessToken} onLogout={logout} />;
   const isApprovedSeller = sellerStatus === 'APPROVED';
   const appendToCart = item => setCart(current => {

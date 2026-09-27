@@ -97,8 +97,8 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
     });
     const seller = await prisma.sellerProfile.findUnique({ where: { id: order.sellerId }, select: { userId: true } });
     void sendPushNotifications([
-      { userId: order.customerId, title: 'Order placed', body: `Your order ${order.orderNumber} has been placed.`, data: { route: 'orders', orderId: order.id } },
-      ...(seller ? [{ userId: seller.userId, title: 'New order received', body: `New order ${order.orderNumber} has been placed.`, data: { route: 'seller-orders', orderId: order.id } }] : []),
+      { userId: order.customerId, title: 'Order placed', body: `Your order ${order.orderNumber} has been placed.`, channelId: 'customer_updates', data: { route: 'orders', orderId: order.id } },
+      ...(seller ? [{ userId: seller.userId, title: 'New order received', body: `New order ${order.orderNumber} has been placed.`, channelId: 'seller_orders' as const, data: { route: 'seller-orders', orderId: order.id } }] : []),
     ]);
     response.status(201).json(order);
   } catch (error) {
@@ -147,7 +147,7 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
     }
     const notificationType = ({ ACCEPTED: 'ORDER_ACCEPTED', REJECTED: 'ORDER_REJECTED', PREPARING: 'ORDER_PREPARING', READY_FOR_PICKUP: 'ORDER_READY', ASSIGNED_TO_DELIVERY_BOY: 'DELIVERY_ASSIGNED', PICKED_UP: 'ORDER_PICKED_UP', OUT_FOR_DELIVERY: 'ORDER_OUT_FOR_DELIVERY', DELIVERED: 'ORDER_DELIVERED' } as Record<string, string>)[status] || 'SYSTEM';
     await prisma.notification.create({ data: { userId: order.customerId, type: notificationType as never, title: 'Order update', message: orderStatusMessage(status), data: { route: 'orders', orderId: order.id, status } } });
-    void sendPushNotifications([{ userId: order.customerId, title: 'Order update', body: orderStatusMessage(status), data: { route: 'orders', orderId: order.id, status } }]);
+    void sendPushNotifications([{ userId: order.customerId, title: 'Order update', body: orderStatusMessage(status), channelId: 'customer_updates', data: { route: 'orders', orderId: order.id, status } }]);
     response.json(updated);
   } catch (error) {
     next(error);

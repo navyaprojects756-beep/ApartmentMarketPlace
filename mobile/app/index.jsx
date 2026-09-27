@@ -12,7 +12,7 @@ import { WebView } from 'react-native-webview';
 const Notifications = Constants.appOwnership === 'expo' ? null : require('expo-notifications');
 
 const webUrl = process.env.EXPO_PUBLIC_WEB_APP_URL || 'https://gatedcart.cheritech.com';
-const apiUrl = 'https://gatedcart-api.onrender.com/api/v1';
+const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://gatedcart-api.onrender.com/api/v1';
 
 Notifications?.setNotificationHandler({ handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }) });
 
@@ -63,7 +63,10 @@ export default function Home() {
     }
     let active = true;
     async function registerNotifications() {
-      if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync('orders', { name: 'Orders', importance: Notifications.AndroidImportance.MAX, sound: 'default', vibrationPattern: [0, 250, 250, 250] });
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('seller_orders', { name: 'Seller orders', importance: Notifications.AndroidImportance.MAX, sound: 'default', vibrationPattern: [0, 250, 250, 250, 250, 250] });
+        await Notifications.setNotificationChannelAsync('customer_updates', { name: 'Customer order updates', importance: Notifications.AndroidImportance.DEFAULT, sound: 'default', vibrationPattern: [0, 180] });
+      }
       const permissions = await Notifications.getPermissionsAsync();
       const finalStatus = permissions.status === 'granted' ? permissions.status : (await Notifications.requestPermissionsAsync()).status;
       if (finalStatus !== 'granted') return;

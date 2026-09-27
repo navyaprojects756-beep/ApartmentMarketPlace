@@ -7,6 +7,8 @@ type PushMessage = {
   title: string;
   body: string;
   data?: Record<string, string>;
+  channelId?: 'seller_orders' | 'customer_updates';
+  sound?: string;
 };
 
 function isExpoToken(token: string) {
@@ -27,7 +29,7 @@ export async function sendPushNotifications(messages: PushMessage[]) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(batch.map(device => {
           const message = messageByUser.get(device.userId)!;
-          return { to: device.token, title: message.title, body: message.body, sound: 'default', priority: 'high', channelId: 'orders', data: message.data || {} };
+          return { to: device.token, title: message.title, body: message.body, sound: message.sound || 'default', priority: 'high', channelId: message.channelId || 'customer_updates', data: message.data || {} };
         })),
       });
       if (!response.ok) console.error('Expo push request failed:', response.status, await response.text());

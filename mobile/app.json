@@ -30,7 +30,7 @@
       [
         "expo-notifications",
         {
-          "defaultChannel": "orders",
+          "defaultChannel": "customer_updates",
           "color": "#ff6800"
         }
       ],
