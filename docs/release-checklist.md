@@ -77,7 +77,7 @@ For future builds, authenticate with `npx eas login` from `mobile/` and run `npx
 - [x] Production WebView URL is configured for preview and production EAS profiles.
 - [x] Push-device migration and API are deployed.
 - [x] Native, WebView, frontend, and API diagnostics are included in the diagnostic build/deployment.
-- [ ] Confirm a row appears in `push_devices` after login.
+- [x] Confirm a row appears in `push_devices` after login.
 - [ ] Confirm customer and seller order notifications with sound while backgrounded/closed.
 - [ ] Confirm notification tap routing opens the relevant order screen.
 

@@ -25,6 +25,7 @@ import { adminResourcesRouter } from './routes/admin-resources.routes.js';
 import { uploadRouter } from './routes/upload.routes.js';
 import { searchRouter } from './routes/search.routes.js';
 import { pushRouter } from './routes/push.routes.js';
+import { adminNotificationsRouter } from './routes/admin-notifications.routes.js';
 import { openapi } from './openapi.js';
 import path from 'node:path';
 
@@ -76,6 +77,7 @@ app.use('/api/v1', customerRouter);
 app.use('/api/v1/seller', sellerManagementRouter);
 app.use('/api/v1/admin', adminMonitoringRouter);
 app.use('/api/v1/admin', adminResourcesRouter);
+app.use('/api/v1/admin', adminNotificationsRouter);
 app.use('/api/v1/exports', exportRouter);
 app.use('/api/v1/uploads', uploadRouter);
 app.use('/api/v1/search', searchRouter);

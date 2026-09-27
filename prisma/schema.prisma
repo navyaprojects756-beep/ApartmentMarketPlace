@@ -128,6 +128,7 @@ model User {
   advertisementReqs AdvertisementRequest[] @relation("AdvertisementRequestRequester")
   notifications     Notification[]         @relation("NotificationRecipient")
   notificationReads NotificationRead[]
+  notificationCampaigns NotificationCampaign[] @relation("NotificationCampaignCreator")
   pushDevices       PushDevice[]
   carts             Cart[]
   orders            Order[]                @relation("CustomerOrders")
@@ -568,12 +569,30 @@ model Notification {
   title     String             @db.VarChar(180)
   message   String             @db.Text
   data      Json?
+  campaignId String?            @map("campaign_id") @db.Uuid
   createdAt DateTime           @default(now()) @map("created_at")
   user      User               @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
   reads     NotificationRead[]
+  campaign  NotificationCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
+  @@index([campaignId, createdAt])
   @@map("notifications")
+}
+
+model NotificationCampaign {
+  id          String         @id @default(uuid()) @db.Uuid
+  createdById String         @map("created_by_id") @db.Uuid
+  title       String         @db.VarChar(180)
+  message     String         @db.Text
+  filters     Json?
+  route       String?        @db.VarChar(80)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  createdBy   User           @relation("NotificationCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  notifications Notification[]
+
+  @@index([createdById, createdAt])
+  @@map("notification_campaigns")
 }
 
 model PushDevice {

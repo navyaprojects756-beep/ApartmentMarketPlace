@@ -249,6 +249,7 @@ Verification checkpoint: database migration status, web build, backend build, An
 - [x] Native, frontend, and API diagnostics log only safe metadata such as booleans, status values, and token suffixes.
 - [x] Render/Express proxy handling was corrected with `app.set('trust proxy', 1)` for `X-Forwarded-For` rate-limit validation.
 - [x] Frontend build, backend TypeScript validation, and Expo Android bundle export pass after the diagnostic changes.
+- [x] Verified on the physical Android APK that the authenticated WebView registers the Expo token and creates a `push_devices` database row. The separate frontend/native registration markers resolved the previous block.
 
 ### Current investigation result
 
