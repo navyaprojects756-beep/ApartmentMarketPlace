@@ -9,12 +9,15 @@ const registerNativePushDevice = (token, platform = 'android', deviceId) => {
   if (typeof window === 'undefined' || !token) return;
   const accessToken = window.localStorage.getItem('gatedcart_access_token');
   if (!accessToken || window.__gatedcartPushRegistrationToken === token) return;
+  console.info('[push] attempting device registration', { api: `${API_BASE}/push-devices`, platform, tokenSuffix: token.slice(-8), hasAccessToken: true });
   window.__gatedcartPushRegistrationToken = token;
   fetch(`${API_BASE}/push-devices`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify({ token, platform, deviceId }),
-  }).then(response => {
+  }).then(async response => {
+    const responseText = await response.text().catch(() => '');
+    console.info('[push] device registration response', { status: response.status, body: responseText.slice(0, 300) });
     if (!response.ok) {
       window.__gatedcartPushRegistrationToken = '';
       console.error('[push] device registration failed', response.status);

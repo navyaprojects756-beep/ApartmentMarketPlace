@@ -8,14 +8,25 @@ export const pushRouter = Router();
 
 const deviceSchema = z.object({ token: z.string().min(10).max(255), platform: z.enum(['android', 'ios']), deviceId: z.string().max(255).optional() });
 
-pushRouter.post('/push-devices', requireAuth, async (request, response, next) => {
+pushRouter.post('/push-devices', (request, _response, next) => {
+  console.log('[push] registration HTTP request received', {
+    method: request.method,
+    path: request.path,
+    hasAuthorization: Boolean(request.headers.authorization),
+    platform: request.body?.platform,
+    tokenSuffix: typeof request.body?.token === 'string' ? request.body.token.slice(-8) : undefined,
+  });
+  next();
+}, requireAuth, async (request, response, next) => {
   try {
     const input = deviceSchema.parse(request.body);
+    console.log('[push] registration authenticated', { userId: request.auth!.userId, platform: input.platform, tokenSuffix: input.token.slice(-8) });
     const updated = await prisma.$queryRaw<Array<{ id: string }>>`UPDATE push_devices SET user_id = ${request.auth!.userId}::uuid, platform = ${input.platform}, device_id = ${input.deviceId || null}, is_active = true, last_seen_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE token = ${input.token} RETURNING id`;
     const device = updated[0] || (await prisma.$queryRaw<Array<{ id: string }>>`INSERT INTO push_devices (id, user_id, token, platform, device_id, is_active, last_seen_at, created_at, updated_at) VALUES (${randomUUID()}::uuid, ${request.auth!.userId}::uuid, ${input.token}, ${input.platform}, ${input.deviceId || null}, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id`)[0];
-    console.log(`[push] device registered user=${request.auth!.userId} platform=${input.platform} tokenSuffix=${input.token.slice(-8)}`);
+    console.log('[push] device registered', { userId: request.auth!.userId, deviceId: device.id, operation: updated[0] ? 'updated' : 'inserted', platform: input.platform, tokenSuffix: input.token.slice(-8) });
     response.status(201).json({ id: device.id, registered: true });
   } catch (error) {
+    console.error('[push] device registration failed', error instanceof Error ? error.message : error);
     next(error);
   }
 });
