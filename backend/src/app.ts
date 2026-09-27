@@ -31,6 +31,9 @@ import path from 'node:path';
 export const app = express();
 
 app.disable('x-powered-by');
+// Render terminates TLS and forwards requests through one trusted proxy.
+// This allows express-rate-limit to use the real client IP from X-Forwarded-For.
+app.set('trust proxy', 1);
 app.use(helmet());
 const allowedFrontendOrigins = new Set([env.FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173']);
 app.use(cors({ origin: (origin, callback) => {
