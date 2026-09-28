@@ -15,6 +15,14 @@ enum RoleCode {
   GLOBAL_ADMIN
 }
 
+enum AccountDeletionRequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
 enum SellerType {
   APARTMENT
   OUTSIDE
@@ -137,6 +145,24 @@ model User {
   auditLogs         AuditLog[]             @relation("AuditActor")
   createdSettings   PlatformSetting[]      @relation("SettingCreator")
   errorLogs         ErrorLog[]
+  deletionRequests  AccountDeletionRequest[] @relation("DeletionRequestUser")
+  processedDeletionRequests AccountDeletionRequest[] @relation("DeletionRequestProcessor")
+}
+
+model AccountDeletionRequest {
+  id          String                         @id @default(uuid()) @db.Uuid
+  userId      String                         @map("user_id") @db.Uuid
+  reason      String?                        @db.Text
+  status      AccountDeletionRequestStatus   @default(PENDING)
+  requestedAt DateTime                       @default(now()) @map("requested_at")
+  processedAt DateTime?                      @map("processed_at")
+  processedById String?                      @map("processed_by_id") @db.Uuid
+  user        User                           @relation("DeletionRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  processedBy User?                          @relation("DeletionRequestProcessor", fields: [processedById], references: [id], onDelete: SetNull)
+
+  @@index([status, requestedAt])
+  @@index([userId, status])
+  @@map("account_deletion_requests")
 }
 
 model ErrorLog {

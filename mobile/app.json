@@ -10,10 +10,10 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.gatedcart.marketplace"
+      "bundleIdentifier": "com.cheritech.gatedcart"
     },
     "android": {
-      "package": "com.gatedcart.marketplace",
+      "package": "com.cheritech.gatedcart",
       "googleServicesFile": "./google-services.json",
       "usesCleartextTraffic": true,
       "adaptiveIcon": {

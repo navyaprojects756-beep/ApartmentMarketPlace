@@ -5,6 +5,19 @@ import { prisma } from '../lib/prisma.js';
 
 export const customerRouter = Router();
 
+customerRouter.get('/account-deletion-requests/mine', requireAuth, async (request, response, next) => {
+  try { response.json(await prisma.accountDeletionRequest.findFirst({ where: { userId: request.auth!.userId }, orderBy: { requestedAt: 'desc' } })); } catch (error) { next(error); }
+});
+
+customerRouter.post('/account-deletion-requests', requireAuth, async (request, response, next) => {
+  try {
+    const input = z.object({ reason: z.string().trim().max(2000).optional() }).parse(request.body);
+    const existing = await prisma.accountDeletionRequest.findFirst({ where: { userId: request.auth!.userId, status: { in: ['PENDING', 'IN_PROGRESS'] } } });
+    if (existing) { response.status(409).json({ error: { code: 'DELETION_REQUEST_EXISTS', message: 'Your account deletion request is already being reviewed.' } }); return; }
+    response.status(201).json(await prisma.accountDeletionRequest.create({ data: { userId: request.auth!.userId, reason: input.reason || null } }));
+  } catch (error) { next(error); }
+});
+
 customerRouter.patch('/profile', requireAuth, async (request, response, next) => {
   try {
     const input = z.object({ name: z.string().trim().min(2).max(120) }).parse(request.body);

@@ -140,6 +140,18 @@ adminResourcesRouter.get('/users', ...adminOnly, async (request, response, next)
   try { const search = z.string().trim().optional().parse(request.query.search); response.json(await prisma.user.findMany({ where: search ? { OR: [{ name: { contains: search, mode: 'insensitive' } }, { phone: { contains: search } }] } : {}, include: { roles: { include: { role: true } }, apartments: { include: { apartment: true } } }, orderBy: { createdAt: 'desc' }, take: 500 })); } catch (error) { next(error); }
 });
 
+adminResourcesRouter.get('/account-deletion-requests', ...adminOnly, async (_request, response, next) => {
+  try { response.json(await prisma.accountDeletionRequest.findMany({ include: { user: { select: { id: true, name: true, phone: true, email: true } }, processedBy: { select: { name: true, phone: true } } }, orderBy: { requestedAt: 'desc' }, take: 500 })); } catch (error) { next(error); }
+});
+
+adminResourcesRouter.patch('/account-deletion-requests/:requestId', ...adminOnly, async (request, response, next) => {
+  try {
+    const requestId = z.string().uuid().parse(request.params.requestId);
+    const input = z.object({ status: z.enum(['IN_PROGRESS', 'COMPLETED', 'REJECTED', 'CANCELLED']) }).parse(request.body);
+    response.json(await prisma.accountDeletionRequest.update({ where: { id: requestId }, data: { status: input.status, processedAt: ['COMPLETED', 'REJECTED', 'CANCELLED'].includes(input.status) ? new Date() : null, processedById: request.auth!.userId } }));
+  } catch (error) { next(error); }
+});
+
 adminResourcesRouter.patch('/users/:userId', ...adminOnly, async (request, response, next) => {
   try {
     const userId = z.string().uuid().parse(request.params.userId);
