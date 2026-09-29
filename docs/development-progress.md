@@ -305,3 +305,17 @@ Native token acquisition and production WebView loading are working. Earlier API
 - [x] Expo push notification registration is wired for the Android/iOS WebView app, including default sound, background/closed-app delivery, and tap routing data.
 - [x] Customers receive order-status push notifications and sellers receive new-order push notifications.
 - [x] Render deployment documentation distinguishes automatic Prisma schema migrations from intentionally manual seed/data operations.
+
+## 2026-09-28 community services and account controls
+
+- [x] Added Global Admin community-service categories with images and apartment assignment.
+- [x] Added service providers with name, phone, address, description, image, and apartment assignment.
+- [x] Customer Home shows apartment-scoped services, available services first, and a muted state for unavailable services.
+- [x] Customer service-provider results open on a separate page.
+- [x] Added `AccountDeletionRequest` persistence and Prisma migration.
+- [x] Added authenticated customer deletion-request API and dedicated `/delete-account` web route.
+- [x] Added Global Admin deletion-request review and status management.
+- [x] Added public privacy and terms documents plus static-host copies under `public/`.
+- [x] Updated mobile identifiers to `com.cheritech.gatedcart`.
+- [ ] Implement automatic personal-data purge after an administrator completes a deletion request.
+- [ ] Deploy and verify the latest static policy documents on the production domain.

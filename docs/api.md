@@ -35,6 +35,8 @@ Authorization: Bearer <accessToken>
 - `POST /notifications/:notificationId/dismiss`
 - `POST /reviews`
 - `POST /uploads/image` — authenticated local JPEG/PNG/WebP image upload from a data URL
+- `GET /account-deletion-requests/mine` — latest deletion request for the authenticated customer.
+- `POST /account-deletion-requests` — authenticated customer account deletion request; accepts optional `{ "reason": "..." }`.
 
 ### Global categories and category browsing
 
@@ -84,6 +86,8 @@ Authorization: Bearer <accessToken>
 - `PATCH /admin/flats/:flatId`
 - `POST /admin/apartments/:apartmentId/blocks/:blockId/flats/bulk`
 - `GET /admin/users`
+- `GET /admin/account-deletion-requests` — Global Admin list of customer deletion requests.
+- `PATCH /admin/account-deletion-requests/:requestId` — Global Admin status update using `IN_PROGRESS`, `COMPLETED`, `REJECTED`, or `CANCELLED`.
 - `GET /admin/sellers`
 - `GET/POST /admin/alerts`
 - `GET /exports/seller/orders.csv`
@@ -122,3 +126,12 @@ The web and Expo wrapper currently use the same authenticated API-backed applica
 The customer cart groups items by seller and submits one `POST /orders` request for each seller. Each request creates an independent order with its own status history, inventory changes, seller queue entry, and order number. Customer order tracking retrieves the resulting orders through `GET /orders`.
 
 The Render API start command runs `npx prisma migrate deploy --schema prisma/schema.prisma`. Committed Prisma migrations are applied automatically during API deployment. Existing records are preserved unless a migration explicitly changes data. `prisma/seed.ts` is not part of the Render start command and does not run automatically.
+
+## Community services
+
+- `GET /home` — includes authenticated apartment-scoped community services for the customer Home screen.
+- `GET /home/community-services/:serviceId/providers` — authenticated providers available in the customer's apartment.
+- `GET/POST/PATCH/DELETE /admin/community-services` — Global Admin service-category management.
+- `GET/POST/PATCH/DELETE /admin/community-service-providers` — Global Admin provider management, including image URL and apartment IDs.
+
+The customer-facing deletion URL is `https://gatedcart.cheritech.com/delete-account`. It requires login and then submits the request through the customer endpoints above. The policy URLs are `https://gatedcart.cheritech.com/privacy-policy` and `https://gatedcart.cheritech.com/terms-and-conditions`.

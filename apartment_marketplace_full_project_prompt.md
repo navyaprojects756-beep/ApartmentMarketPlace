@@ -2442,3 +2442,19 @@ preserves extensibility and document the decision in
 `docs/architecture.md`.
 
 Do not remove functionality merely to simplify the demo.
+
+------------------------------------------------------------------------
+
+# Current implementation additions — 2026-09-28
+
+The following requirements have been added to the implemented platform:
+
+- Community services are Global Admin-managed service categories with an image and apartment scope.
+- Each service can contain service providers with name, phone, address, description, image, and apartment availability.
+- Customer Home shows available services first and grays out services that have no provider for the customer's apartment. Provider lists open on a separate screen.
+- Customers can submit an authenticated account deletion request at `/delete-account`. Requests are persisted with status, reason, timestamps, and processing administrator details.
+- Global Admin can review and update account deletion request statuses.
+- Privacy and terms pages are published at `/privacy-policy` and `/terms-and-conditions`; account deletion is intentionally authenticated rather than a public deletion form.
+- Android and iOS use the package identifier `com.cheritech.gatedcart`.
+
+Automatic deletion of all personal data after an administrator marks a request completed remains a required follow-up. Legal, tax, fraud-prevention, and order records may require retention.

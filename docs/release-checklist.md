@@ -87,3 +87,15 @@ Trace command:
 adb logcat -c
 adb logcat -v time "ReactNativeJS:I" "*:S"
 ```
+
+## 2026-09-28 release additions
+
+- [x] Community-service schema migration applied and included in deployment migrations.
+- [x] Service and provider image upload flows verified by frontend/backend builds.
+- [x] Authenticated `/delete-account` route added; unauthenticated users are sent through OTP login.
+- [x] Account deletion requests are persisted and visible to Global Admin.
+- [x] Static `/privacy-policy` and `/terms-and-conditions` documents are included in `dist`.
+- [ ] Deploy the latest frontend `dist` output and verify both policy URLs on the production domain.
+- [ ] Verify `/delete-account` login return flow on the production domain.
+- [ ] Implement and verify permanent personal-data purge when a deletion request is completed, with legally required retention exclusions.
+- [ ] Add the UDYAM registration number to the public business/legal information after it is provided.

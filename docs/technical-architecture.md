@@ -237,3 +237,11 @@ The frontend is built with `VITE_API_URL=https://gatedcart-api.onrender.com/api/
 - Render runs `prisma migrate deploy` from the API start command, so committed migrations update database structure during deployment. Existing business records remain in PostgreSQL; seed scripts are not run automatically.
 - Firebase Authentication remains responsible for phone OTP and application sessions. Push delivery uses Expo Push Service through `expo-notifications`; Expo forwards messages to Android FCM and Apple APNs. Device tokens are kept in the API, so notification targeting remains independent from authentication-provider choice.
 - Order events create in-app notifications and send regular push notification messages with `sound: "default"`, which allows the operating system to display and play them while the app is backgrounded or closed. Notification data includes the order ID and destination route.
+
+## Community services and account deletion — 2026-09-28
+
+Community services use three Prisma models: `CommunityService`, `CommunityServiceProvider`, and `CommunityServiceApartment`. Global Admin owns service and provider CRUD. Provider images and service images use the existing image-upload flow. Customer queries are apartment-scoped and order services with providers before services without providers.
+
+Account deletion uses `AccountDeletionRequest` and the statuses `PENDING`, `IN_PROGRESS`, `COMPLETED`, `REJECTED`, and `CANCELLED`. The customer route is `POST /api/v1/account-deletion-requests`; Global Admin routes are under `/api/v1/admin/account-deletion-requests`. The public web URL `/delete-account` requires login before displaying the request action.
+
+Policy URLs are `/privacy-policy` and `/terms-and-conditions`. Static policy documents are also emitted into the production `dist` directory so direct requests work on hosts without history-API fallback support.

@@ -146,3 +146,14 @@ When the Prisma schema changes, run before starting the API:
 npx prisma generate --schema prisma/schema.prisma
 npx prisma migrate deploy --schema prisma/schema.prisma
 ```
+
+## Current release status — 2026-09-28
+
+- Global Admin manages community-service categories with images, apartment availability, and service providers with contact details and images.
+- Customers see apartment-scoped community services on Home. Available services are shown first; services without providers are visually disabled. Selecting a service opens a separate provider list.
+- Account deletion requests are stored in `account_deletion_requests`. Customers use the authenticated URL `https://gatedcart.cheritech.com/delete-account`; Global Admin reviews requests from the Deletion Requests workspace.
+- Public policy pages are available at `https://gatedcart.cheritech.com/privacy-policy` and `https://gatedcart.cheritech.com/terms-and-conditions`. Static copies are generated under `dist/privacy-policy/` and `dist/terms-and-conditions/` for hosts that do not provide SPA fallback routing.
+- The mobile identifiers are `com.cheritech.gatedcart` for Android and iOS. Firebase must use the same Android package identifier; download a newly registered `google-services.json` after changing the Firebase app package.
+- The current public policy uses Cheritech as the operator. Add the UDYAM number when it is available.
+
+Account deletion currently records and reviews the request. Automatic permanent deletion of personal data on `COMPLETED` still requires a separate purge implementation, subject to retention obligations.

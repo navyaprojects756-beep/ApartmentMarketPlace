@@ -54,3 +54,13 @@ The shared WebView customer flow also includes multi-seller carts with one order
 The native shell requests permission, creates the Android `orders` channel with default sound, acquires the Expo token using the EAS project ID, and injects it into the hosted WebView. The WebView registers it against the authenticated API session.
 
 Expected log order is `Expo push token acquired`, `WebView load finished`, `webview-probe`, `push-debug`, and `push-registration`, followed by API logs for request receipt, authentication, and database registration. Vivo/CleverTap/Facebook system push logs are unrelated to GatedCart.
+
+## Current hosted routes and package — 2026-09-28
+
+- Android package: `com.cheritech.gatedcart`.
+- iOS bundle identifier: `com.cheritech.gatedcart`.
+- Privacy policy: `https://gatedcart.cheritech.com/privacy-policy`.
+- Terms: `https://gatedcart.cheritech.com/terms-and-conditions`.
+- Account deletion: `https://gatedcart.cheritech.com/delete-account`.
+
+The account-deletion URL is not a public deletion form. It requires the customer to log in with OTP and then creates a deletion request in the API database. After changing the Android package, Firebase must contain an app registered as `com.cheritech.gatedcart`, and a newly downloaded `google-services.json` must be used for native builds.
