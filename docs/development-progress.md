@@ -330,3 +330,18 @@ Native token acquisition and production WebView loading are working. Earlier API
 - [x] Updated seller order actions to verify codes for pickup and delivery completion.
 - [x] Updated the customer-facing `PREPARING` label to `Packing` while preserving the API status contract.
 - [ ] Verify the migration and handover flow on the deployed Render database and physical mobile preview build.
+
+
+## 2026-10-04 fulfillment address snapshots and cancellation modal
+
+- [x] Added immutable order-time fulfillment address and phone fields to `Order`.
+- [x] Takeaway checkout captures seller pickup location and seller phone.
+- [x] Delivery checkout captures customer delivery address and customer phone.
+- [x] Customer order tracking reads the saved fulfillment snapshot for new orders.
+- [x] Replaced direct customer cancellation with an in-app confirmation modal.
+- [x] Added visual separation above the customer order status timeline.
+- [x] Applied and verified migration `20261004170000_order_fulfillment_snapshots` locally.
+- [x] Verified API build, Prisma generation, frontend build, and `git diff --check`.
+- [ ] Redeploy API and frontend and verify takeaway/delivery snapshots against the production database.
+
+Historical note: orders created before the snapshot migration may not have immutable address values if their related address records were later edited.

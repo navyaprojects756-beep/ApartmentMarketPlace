@@ -85,7 +85,7 @@ button { cursor: pointer; border: 0; background: transparent; color: inherit; }
 .order-status { padding: 6px 8px; border-radius: 6px; color: #8162df; background: #f0ecff; font-size: 9px; font-weight: 700; text-transform: capitalize; }
 .order-code-card-top { margin: 0 0 10px; padding: 9px 11px; border: 1px solid #ffd7b7; border-radius: 13px; background: linear-gradient(135deg, #fffaf5, #fff); box-shadow: 0 5px 13px rgba(255, 107, 0, .06); }
 .order-code-card-header { display: flex; align-items: center; gap: 9px; }.order-code-card-header > div { min-width: 0; flex: 1; }.order-code-card-header strong { color: #14213d; font-size: 14px; }.order-code-icon { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 8px; color: #fff; background: #ff6b00; font-size: 17px; font-weight: 800; }.order-code-value { padding: 5px 9px; border: 1px solid #ffd7b7; border-radius: 7px; color: #e05200; background: #fff; font-size: 11px; font-weight: 900; letter-spacing: 1.8px; white-space: nowrap; }.order-detail > .order-code-card:not(.order-code-card-top) { display: none; }
-.order-progress { margin: 0 0 12px; padding: 8px 6px 9px; overflow-x: auto; border: 1px solid #e8edf2; border-radius: 12px; background: linear-gradient(180deg, #fbfdff, #fff); scrollbar-width: thin; }
+.order-progress { margin: 10px 0 12px; padding: 8px 6px 9px; overflow-x: auto; border: 1px solid #e8edf2; border-radius: 12px; background: linear-gradient(180deg, #fbfdff, #fff); scrollbar-width: thin; }
 .order-progress-track { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); width: 100%; min-width: 0; }
 .order-progress.has-exception .order-progress-track { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .order-progress-step { position: relative; display: grid; justify-items: center; gap: 4px; color: #a5afbb; text-align: center; }
@@ -692,4 +692,3 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
  .policy-links { display: flex; gap: 14px; margin: 20px 0 100px; font-size: 11px; }
  .policy-links a { color: #e85d00; text-decoration: none; }
  @media(max-width: 560px) { .public-policy-page { padding: 20px 12px; }.public-policy-card { padding: 26px 20px; }.public-policy-card h1 { font-size: 28px; }.public-policy-card p { font-size: 12px; } }
-.order-detail:has(.order-progress.delivery) .order-detail-grid > div:first-child { display: none; }

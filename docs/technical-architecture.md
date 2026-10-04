@@ -253,3 +253,16 @@ Policy URLs are `/privacy-policy` and `/terms-and-conditions`. Static policy doc
 - Customer tracking displays one OrderPin, fulfillment-aware progress, address/phone fallback details, payment, and pending-order cancellation.
 - Sellers and assigned delivery staff verify the single order PIN at handover. The protected endpoint completes the entire order when it matches.
 - `PREPARING` is presented to users as `Packing`; the backend status value remains unchanged.
+
+
+## Fulfillment address snapshot architecture - 2026-10-04
+
+Order addresses are captured at checkout so order history is stable:
+
+- `PICKUP`: `fulfillmentAddress` is built from the seller address, seller apartment address, seller community/block/flat association, and `fulfillmentPhone` is the seller phone.
+- `DELIVERY`: `fulfillmentAddress` is built from the selected customer address and apartment context, and `fulfillmentPhone` is the customer phone.
+- The customer `GET /orders` response uses these snapshot fields for new orders and does not substitute the current customer address or seller settings.
+- The Prisma fields are nullable for compatibility with orders created before the migration: `fulfillment_address` and `fulfillment_phone`.
+- Migration: `20261004170000_order_fulfillment_snapshots`.
+
+Customer cancellation uses the application modal component/presentation and keeps the API status transition behind explicit confirmation. The customer progress timeline includes a small top gap for visual separation from the order header.

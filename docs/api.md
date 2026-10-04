@@ -142,3 +142,22 @@ The Render API start command runs `npx prisma migrate deploy --schema prisma/sch
 - `GET/POST/PATCH/DELETE /admin/community-service-providers` — Global Admin provider management, including image URL and apartment IDs.
 
 The customer-facing deletion URL is `https://gatedcart.cheritech.com/delete-account`. It requires login and then submits the request through the customer endpoints above. The policy URLs are `https://gatedcart.cheritech.com/privacy-policy` and `https://gatedcart.cheritech.com/terms-and-conditions`.
+
+
+## Order fulfillment snapshots - 2026-10-04
+
+`POST /orders` captures fulfillment contact data inside the order transaction:
+
+- For `PICKUP`, the order stores the seller pickup address and seller phone.
+- For `DELIVERY`, the order stores the selected customer delivery address and customer phone.
+
+`GET /orders` returns the saved order-time values for new orders. These values are represented in the customer order detail as the takeaway pickup address/phone or delivery-to address/phone. They are not recalculated from the customer profile or seller settings after checkout.
+
+The database fields are:
+
+- `orders.fulfillment_address` - nullable text snapshot.
+- `orders.fulfillment_phone` - nullable phone snapshot.
+
+Migration: `20261004170000_order_fulfillment_snapshots`. Existing orders from before this migration remain compatible but may fall back to their existing relational address data.
+
+Customer cancellation is confirmed through the frontend's in-app modal before the existing `PATCH /orders/:orderId/status` cancellation request is sent.

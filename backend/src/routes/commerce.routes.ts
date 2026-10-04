@@ -61,7 +61,14 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
       return;
     }
     const order = await prisma.$transaction(async tx => {
-      const seller = await tx.sellerProfile.findUniqueOrThrow({ where: { id: input.sellerId }, include: { operatingHours: true } });
+      const seller = await tx.sellerProfile.findUniqueOrThrow({ where: { id: input.sellerId }, include: { operatingHours: true, apartment: true, user: { include: { apartments: { where: { isPrimary: true }, include: { apartment: true, block: true, flat: true } } } } } });
+      const customer = await tx.user.findUniqueOrThrow({ where: { id: request.auth!.userId }, select: { phone: true } });
+      const selectedAddress = input.addressId ? await tx.address.findFirst({ where: { id: input.addressId, userId: request.auth!.userId }, include: { apartment: true, block: true, flat: true } }) : null;
+      const sellerApartment = seller.user.apartments[0];
+      const fulfillmentAddress = input.fulfillmentType === 'PICKUP'
+        ? [seller.address, seller.apartment?.address, seller.apartment?.name || sellerApartment?.apartment?.name, sellerApartment?.block?.name, sellerApartment?.flat?.number ? `Flat ${sellerApartment.flat.number}` : null].filter(Boolean).join(' · ') || 'Seller pickup address not provided'
+        : [selectedAddress?.addressLine, selectedAddress?.apartment?.name || context.apartment.name, selectedAddress?.block?.name || context.block?.name, selectedAddress?.flat?.number ? `Flat ${selectedAddress.flat.number}` : context.flat?.number ? `Flat ${context.flat.number}` : null].filter(Boolean).join(' · ') || 'Delivery address not provided';
+      const fulfillmentPhone = input.fulfillmentType === 'PICKUP' ? seller.user.phone : customer.phone;
       const availability = getSellerAvailability(seller);
       if (!availability.isOpen) throw new Error(availability.reason || 'STORE_CLOSED');
       if (input.fulfillmentType === 'DELIVERY' && !seller.deliveryEnabled) throw new Error('DELIVERY_NOT_AVAILABLE');
@@ -86,7 +93,7 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
       }
       const deliveryCharge = input.fulfillmentType === 'DELIVERY' ? (seller.deliveryCharge ?? new Prisma.Decimal(0)) : new Prisma.Decimal(0);
       const total = subtotal.add(deliveryCharge);
-      const created = await tx.order.create({ data: { orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`, customerId: request.auth!.userId, sellerId: seller.id, apartmentId: context.apartmentId, blockId: context.blockId, flatId: context.flatId, addressId: input.addressId, subtotal, discount: 0, deliveryCharge, total, paymentMethod: input.paymentMethod, paymentStatus: input.paymentMethod === 'DUMMY_PAYMENT' ? 'PAID' : 'PENDING', fulfillmentType: input.fulfillmentType, verificationCode: String(Math.floor(100000 + Math.random() * 900000)), customerNotes: input.customerNotes, items: { create: orderItems }, statusHistory: { create: { toStatus: 'PENDING' } } } });
+      const created = await tx.order.create({ data: { orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`, customerId: request.auth!.userId, sellerId: seller.id, apartmentId: context.apartmentId, blockId: context.blockId, flatId: context.flatId, addressId: input.addressId, subtotal, discount: 0, deliveryCharge, total, paymentMethod: input.paymentMethod, paymentStatus: input.paymentMethod === 'DUMMY_PAYMENT' ? 'PAID' : 'PENDING', fulfillmentType: input.fulfillmentType, fulfillmentAddress, fulfillmentPhone, verificationCode: String(Math.floor(100000 + Math.random() * 900000)), customerNotes: input.customerNotes, items: { create: orderItems }, statusHistory: { create: { toStatus: 'PENDING' } } } });
       for (const item of orderItems) {
         const product = products.find(record => record.id === item.productId)!;
         if (product.inventoryTracking) await tx.inventoryMovement.create({ data: { productId: product.id, type: 'SALE', quantity: -item.quantity, orderId: created.id, reason: `Order ${created.orderNumber}` } });
@@ -110,6 +117,16 @@ commerceRouter.get('/orders', requireAuth, async (request, response, next) => {
   try {
     const orders = await prisma.order.findMany({ where: { customerId: request.auth!.userId }, include: { customer: { include: { apartments: { where: { isPrimary: true }, include: { flat: true } } } }, seller: { include: { apartment: true, user: { include: { apartments: { where: { isPrimary: true }, include: { apartment: true, block: true, flat: true } } } } } }, apartment: true, block: true, flat: true, address: true, items: true, statusHistory: { orderBy: { createdAt: 'asc' } }, deliveryAssignment: { include: { deliveryBoy: { include: { user: true } } } } }, orderBy: { createdAt: 'desc' } });
     response.json(orders.map(order => {
+      if (order.fulfillmentAddress) {
+        return {
+          ...order,
+          address: { ...(order.address || {}), addressLine: order.fulfillmentAddress, manualFlatNumber: null },
+          apartment: null,
+          block: null,
+          flat: null,
+          customer: { ...order.customer, phone: order.fulfillmentPhone || order.customer.phone, apartments: [] }
+        };
+      }
       if (order.fulfillmentType !== 'PICKUP') return order;
       const sellerApartment = order.seller.user.apartments[0];
       const pickupAddress = [order.seller.address, order.seller.apartment?.address, order.seller.apartment?.name || sellerApartment?.apartment?.name, sellerApartment?.block?.name, sellerApartment?.flat?.number ? `Flat ${sellerApartment.flat.number}` : null]
@@ -120,8 +137,8 @@ commerceRouter.get('/orders', requireAuth, async (request, response, next) => {
         address: { ...(order.address || {}), addressLine: pickupAddress, manualFlatNumber: null },
         apartment: null,
         block: null,
-        flat: null,
-        customer: { ...order.customer, apartments: [] }
+        flat: sellerApartment?.flat || null,
+        customer: { ...order.customer, phone: order.seller.user.phone, apartments: sellerApartment ? [{ ...sellerApartment, isPrimary: true }] : [] }
       };
     }));
   } catch (error) {

@@ -165,3 +165,24 @@ Account deletion currently records and reviews the request. Automatic permanent 
 - Sellers and assigned delivery staff verify the single OrderPin at final handover through `POST /api/v1/orders/:orderId/verify-items`.
 - The API validates authorization and the order PIN, marks the order verified, changes it to `COMPLETED`, writes status history, and notifies the customer.
 - Apply `20261004150000_order_verification_code` before using the flow. Render applies committed migrations at API startup; seed data remains manual.
+
+
+## Current order fulfillment and history update - 2026-10-04
+
+- Customer cancellation uses an in-app confirmation modal; the customer order flow does not use a browser confirmation for cancellation.
+- The order progress card has added spacing above the status timeline.
+- Takeaway orders preserve and display the seller pickup address and seller phone number.
+- Delivery orders preserve and display the customer delivery address and customer phone number.
+- New orders store immutable fulfillment snapshots in `orders.fulfillment_address` and `orders.fulfillment_phone`. Updating a customer profile/address or seller settings does not change those new historical order details.
+- The snapshot migration is `20261004170000_order_fulfillment_snapshots` and must be applied in every environment.
+
+Run after pulling the change:
+
+```bash
+npx prisma generate --schema prisma/schema.prisma
+npx prisma migrate deploy --schema prisma/schema.prisma
+npm run api:build
+npm run build
+```
+
+Orders created before this migration may still use their existing relational address data because no historical snapshot existed at the time they were placed.

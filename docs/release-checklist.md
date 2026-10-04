@@ -108,3 +108,25 @@ adb logcat -v time "ReactNativeJS:I" "*:S"
 - [x] Add customer OrderPin and fulfillment-specific order progress UI.
 - [ ] Apply the migration on Render and verify pickup and delivery handover with a seeded order.
 - [ ] Verify OrderPin display, code entry, completion notification, and errors in the installed Android preview APK.
+
+
+## Order fulfillment history release checks - 2026-10-04
+
+- [ ] Apply `20261004150000_order_verification_code`.
+- [ ] Apply `20261004170000_order_fulfillment_snapshots`.
+- [ ] Run Prisma generation before the API starts.
+- [ ] Verify a takeaway order stores seller address and seller phone.
+- [ ] Verify a delivery order stores customer address and customer phone.
+- [ ] Change the customer address after placing an order and confirm the old order still shows its original snapshot.
+- [ ] Confirm Cancel order opens the in-app modal and does not immediately cancel.
+- [ ] Confirm the progress timeline spacing and delivery/takeaway address labels on mobile and desktop.
+- [ ] Rebuild and redeploy both API and frontend after migration deployment.
+
+Commands:
+
+```bash
+npx prisma generate --schema prisma/schema.prisma
+npx prisma migrate deploy --schema prisma/schema.prisma
+npm run api:build
+npm run build
+```

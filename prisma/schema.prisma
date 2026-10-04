@@ -766,6 +766,8 @@ model Order {
   paymentMethod      PaymentMethod            @map("payment_method")
   paymentStatus      PaymentStatus            @default(PENDING) @map("payment_status")
   fulfillmentType    FulfillmentType          @map("fulfillment_type")
+  fulfillmentAddress String?                  @map("fulfillment_address") @db.Text
+  fulfillmentPhone   String?                  @map("fulfillment_phone") @db.VarChar(40)
   status             OrderStatus              @default(PENDING)
   verificationCode   String                   @map("verification_code") @db.VarChar(6)
   verifiedAt         DateTime?                @map("verified_at")

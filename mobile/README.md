@@ -68,3 +68,16 @@ The account-deletion URL is not a public deletion form. It requires the customer
 ## Order handover verification — 2026-10-04
 
 The shared WebView now displays one six-digit OrderPin for the entire order in customer order tracking. Sellers and assigned delivery staff use the same web UI to verify that single PIN at pickup or delivery; the API completes the order when it matches. The deployed API must apply migration `20261004150000_order_verification_code` before testing this flow.
+
+
+## Order fulfillment history update - 2026-10-04
+
+The shared WebView now uses the same order-history rules on Android, iOS, and browser:
+
+- Takeaway orders show the seller pickup address and seller phone.
+- Delivery orders show the customer delivery address and customer phone.
+- New orders use immutable checkout-time fulfillment snapshots, so later profile/address changes do not rewrite the order history.
+- Cancel order opens an in-app confirmation modal; no browser confirmation is used for that customer action.
+- The order status timeline has separated top spacing for compact mobile readability.
+
+The hosted API must apply migration `20261004170000_order_fulfillment_snapshots` before testing new orders on the mobile WebView.

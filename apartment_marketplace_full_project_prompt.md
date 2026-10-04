@@ -2469,3 +2469,17 @@ The implemented order workflow now includes order-level handover verification:
 - The API rejects a missing or incorrect PIN, then marks the order verified, moves it to `COMPLETED`, creates status history, and notifies the customer.
 - The customer UI calls `PREPARING` “Packing”; the persisted/API status remains `PREPARING`.
 - Migration: `prisma/migrations/20261004150000_order_verification_code/migration.sql`.
+
+
+# Current implementation additions - 2026-10-04 fulfillment addresses and cancellation
+
+The implemented order workflow now preserves fulfillment contact details at checkout:
+
+- Takeaway orders capture the seller pickup address and seller phone.
+- Delivery orders capture the customer delivery address and customer phone.
+- Customer order tracking displays the saved order-time details rather than reading mutable profile/address records for new orders.
+- Customer cancellation opens an in-app confirmation modal and does not use a browser alert or browser confirmation.
+- The order status timeline has compact spacing with a small top separation from the order header.
+- Prisma migration: `prisma/migrations/20261004170000_order_fulfillment_snapshots/migration.sql`.
+
+Orders created before the snapshot migration can only display the address data still available through their existing relations; an address changed before the snapshot was added cannot be reconstructed retroactively.
