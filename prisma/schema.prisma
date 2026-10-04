@@ -767,6 +767,8 @@ model Order {
   paymentStatus      PaymentStatus            @default(PENDING) @map("payment_status")
   fulfillmentType    FulfillmentType          @map("fulfillment_type")
   status             OrderStatus              @default(PENDING)
+  verificationCode   String                   @map("verification_code") @db.VarChar(6)
+  verifiedAt         DateTime?                @map("verified_at")
   customerNotes      String?                  @map("customer_notes") @db.Text
   sellerNotes        String?                  @map("seller_notes") @db.Text
   acceptedAt         DateTime?                @map("accepted_at")
@@ -806,8 +808,6 @@ model OrderItem {
   unitPrice   Decimal @map("unit_price") @db.Decimal(12, 2)
   discount    Decimal @default(0) @db.Decimal(12, 2)
   totalPrice  Decimal @map("total_price") @db.Decimal(12, 2)
-  verificationCode String  @map("verification_code") @db.VarChar(6)
-  verifiedAt       DateTime? @map("verified_at")
   order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product     Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 

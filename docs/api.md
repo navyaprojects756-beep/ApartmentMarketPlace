@@ -55,13 +55,13 @@ Authorization: Bearer <accessToken>
 - `GET /delivery/orders`
 - `POST /delivery/orders/:orderId/assign`
 - `PATCH /delivery/orders/:orderId/status`
-- `POST /orders/:orderId/verify-items` — seller, assigned delivery boy, or Global Admin verifies every six-digit item handover code and completes the order.
+- `POST /orders/:orderId/verify-items` — seller, assigned delivery boy, or Global Admin verifies the single six-digit order PIN and completes the order.
 
 ### Item handover verification
 
-Order creation generates one six-digit `verificationCode` per order item. `GET /orders` returns those codes to the authenticated customer together with seller, primary apartment/flat context, saved address, items, status history, and delivery assignment.
+Order creation generates one six-digit order-level `verificationCode`. `GET /orders` returns it to the authenticated customer together with seller, primary apartment/flat context, saved address, items, status history, and delivery assignment.
 
-The request body is `{ "codes": { "<orderItemId>": "123456" } }`. The API requires every item exactly once, checks seller/delivery/admin scope, and only accepts pickup orders in `READY_FOR_PICKUP` or `PICKED_UP`, or delivery orders in `OUT_FOR_DELIVERY` or `DELIVERED`. Success marks every item `verifiedAt`, changes the order to `COMPLETED`, records status history, and notifies the customer.
+The request body is `{ "code": "123456" }`. The API checks the single order PIN and seller/delivery/admin scope, and only accepts pickup orders in `READY_FOR_PICKUP` or `PICKED_UP`, or delivery orders in `OUT_FOR_DELIVERY` or `DELIVERED`. Success marks the order `verifiedAt`, changes it to `COMPLETED`, records status history, and notifies the customer.
 
 ## Admin and reporting
 
@@ -132,7 +132,7 @@ The web and Expo wrapper currently use the same authenticated API-backed applica
 
 The customer cart groups items by seller and submits one `POST /orders` request for each seller. Each request creates an independent order with its own status history, inventory changes, seller queue entry, and order number. Customer order tracking retrieves the resulting orders through `GET /orders`.
 
-The Render API start command runs `npx prisma migrate deploy --schema prisma/schema.prisma`. Committed Prisma migrations are applied automatically during API deployment. Existing records are preserved unless a migration explicitly changes data. `prisma/seed.ts` is not part of the Render start command and does not run automatically.
+The Render API start command runs `npx prisma migrate deploy --schema prisma/schema.prisma && npm run api:start`. The `api:start` script regenerates Prisma Client from the checked-in schema before launching the server, then committed Prisma migrations are applied automatically during API deployment. Existing records are preserved unless a migration explicitly changes data. `prisma/seed.ts` is not part of the Render start command and does not run automatically.
 
 ## Community services
 

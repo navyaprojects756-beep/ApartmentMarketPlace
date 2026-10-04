@@ -69,7 +69,7 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
       const products = await tx.product.findMany({ where: { id: { in: input.items.map(item => item.productId) }, sellerId: input.sellerId, availability: true } });
       if (products.length !== input.items.length) throw new Error('PRODUCT_SCOPE_INVALID');
       let subtotal = new Prisma.Decimal(0);
-      const orderItems: Array<{ productId: string; productName: string; quantity: number; unitPrice: Prisma.Decimal; discount: Prisma.Decimal; totalPrice: Prisma.Decimal; verificationCode: string }> = [];
+      const orderItems: Array<{ productId: string; productName: string; quantity: number; unitPrice: Prisma.Decimal; discount: Prisma.Decimal; totalPrice: Prisma.Decimal }> = [];
       for (const item of input.items) {
         const product = products.find(record => record.id === item.productId)!;
         if (product.maximumQuantity && item.quantity > product.maximumQuantity) throw new Error('MAXIMUM_QUANTITY_EXCEEDED');
@@ -82,11 +82,11 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
         }
         const totalPrice = product.finalPrice.mul(item.quantity);
         subtotal = subtotal.add(totalPrice);
-        orderItems.push({ productId: product.id, productName: product.name, quantity: item.quantity, unitPrice: product.finalPrice, discount: product.discount, totalPrice, verificationCode: String(Math.floor(100000 + Math.random() * 900000)) });
+        orderItems.push({ productId: product.id, productName: product.name, quantity: item.quantity, unitPrice: product.finalPrice, discount: product.discount, totalPrice });
       }
       const deliveryCharge = input.fulfillmentType === 'DELIVERY' ? (seller.deliveryCharge ?? new Prisma.Decimal(0)) : new Prisma.Decimal(0);
       const total = subtotal.add(deliveryCharge);
-      const created = await tx.order.create({ data: { orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`, customerId: request.auth!.userId, sellerId: seller.id, apartmentId: context.apartmentId, blockId: context.blockId, flatId: context.flatId, addressId: input.addressId, subtotal, discount: 0, deliveryCharge, total, paymentMethod: input.paymentMethod, paymentStatus: input.paymentMethod === 'DUMMY_PAYMENT' ? 'PAID' : 'PENDING', fulfillmentType: input.fulfillmentType, customerNotes: input.customerNotes, items: { create: orderItems }, statusHistory: { create: { toStatus: 'PENDING' } } } });
+      const created = await tx.order.create({ data: { orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`, customerId: request.auth!.userId, sellerId: seller.id, apartmentId: context.apartmentId, blockId: context.blockId, flatId: context.flatId, addressId: input.addressId, subtotal, discount: 0, deliveryCharge, total, paymentMethod: input.paymentMethod, paymentStatus: input.paymentMethod === 'DUMMY_PAYMENT' ? 'PAID' : 'PENDING', fulfillmentType: input.fulfillmentType, verificationCode: String(Math.floor(100000 + Math.random() * 900000)), customerNotes: input.customerNotes, items: { create: orderItems }, statusHistory: { create: { toStatus: 'PENDING' } } } });
       for (const item of orderItems) {
         const product = products.find(record => record.id === item.productId)!;
         if (product.inventoryTracking) await tx.inventoryMovement.create({ data: { productId: product.id, type: 'SALE', quantity: -item.quantity, orderId: created.id, reason: `Order ${created.orderNumber}` } });
@@ -157,7 +157,7 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
 commerceRouter.post('/orders/:orderId/verify-items', requireAuth, async (request, response, next) => {
   try {
     const orderId = z.string().uuid().parse(request.params.orderId);
-    const { codes } = z.object({ codes: z.record(z.string().uuid(), z.string().regex(/^\d{6}$/)) }).parse(request.body);
+    const { code } = z.object({ code: z.string().regex(/^\d{6}$/) }).parse(request.body);
     const order = await prisma.order.findUnique({ where: { id: orderId }, include: { seller: { select: { userId: true } }, items: true, deliveryAssignment: { include: { deliveryBoy: { select: { userId: true } } } } } });
     const isAdmin = request.auth!.roles.includes('GLOBAL_ADMIN');
     const isSeller = order?.seller.userId === request.auth!.userId;
@@ -173,13 +173,12 @@ commerceRouter.post('/orders/:orderId/verify-items', requireAuth, async (request
       response.status(400).json({ error: { code: 'VERIFICATION_NOT_READY', message: 'Verification is available only at the final handover stage.' } });
       return;
     }
-    const invalidItem = order.items.find(item => codes[item.id] !== item.verificationCode);
-    if (invalidItem || Object.keys(codes).length !== order.items.length) {
-      response.status(400).json({ error: { code: 'INVALID_VERIFICATION_CODE', message: 'One or more product verification codes are incorrect.' } });
+    if (code !== order.verificationCode) {
+      response.status(400).json({ error: { code: 'INVALID_VERIFICATION_CODE', message: 'The order PIN is incorrect.' } });
       return;
     }
     const updated = await prisma.$transaction(async tx => {
-      const result = await tx.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', items: { updateMany: { where: { orderId: order.id }, data: { verifiedAt: new Date() } } } } });
+      const result = await tx.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', verifiedAt: new Date() } });
       await tx.orderStatusHistory.create({ data: { orderId: order.id, fromStatus: order.status, toStatus: 'COMPLETED', changedById: request.auth!.userId, note: `${order.fulfillmentType === 'PICKUP' ? 'Takeaway' : 'Delivery'} verification completed` } });
       return result;
     });

@@ -67,4 +67,4 @@ The account-deletion URL is not a public deletion form. It requires the customer
 
 ## Order handover verification — 2026-10-04
 
-The shared WebView now displays one six-digit OrderPin per product in customer order tracking. Sellers and assigned delivery staff use the same web UI to verify every item code at pickup or delivery; the API completes the order only after all codes match. The deployed API must apply migration `20261004120000_order_item_verification_codes` before testing this flow.
+The shared WebView now displays one six-digit OrderPin for the entire order in customer order tracking. Sellers and assigned delivery staff use the same web UI to verify that single PIN at pickup or delivery; the API completes the order when it matches. The deployed API must apply migration `20261004150000_order_verification_code` before testing this flow.

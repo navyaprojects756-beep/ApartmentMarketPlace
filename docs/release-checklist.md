@@ -65,6 +65,7 @@ For future builds, authenticate with `npx eas login` from `mobile/` and run `npx
 - [x] Render PostgreSQL database provisioned.
 - [x] API configured with the Render internal database URL, JWT secrets, `FRONTEND_URL`, and `PORT=10000`.
 - [x] Prisma migrations configured through the API start command.
+- [x] API startup regenerates Prisma Client from the checked-in schema before launching.
 - [x] Static site configured with `VITE_API_URL`.
 - [x] GoDaddy CNAME `gatedcart` configured for the Render static site and HTTPS certificate verified.
 - [ ] Add persistent/object storage for uploaded product images before production scale; Render service local storage is not durable across redeploys.
@@ -102,7 +103,7 @@ adb logcat -v time "ReactNativeJS:I" "*:S"
 
 ## 2026-10-04 order handover release additions
 
-- [x] Add per-item verification-code migration and Prisma fields.
+- [x] Add order-level verification-code migration and Prisma fields.
 - [x] Add protected seller/delivery/admin handover verification and completion history.
 - [x] Add customer OrderPin and fulfillment-specific order progress UI.
 - [ ] Apply the migration on Render and verify pickup and delivery handover with a seeded order.

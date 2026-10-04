@@ -113,7 +113,7 @@ npm run db:status
 - The backend is hosted as a Render Web Service at `https://gatedcart-api.onrender.com`; API routes use the `/api/v1` prefix.
 - The Render PostgreSQL database is the production persistence target. The API uses Render's internal database URL; local pgAdmin uses the database's external URL with PostgreSQL SSL mode `require`.
 - The static site build uses `npm ci && npm run build`, publishes `dist`, and receives `VITE_API_URL=https://gatedcart-api.onrender.com/api/v1` through Render environment variables.
-- The API service uses `npx prisma migrate deploy --schema prisma/schema.prisma && npm run api:start` as its start command and receives `FRONTEND_URL=https://gatedcart.cheritech.com` and `PORT=10000` through Render environment variables. No seed command is part of deployment.
+- The API service uses `npx prisma migrate deploy --schema prisma/schema.prisma && npm run api:start` as its start command and receives `FRONTEND_URL=https://gatedcart.cheritech.com` and `PORT=10000` through Render environment variables. `api:start` regenerates Prisma Client from the checked-in schema before launching the server, preventing stale-client errors. No seed command is part of deployment.
 - The Expo/EAS preview environment uses `EXPO_PUBLIC_WEB_APP_URL=https://gatedcart.cheritech.com` and `EXPO_PUBLIC_API_URL=https://gatedcart-api.onrender.com/api/v1`. The Android preview APK was built successfully and tested against the hosted services.
 - The final native launch configuration uses the centered `mobile/assets/icon.png` on a warm `#fff9ef` background; the full `mobile/assets/splash.png` artwork is used by the hosted website splash after the WebView starts.
 
@@ -160,8 +160,8 @@ Account deletion currently records and reviews the request. Automatic permanent 
 
 ## Latest order tracking update — 2026-10-04
 
-- Checkout creates a unique six-digit verification code for every order item.
-- Customers see item codes and a fulfillment-aware progress timeline, including packing, pickup/delivery, address/phone context, payment, and pending-order cancellation.
-- Sellers and assigned delivery staff verify all item codes at final handover through `POST /api/v1/orders/:orderId/verify-items`.
-- The API validates authorization and every code, marks items verified, changes the order to `COMPLETED`, writes status history, and notifies the customer.
-- Apply `20261004120000_order_item_verification_codes` before using the flow. Render applies committed migrations at API startup; seed data remains manual.
+- Checkout creates one unique six-digit verification code for the entire order.
+- Customers see one OrderPin and a fulfillment-aware progress timeline, including packing, pickup/delivery, address/phone context, payment, and pending-order cancellation.
+- Sellers and assigned delivery staff verify the single OrderPin at final handover through `POST /api/v1/orders/:orderId/verify-items`.
+- The API validates authorization and the order PIN, marks the order verified, changes it to `COMPLETED`, writes status history, and notifies the customer.
+- Apply `20261004150000_order_verification_code` before using the flow. Render applies committed migrations at API startup; seed data remains manual.

@@ -234,7 +234,7 @@ The frontend is built with `VITE_API_URL=https://gatedcart-api.onrender.com/api/
 - Product and category cards use stable image areas and fixed quantity-control placement. Empty categories use a designed empty state.
 - Seller fulfillment presentation is capability-based: delivery is shown only when the seller is delivery-enabled; otherwise the customer sees pickup/takeaway.
 - Checkout passes the created seller orders to an animated confirmation page. Tracking opens detailed order information with the newest order expanded.
-- Render runs `prisma migrate deploy` from the API start command, so committed migrations update database structure during deployment. Existing business records remain in PostgreSQL; seed scripts are not run automatically.
+- Render runs `prisma migrate deploy` and `npm run api:start` from the API start command. `api:start` regenerates Prisma Client from the checked-in schema before launching the server, so the deployed client cannot remain stale after a schema change. Existing business records remain in PostgreSQL; seed scripts are not run automatically.
 - Firebase Authentication remains responsible for phone OTP and application sessions. Push delivery uses Expo Push Service through `expo-notifications`; Expo forwards messages to Android FCM and Apple APNs. Device tokens are kept in the API, so notification targeting remains independent from authentication-provider choice.
 - Order events create in-app notifications and send regular push notification messages with `sound: "default"`, which allows the operating system to display and play them while the app is backgrounded or closed. Notification data includes the order ID and destination route.
 
@@ -248,8 +248,8 @@ Policy URLs are `/privacy-policy` and `/terms-and-conditions`. Static policy doc
 
 ## 2026-10-04 order handover verification
 
-- Each `OrderItem` stores a required six-digit `verificationCode` and nullable `verifiedAt`. Migration `20261004120000_order_item_verification_codes` backfills existing rows before removing its temporary default.
-- Checkout generates a separate code for every item during order creation.
-- Customer tracking displays per-item codes, fulfillment-aware progress, address/phone fallback details, payment, and pending-order cancellation.
-- Sellers and assigned delivery staff verify all item codes at handover. The protected endpoint completes the order only when every code matches.
+- Each `Order` stores one required six-digit `verificationCode` and nullable `verifiedAt`. Migration `20261004150000_order_verification_code` backfills the order code from existing item codes.
+- Checkout generates one code for the entire order, regardless of item count.
+- Customer tracking displays one OrderPin, fulfillment-aware progress, address/phone fallback details, payment, and pending-order cancellation.
+- Sellers and assigned delivery staff verify the single order PIN at handover. The protected endpoint completes the entire order when it matches.
 - `PREPARING` is presented to users as `Packing`; the backend status value remains unchanged.
