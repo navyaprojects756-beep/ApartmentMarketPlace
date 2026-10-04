@@ -48,7 +48,7 @@ export function orderStatusMessage(status: string) {
   const labels: Record<string, string> = {
     ACCEPTED: 'Your order has been accepted.',
     REJECTED: 'Your order was rejected by the seller.',
-    PREPARING: 'Your order is being prepared.',
+    PREPARING: 'Your order is being packed.',
     READY_FOR_PICKUP: 'Your order is ready for pickup.',
     ASSIGNED_TO_DELIVERY_BOY: 'A delivery partner has been assigned to your order.',
     PICKED_UP: 'Your order has been picked up.',

@@ -69,7 +69,7 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
       const products = await tx.product.findMany({ where: { id: { in: input.items.map(item => item.productId) }, sellerId: input.sellerId, availability: true } });
       if (products.length !== input.items.length) throw new Error('PRODUCT_SCOPE_INVALID');
       let subtotal = new Prisma.Decimal(0);
-      const orderItems: Array<{ productId: string; productName: string; quantity: number; unitPrice: Prisma.Decimal; discount: Prisma.Decimal; totalPrice: Prisma.Decimal }> = [];
+      const orderItems: Array<{ productId: string; productName: string; quantity: number; unitPrice: Prisma.Decimal; discount: Prisma.Decimal; totalPrice: Prisma.Decimal; verificationCode: string }> = [];
       for (const item of input.items) {
         const product = products.find(record => record.id === item.productId)!;
         if (product.maximumQuantity && item.quantity > product.maximumQuantity) throw new Error('MAXIMUM_QUANTITY_EXCEEDED');
@@ -82,7 +82,7 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
         }
         const totalPrice = product.finalPrice.mul(item.quantity);
         subtotal = subtotal.add(totalPrice);
-        orderItems.push({ productId: product.id, productName: product.name, quantity: item.quantity, unitPrice: product.finalPrice, discount: product.discount, totalPrice });
+        orderItems.push({ productId: product.id, productName: product.name, quantity: item.quantity, unitPrice: product.finalPrice, discount: product.discount, totalPrice, verificationCode: String(Math.floor(100000 + Math.random() * 900000)) });
       }
       const deliveryCharge = input.fulfillmentType === 'DELIVERY' ? (seller.deliveryCharge ?? new Prisma.Decimal(0)) : new Prisma.Decimal(0);
       const total = subtotal.add(deliveryCharge);
@@ -108,7 +108,7 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
 
 commerceRouter.get('/orders', requireAuth, async (request, response, next) => {
   try {
-    response.json(await prisma.order.findMany({ where: { customerId: request.auth!.userId }, include: { seller: true, apartment: true, block: true, flat: true, address: true, items: true, statusHistory: { orderBy: { createdAt: 'asc' } }, deliveryAssignment: { include: { deliveryBoy: { include: { user: true } } } } }, orderBy: { createdAt: 'desc' } }));
+    response.json(await prisma.order.findMany({ where: { customerId: request.auth!.userId }, include: { customer: { include: { apartments: { where: { isPrimary: true }, include: { flat: true } } } }, seller: true, apartment: true, block: true, flat: true, address: true, items: true, statusHistory: { orderBy: { createdAt: 'asc' } }, deliveryAssignment: { include: { deliveryBoy: { include: { user: true } } } } }, orderBy: { createdAt: 'desc' } }));
   } catch (error) {
     next(error);
   }
@@ -148,6 +148,42 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
     const notificationType = ({ ACCEPTED: 'ORDER_ACCEPTED', REJECTED: 'ORDER_REJECTED', PREPARING: 'ORDER_PREPARING', READY_FOR_PICKUP: 'ORDER_READY', ASSIGNED_TO_DELIVERY_BOY: 'DELIVERY_ASSIGNED', PICKED_UP: 'ORDER_PICKED_UP', OUT_FOR_DELIVERY: 'ORDER_OUT_FOR_DELIVERY', DELIVERED: 'ORDER_DELIVERED' } as Record<string, string>)[status] || 'SYSTEM';
     await prisma.notification.create({ data: { userId: order.customerId, type: notificationType as never, title: 'Order update', message: orderStatusMessage(status), data: { route: 'orders', orderId: order.id, status } } });
     void sendPushNotifications([{ userId: order.customerId, title: 'Order update', body: orderStatusMessage(status), channelId: 'customer_updates', data: { route: 'orders', orderId: order.id, status } }]);
+    response.json(updated);
+  } catch (error) {
+    next(error);
+  }
+});
+
+commerceRouter.post('/orders/:orderId/verify-items', requireAuth, async (request, response, next) => {
+  try {
+    const orderId = z.string().uuid().parse(request.params.orderId);
+    const { codes } = z.object({ codes: z.record(z.string().uuid(), z.string().regex(/^\d{6}$/)) }).parse(request.body);
+    const order = await prisma.order.findUnique({ where: { id: orderId }, include: { seller: { select: { userId: true } }, items: true, deliveryAssignment: { include: { deliveryBoy: { select: { userId: true } } } } } });
+    const isAdmin = request.auth!.roles.includes('GLOBAL_ADMIN');
+    const isSeller = order?.seller.userId === request.auth!.userId;
+    const isDeliveryBoy = order?.deliveryAssignment?.deliveryBoy.userId === request.auth!.userId;
+    if (!order || (!isAdmin && !isSeller && !isDeliveryBoy)) {
+      response.status(404).json({ error: { code: 'ORDER_NOT_FOUND', message: 'Order not found' } });
+      return;
+    }
+    const validWindow = order.fulfillmentType === 'PICKUP'
+      ? ['READY_FOR_PICKUP', 'PICKED_UP'].includes(order.status)
+      : ['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status);
+    if (!validWindow) {
+      response.status(400).json({ error: { code: 'VERIFICATION_NOT_READY', message: 'Verification is available only at the final handover stage.' } });
+      return;
+    }
+    const invalidItem = order.items.find(item => codes[item.id] !== item.verificationCode);
+    if (invalidItem || Object.keys(codes).length !== order.items.length) {
+      response.status(400).json({ error: { code: 'INVALID_VERIFICATION_CODE', message: 'One or more product verification codes are incorrect.' } });
+      return;
+    }
+    const updated = await prisma.$transaction(async tx => {
+      const result = await tx.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', items: { updateMany: { where: { orderId: order.id }, data: { verifiedAt: new Date() } } } } });
+      await tx.orderStatusHistory.create({ data: { orderId: order.id, fromStatus: order.status, toStatus: 'COMPLETED', changedById: request.auth!.userId, note: `${order.fulfillmentType === 'PICKUP' ? 'Takeaway' : 'Delivery'} verification completed` } });
+      return result;
+    });
+    await prisma.notification.create({ data: { userId: order.customerId, type: 'ORDER_DELIVERED' as never, title: 'Order completed', message: `Verification completed for order ${order.orderNumber}.`, data: { route: 'orders', orderId: order.id, status: 'COMPLETED' } } });
     response.json(updated);
   } catch (error) {
     next(error);
