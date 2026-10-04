@@ -108,7 +108,22 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
 
 commerceRouter.get('/orders', requireAuth, async (request, response, next) => {
   try {
-    response.json(await prisma.order.findMany({ where: { customerId: request.auth!.userId }, include: { customer: { include: { apartments: { where: { isPrimary: true }, include: { flat: true } } } }, seller: true, apartment: true, block: true, flat: true, address: true, items: true, statusHistory: { orderBy: { createdAt: 'asc' } }, deliveryAssignment: { include: { deliveryBoy: { include: { user: true } } } } }, orderBy: { createdAt: 'desc' } }));
+    const orders = await prisma.order.findMany({ where: { customerId: request.auth!.userId }, include: { customer: { include: { apartments: { where: { isPrimary: true }, include: { flat: true } } } }, seller: { include: { apartment: true, user: { include: { apartments: { where: { isPrimary: true }, include: { apartment: true, block: true, flat: true } } } } } }, apartment: true, block: true, flat: true, address: true, items: true, statusHistory: { orderBy: { createdAt: 'asc' } }, deliveryAssignment: { include: { deliveryBoy: { include: { user: true } } } } }, orderBy: { createdAt: 'desc' } });
+    response.json(orders.map(order => {
+      if (order.fulfillmentType !== 'PICKUP') return order;
+      const sellerApartment = order.seller.user.apartments[0];
+      const pickupAddress = [order.seller.address, order.seller.apartment?.address, order.seller.apartment?.name || sellerApartment?.apartment?.name, sellerApartment?.block?.name, sellerApartment?.flat?.number ? `Flat ${sellerApartment.flat.number}` : null]
+        .filter(Boolean)
+        .join(' · ') || 'Seller pickup address not provided';
+      return {
+        ...order,
+        address: { ...(order.address || {}), addressLine: pickupAddress, manualFlatNumber: null },
+        apartment: null,
+        block: null,
+        flat: null,
+        customer: { ...order.customer, apartments: [] }
+      };
+    }));
   } catch (error) {
     next(error);
   }
