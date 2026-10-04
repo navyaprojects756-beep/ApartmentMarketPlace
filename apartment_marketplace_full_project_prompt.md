@@ -2458,3 +2458,14 @@ The following requirements have been added to the implemented platform:
 - Android and iOS use the package identifier `com.cheritech.gatedcart`.
 
 Automatic deletion of all personal data after an administrator marks a request completed remains a required follow-up. Legal, tax, fraud-prevention, and order records may require retention.
+
+# Current implementation additions — 2026-10-04
+
+The implemented order workflow now includes per-item handover verification:
+
+- Every order item receives a six-digit verification code during transactional checkout and stores an optional verification timestamp.
+- Customer Order tracking displays each product code and a fulfillment-specific progress timeline, with primary apartment/flat and phone/address fallback context.
+- A seller, assigned delivery boy, or Global Admin can call `POST /api/v1/orders/:orderId/verify-items` with all item codes at the final handover stage.
+- The API rejects missing or incorrect codes, then marks every item verified, moves the order to `COMPLETED`, creates status history, and notifies the customer.
+- The customer UI calls `PREPARING` “Packing”; the persisted/API status remains `PREPARING`.
+- Migration: `prisma/migrations/20261004120000_order_item_verification_codes/migration.sql`.

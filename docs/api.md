@@ -55,6 +55,13 @@ Authorization: Bearer <accessToken>
 - `GET /delivery/orders`
 - `POST /delivery/orders/:orderId/assign`
 - `PATCH /delivery/orders/:orderId/status`
+- `POST /orders/:orderId/verify-items` — seller, assigned delivery boy, or Global Admin verifies every six-digit item handover code and completes the order.
+
+### Item handover verification
+
+Order creation generates one six-digit `verificationCode` per order item. `GET /orders` returns those codes to the authenticated customer together with seller, primary apartment/flat context, saved address, items, status history, and delivery assignment.
+
+The request body is `{ "codes": { "<orderItemId>": "123456" } }`. The API requires every item exactly once, checks seller/delivery/admin scope, and only accepts pickup orders in `READY_FOR_PICKUP` or `PICKED_UP`, or delivery orders in `OUT_FOR_DELIVERY` or `DELIVERED`. Success marks every item `verifiedAt`, changes the order to `COMPLETED`, records status history, and notifies the customer.
 
 ## Admin and reporting
 

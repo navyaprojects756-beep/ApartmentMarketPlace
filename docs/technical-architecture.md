@@ -245,3 +245,11 @@ Community services use three Prisma models: `CommunityService`, `CommunityServic
 Account deletion uses `AccountDeletionRequest` and the statuses `PENDING`, `IN_PROGRESS`, `COMPLETED`, `REJECTED`, and `CANCELLED`. The customer route is `POST /api/v1/account-deletion-requests`; Global Admin routes are under `/api/v1/admin/account-deletion-requests`. The public web URL `/delete-account` requires login before displaying the request action.
 
 Policy URLs are `/privacy-policy` and `/terms-and-conditions`. Static policy documents are also emitted into the production `dist` directory so direct requests work on hosts without history-API fallback support.
+
+## 2026-10-04 order handover verification
+
+- Each `OrderItem` stores a required six-digit `verificationCode` and nullable `verifiedAt`. Migration `20261004120000_order_item_verification_codes` backfills existing rows before removing its temporary default.
+- Checkout generates a separate code for every item during order creation.
+- Customer tracking displays per-item codes, fulfillment-aware progress, address/phone fallback details, payment, and pending-order cancellation.
+- Sellers and assigned delivery staff verify all item codes at handover. The protected endpoint completes the order only when every code matches.
+- `PREPARING` is presented to users as `Packing`; the backend status value remains unchanged.

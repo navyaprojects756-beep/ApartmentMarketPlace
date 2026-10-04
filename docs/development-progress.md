@@ -319,3 +319,14 @@ Native token acquisition and production WebView loading are working. Earlier API
 - [x] Updated mobile identifiers to `com.cheritech.gatedcart`.
 - [ ] Implement automatic personal-data purge after an administrator completes a deletion request.
 - [ ] Deploy and verify the latest static policy documents on the production domain.
+
+## 2026-10-04 order tracking and handover checkpoint
+
+- [x] Added required per-item six-digit handover verification codes and nullable verification timestamps to `OrderItem`.
+- [x] Added `POST /api/v1/orders/:orderId/verify-items` with seller, assigned delivery-boy, and Global Admin authorization.
+- [x] Restricted verification to the final pickup/delivery handover window and require a matching code for every item.
+- [x] Added transactional verification, `COMPLETED` status history, and customer completion notification.
+- [x] Updated customer order tracking with fulfillment-specific progress, OrderPin display, address/phone fallback, payment, and pending-order cancellation.
+- [x] Updated seller order actions to verify codes for pickup and delivery completion.
+- [x] Updated the customer-facing `PREPARING` label to `Packing` while preserving the API status contract.
+- [ ] Verify the migration and handover flow on the deployed Render database and physical mobile preview build.

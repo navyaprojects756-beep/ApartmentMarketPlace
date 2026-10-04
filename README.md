@@ -157,3 +157,11 @@ npx prisma migrate deploy --schema prisma/schema.prisma
 - The current public policy uses Cheritech as the operator. Add the UDYAM number when it is available.
 
 Account deletion currently records and reviews the request. Automatic permanent deletion of personal data on `COMPLETED` still requires a separate purge implementation, subject to retention obligations.
+
+## Latest order tracking update — 2026-10-04
+
+- Checkout creates a unique six-digit verification code for every order item.
+- Customers see item codes and a fulfillment-aware progress timeline, including packing, pickup/delivery, address/phone context, payment, and pending-order cancellation.
+- Sellers and assigned delivery staff verify all item codes at final handover through `POST /api/v1/orders/:orderId/verify-items`.
+- The API validates authorization and every code, marks items verified, changes the order to `COMPLETED`, writes status history, and notifies the customer.
+- Apply `20261004120000_order_item_verification_codes` before using the flow. Render applies committed migrations at API startup; seed data remains manual.

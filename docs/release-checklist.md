@@ -99,3 +99,11 @@ adb logcat -v time "ReactNativeJS:I" "*:S"
 - [ ] Verify `/delete-account` login return flow on the production domain.
 - [ ] Implement and verify permanent personal-data purge when a deletion request is completed, with legally required retention exclusions.
 - [ ] Add the UDYAM registration number to the public business/legal information after it is provided.
+
+## 2026-10-04 order handover release additions
+
+- [x] Add per-item verification-code migration and Prisma fields.
+- [x] Add protected seller/delivery/admin handover verification and completion history.
+- [x] Add customer OrderPin and fulfillment-specific order progress UI.
+- [ ] Apply the migration on Render and verify pickup and delivery handover with a seeded order.
+- [ ] Verify OrderPin display, code entry, completion notification, and errors in the installed Android preview APK.
