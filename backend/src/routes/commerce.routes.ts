@@ -162,6 +162,13 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
       response.status(400).json({ error: { code: 'CUSTOMER_CANCEL_WINDOW_CLOSED', message: 'Customers can cancel only while the seller is reviewing the order.' } });
       return;
     }
+    // Status updates are idempotent. A seller may submit the status currently
+    // shown in the queue after a refresh or a repeated click; that is not an
+    // invalid transition and should not create duplicate history/notifications.
+    if (order.status === status) {
+      response.json(order);
+      return;
+    }
     if (!isAdmin && !transitions[order.status].includes(status)) {
       response.status(400).json({ error: { code: 'INVALID_STATUS_TRANSITION', message: `Cannot move order from ${order.status} to ${status}` } });
       return;

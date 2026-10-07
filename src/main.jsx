@@ -1643,7 +1643,7 @@ function SellerCrudPortal({ accessToken, onLogout }) {
   async function toggleStaff(member) { await run(() => request(`/seller/delivery-boys/${member.id}`, { method: 'PATCH', body: JSON.stringify({ isActive: !member.isActive }) }), member.isActive ? 'Delivery boy deactivated.' : 'Delivery boy activated.'); }
   async function removeStaff(member) { await run(() => request(`/seller/delivery-boys/${member.id}`, { method: 'DELETE' }), 'Delivery boy removed from this seller.'); }
   async function verifyHandover(order) { return openHandoverCodeDialog(order, codes => request(`/orders/${order.id}/verify-items`, { method: 'POST', body: JSON.stringify({ code: Object.values(codes)[0] }) })); }
-  async function updateOrder(order, status) { if (status === 'PICKED_UP' && order.fulfillmentType === 'PICKUP') { if (await verifyHandover(order)) await load(); return; } if (status === 'DELIVERED' && order.fulfillmentType === 'DELIVERY') { if (await verifyHandover(order)) await load(); return; } await run(() => request(`/orders/${order.id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }), 'Order status updated.'); }
+  async function updateOrder(order, status) { if (order.status === status) return; if (status === 'PICKED_UP' && order.fulfillmentType === 'PICKUP') { if (await verifyHandover(order)) await load(); return; } if (status === 'DELIVERED' && order.fulfillmentType === 'DELIVERY') { if (await verifyHandover(order)) await load(); return; } await run(() => request(`/orders/${order.id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }), 'Order status updated.'); }
   async function printOrder(order) {
     try {
       const response = await fetch(`${API_BASE}/exports/seller/orders/${order.id}/print.pdf`, { headers });
