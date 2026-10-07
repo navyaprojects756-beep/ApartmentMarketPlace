@@ -1579,25 +1579,46 @@ function SellerCrudPortal({ accessToken, onLogout }) {
     if (tab !== 'orders') return;
     orders.forEach(order => {
       const card = [...document.querySelectorAll('.seller-order-card')].find(item => item.textContent?.includes(order.orderNumber));
-      if (!card || card.querySelector('.seller-order-items')) return;
-      const items = document.createElement('div');
-      items.className = 'seller-order-items';
-      (order.items || []).forEach(item => {
-        const line = document.createElement('span');
-        const lineTotal = Number(item.totalPrice || 0);
-        const unitPrice = item.quantity ? lineTotal / Number(item.quantity) : lineTotal;
-        line.textContent = `${item.productName || 'Product'} · ₹${unitPrice.toFixed(2)} × ${item.quantity} = ₹${lineTotal.toFixed(2)}`;
-        items.appendChild(line);
-      });
-      const address = document.createElement('p');
-      address.className = 'seller-order-address';
-      const customerApartment = order.customer?.apartments?.[0];
-      const flatNumber = order.flat?.number || order.address?.manualFlatNumber || customerApartment?.flat?.number || customerApartment?.manualFlatNumber;
-      address.textContent = [order.address?.addressLine, order.apartment?.name || customerApartment?.apartment?.name, order.block?.name || customerApartment?.block?.name, flatNumber ? `Flat ${flatNumber}` : 'Flat number not provided', order.customer?.phone ? `Phone ${order.customer.phone}` : 'Phone number not provided'].filter(Boolean).join(' · ') || 'Customer address not provided';
-      card.appendChild(address);
+      if (!card) return;
+      let items = card.querySelector('.seller-order-items');
+      if (!items) {
+        items = document.createElement('div');
+        items.className = 'seller-order-items';
+        (order.items || []).forEach(item => {
+          const line = document.createElement('span');
+          const lineTotal = Number(item.totalPrice || 0);
+          const unitPrice = item.quantity ? lineTotal / Number(item.quantity) : lineTotal;
+          line.textContent = `${item.productName || 'Product'} · ₹${unitPrice.toFixed(2)} × ${item.quantity} = ₹${lineTotal.toFixed(2)}`;
+          items.appendChild(line);
+        });
+        const address = document.createElement('p');
+        address.className = 'seller-order-address';
+        const customerApartment = order.customer?.apartments?.[0];
+        const flatNumber = order.flat?.number || order.address?.manualFlatNumber || customerApartment?.flat?.number || customerApartment?.manualFlatNumber;
+        address.textContent = [order.address?.addressLine, order.apartment?.name || customerApartment?.apartment?.name, order.block?.name || customerApartment?.block?.name, flatNumber ? `Flat ${flatNumber}` : 'Flat number not provided', order.customer?.phone ? `Phone ${order.customer.phone}` : 'Phone number not provided'].filter(Boolean).join(' · ') || 'Customer address not provided';
+        card.appendChild(address);
+      }
       const footer = card.querySelector('.seller-order-foot');
-      if (footer) footer.before(items);
-      else {
+      if (footer) {
+        const actions = footer.querySelector('.seller-order-actions');
+        if (actions) {
+          actions.replaceChildren();
+          (transitions[order.status] || []).forEach(([nextStatus, label]) => {
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.className = 'order-action';
+            action.textContent = label;
+            action.onclick = event => { event.stopPropagation(); void updateOrder(order, nextStatus); };
+            actions.appendChild(action);
+          });
+          const print = document.createElement('button');
+          print.type = 'button';
+          print.className = 'order-action secondary';
+          print.textContent = 'Print / PDF';
+          print.onclick = event => { event.stopPropagation(); void printOrder(order); };
+          actions.appendChild(print);
+        }
+      } else {
         card.appendChild(items);
         const orderFooter = document.createElement('div');
         orderFooter.className = 'seller-order-foot';
