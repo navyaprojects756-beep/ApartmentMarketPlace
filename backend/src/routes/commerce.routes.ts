@@ -196,7 +196,7 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
 commerceRouter.post('/orders/:orderId/verify-items', requireAuth, async (request, response, next) => {
   try {
     const orderId = z.string().uuid().parse(request.params.orderId);
-    const { code } = z.object({ code: z.string().regex(/^\d{6}$/) }).parse(request.body);
+    const { code: submittedCode } = z.object({ code: z.string().trim().regex(/^\d{6}$/) }).parse(request.body);
     const order = await prisma.order.findUnique({ where: { id: orderId }, include: { seller: { select: { userId: true } }, items: true, deliveryAssignment: { include: { deliveryBoy: { select: { userId: true } } } } } });
     const isAdmin = request.auth!.roles.includes('GLOBAL_ADMIN');
     const isSeller = order?.seller.userId === request.auth!.userId;
@@ -209,10 +209,14 @@ commerceRouter.post('/orders/:orderId/verify-items', requireAuth, async (request
       ? ['READY_FOR_PICKUP', 'PICKED_UP'].includes(order.status)
       : ['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status);
     if (!validWindow) {
+      if (order.status === 'COMPLETED' && submittedCode === order.verificationCode) {
+        response.json(order);
+        return;
+      }
       response.status(400).json({ error: { code: 'VERIFICATION_NOT_READY', message: 'Verification is available only at the final handover stage.' } });
       return;
     }
-    if (code !== order.verificationCode) {
+    if (submittedCode !== order.verificationCode) {
       response.status(400).json({ error: { code: 'INVALID_VERIFICATION_CODE', message: 'The order PIN is incorrect.' } });
       return;
     }
