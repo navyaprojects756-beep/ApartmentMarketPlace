@@ -16,8 +16,8 @@ searchRouter.get('/', requireAuth, async (request, response, next) => {
     const sellerVisibility = mode === 'LOCAL_ONLY'
       ? { sellerType: 'APARTMENT' as const, apartmentId: association.apartmentId }
       : mode === 'OUTSIDE_ONLY'
-        ? { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: association.apartmentId, isApproved: true } } }
-        : { OR: [{ sellerType: 'APARTMENT' as const, apartmentId: association.apartmentId }, { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: association.apartmentId, isApproved: true } } }] };
+        ? { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: association.apartmentId, isApproved: true, isEnabled: true } } }
+        : { OR: [{ sellerType: 'APARTMENT' as const, apartmentId: association.apartmentId }, { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: association.apartmentId, isApproved: true, isEnabled: true } } }] };
     const visibleSellerWhere = { AND: [{ status: 'APPROVED' as const }, sellerVisibility] };
     const visibleSellers = await prisma.sellerProfile.findMany({ where: visibleSellerWhere, select: { id: true, isOpen: true, operatingHours: { select: { dayOfWeek: true, openTime: true, closeTime: true, isClosed: true } } } });
     const sellerIds = visibleSellers.filter(seller => getSellerAvailability(seller).isOpen).map(item => item.id);

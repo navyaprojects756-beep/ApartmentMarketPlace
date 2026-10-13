@@ -26,7 +26,7 @@ function createOrderReference(date = new Date()) {
 async function sellerIsVisible(userId: string, sellerId: string) {
   const context = await getPrimaryApartment(userId);
   if (!context) return false;
-  return Boolean(await prisma.sellerProfile.findFirst({ where: { id: sellerId, status: 'APPROVED', OR: [{ sellerType: 'APARTMENT', apartmentId: context.apartmentId }, { sellerType: 'OUTSIDE', deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true } } }] } }));
+  return Boolean(await prisma.sellerProfile.findFirst({ where: { id: sellerId, status: 'APPROVED', OR: [{ sellerType: 'APARTMENT', apartmentId: context.apartmentId }, { sellerType: 'OUTSIDE', deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true, isEnabled: true } } }] } }));
 }
 
 commerceRouter.get('/carts/:sellerId', requireAuth, async (request, response, next) => {

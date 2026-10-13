@@ -46,7 +46,20 @@ sellerManagementRouter.patch('/settings', requireAuth, async (request, response,
 });
 
 sellerManagementRouter.get('/delivery-areas', requireAuth, async (request, response, next) => {
-  try { const seller = await sellerForUser(request.auth!.userId); if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; } response.json(await prisma.sellerDeliveryArea.findMany({ where: { sellerId: seller.id }, include: { apartment: true }, orderBy: { apartment: { name: 'asc' } } })); } catch (error) { next(error); }
+  try {
+    const seller = await sellerForUser(request.auth!.userId);
+    if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
+    if (seller.sellerType !== 'OUTSIDE') { response.json([]); return; }
+    const [apartments, areas] = await Promise.all([
+      prisma.apartment.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
+      prisma.sellerDeliveryArea.findMany({ where: { sellerId: seller.id }, include: { apartment: true } }),
+    ]);
+    const byApartment = new Map(areas.map(area => [area.apartmentId, area]));
+    response.json(apartments.map(apartment => {
+      const area = byApartment.get(apartment.id);
+      return { apartmentId: apartment.id, apartment, isAllowed: area?.isApproved === true, isEnabled: area?.isApproved === true && area.isEnabled === true };
+    }));
+  } catch (error) { next(error); }
 });
 
 sellerManagementRouter.put('/delivery-areas', requireAuth, async (request, response, next) => {
@@ -54,8 +67,16 @@ sellerManagementRouter.put('/delivery-areas', requireAuth, async (request, respo
     const seller = await sellerForUser(request.auth!.userId); if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
     if (seller.sellerType !== 'OUTSIDE') { response.status(400).json({ error: { code: 'APARTMENT_SELLER_SCOPE', message: 'Apartment sellers are limited to their own apartment' } }); return; }
     const input = z.object({ apartmentIds: z.array(z.string().uuid()).max(100) }).parse(request.body);
-    const result = await prisma.$transaction(async tx => { await tx.sellerDeliveryArea.deleteMany({ where: { sellerId: seller.id } }); if (input.apartmentIds.length) await tx.sellerDeliveryArea.createMany({ data: input.apartmentIds.map(apartmentId => ({ sellerId: seller.id, apartmentId, isApproved: false })) }); return tx.sellerDeliveryArea.findMany({ where: { sellerId: seller.id }, include: { apartment: true } }); });
-    response.json({ status: 'PENDING_APPROVAL', areas: result });
+    const allowed = await prisma.sellerDeliveryArea.findMany({ where: { sellerId: seller.id, isApproved: true }, select: { apartmentId: true } });
+    const allowedIds = new Set(allowed.map(area => area.apartmentId));
+    const invalid = input.apartmentIds.filter(apartmentId => !allowedIds.has(apartmentId));
+    if (invalid.length) { response.status(403).json({ error: { code: 'DELIVERY_AREA_NOT_ALLOWED', message: 'Global Admin has not enabled one or more selected apartments' } }); return; }
+    const result = await prisma.$transaction(async tx => {
+      await tx.sellerDeliveryArea.updateMany({ where: { sellerId: seller.id, isApproved: true }, data: { isEnabled: false } });
+      if (input.apartmentIds.length) await tx.sellerDeliveryArea.updateMany({ where: { sellerId: seller.id, apartmentId: { in: input.apartmentIds }, isApproved: true }, data: { isEnabled: true } });
+      return tx.sellerDeliveryArea.findMany({ where: { sellerId: seller.id }, include: { apartment: true }, orderBy: { apartment: { name: 'asc' } } });
+    });
+    response.json({ status: 'UPDATED', areas: result });
   } catch (error) { next(error); }
 });
 

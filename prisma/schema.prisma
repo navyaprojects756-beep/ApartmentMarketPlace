@@ -368,6 +368,7 @@ model SellerDeliveryArea {
   sellerId    String        @map("seller_id") @db.Uuid
   apartmentId String        @map("apartment_id") @db.Uuid
   isApproved  Boolean       @default(false) @map("is_approved")
+  isEnabled   Boolean       @default(true) @map("is_enabled")
   createdAt   DateTime      @default(now()) @map("created_at")
   seller      SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   apartment   Apartment     @relation(fields: [apartmentId], references: [id], onDelete: Cascade)

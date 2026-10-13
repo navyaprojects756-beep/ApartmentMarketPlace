@@ -6,7 +6,7 @@ import { getPrimaryApartment } from '../services/home.service.js';
 
 export const sellerApplicationRouter = Router();
 
-const applicationSchema = z.object({ sellerType: z.enum(['APARTMENT', 'OUTSIDE']), sellerName: z.string().trim().min(2).max(160), businessName: z.string().trim().min(2).max(160), description: z.string().trim().max(2000).optional(), deliveryApartmentIds: z.array(z.string().uuid()).max(50).optional() });
+const applicationSchema = z.object({ sellerType: z.enum(['APARTMENT', 'OUTSIDE']), sellerName: z.string().trim().min(2).max(160), businessName: z.string().trim().min(2).max(160), description: z.string().trim().max(2000).optional(), address: z.string().trim().min(5).max(1000).optional(), deliveryApartmentIds: z.array(z.string().uuid()).max(50).optional() });
 
 sellerApplicationRouter.post('/apply', requireAuth, async (request, response, next) => {
   try {
@@ -28,7 +28,7 @@ sellerApplicationRouter.post('/apply', requireAuth, async (request, response, ne
         return;
       }
     }
-    const profile = await prisma.sellerProfile.create({ data: { userId: request.auth!.userId, sellerType: input.sellerType, sellerName: input.sellerName, businessName: input.businessName, description: input.description, apartmentId: input.sellerType === 'APARTMENT' ? context!.apartmentId : undefined, status: 'PENDING', deliveryAreas: input.sellerType === 'OUTSIDE' ? { create: apartmentIds.map(apartmentId => ({ apartmentId, isApproved: false })) } : undefined } });
+    const profile = await prisma.sellerProfile.create({ data: { userId: request.auth!.userId, sellerType: input.sellerType, sellerName: input.sellerName, businessName: input.businessName, description: input.description, address: input.address, apartmentId: input.sellerType === 'APARTMENT' ? context!.apartmentId : undefined, status: 'PENDING', deliveryAreas: input.sellerType === 'OUTSIDE' ? { create: apartmentIds.map(apartmentId => ({ apartmentId, isApproved: false })) } : undefined } });
     response.status(201).json(profile);
   } catch (error) {
     next(error);
@@ -41,6 +41,30 @@ sellerApplicationRouter.get('/mine', requireAuth, async (request, response, next
   } catch (error) {
     next(error);
   }
+});
+
+sellerApplicationRouter.patch('/:sellerId/delivery-areas', requireAuth, requireRole('GLOBAL_ADMIN'), async (request, response, next) => {
+  try {
+    const sellerId = z.string().uuid().parse(request.params.sellerId);
+    const { apartmentIds } = z.object({ apartmentIds: z.array(z.string().uuid()).max(100) }).parse(request.body);
+    const seller = await prisma.sellerProfile.findUnique({ where: { id: sellerId }, select: { id: true, sellerType: true } });
+    if (!seller) { response.status(404).json({ error: { code: 'SELLER_NOT_FOUND', message: 'Seller was not found' } }); return; }
+    if (seller.sellerType !== 'OUTSIDE') { response.status(400).json({ error: { code: 'APARTMENT_SELLER_SCOPE', message: 'Only outside sellers can have delivery areas' } }); return; }
+    const apartments = await prisma.apartment.findMany({ where: { id: { in: apartmentIds }, isActive: true }, select: { id: true } });
+    if (apartments.length !== apartmentIds.length) { response.status(400).json({ error: { code: 'INVALID_DELIVERY_APARTMENTS', message: 'One or more selected apartments are unavailable' } }); return; }
+    const updated = await prisma.$transaction(async tx => {
+      const existing = await tx.sellerDeliveryArea.findMany({ where: { sellerId }, select: { apartmentId: true, isEnabled: true } });
+      const selected = new Set(apartmentIds);
+      for (const area of existing) {
+        await tx.sellerDeliveryArea.update({ where: { sellerId_apartmentId: { sellerId, apartmentId: area.apartmentId } }, data: { isApproved: selected.has(area.apartmentId), isEnabled: selected.has(area.apartmentId) ? area.isEnabled : false } });
+      }
+      const existingIds = new Set(existing.map(area => area.apartmentId));
+      const missing = apartmentIds.filter(apartmentId => !existingIds.has(apartmentId));
+      if (missing.length) await tx.sellerDeliveryArea.createMany({ data: missing.map(apartmentId => ({ sellerId, apartmentId, isApproved: true, isEnabled: true })) });
+      return tx.sellerDeliveryArea.findMany({ where: { sellerId }, include: { apartment: true }, orderBy: { apartment: { name: 'asc' } } });
+    });
+    response.json(updated);
+  } catch (error) { next(error); }
 });
 
 sellerApplicationRouter.patch('/:sellerId/status', requireAuth, requireRole('GLOBAL_ADMIN'), async (request, response, next) => {

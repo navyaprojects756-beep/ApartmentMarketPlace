@@ -600,6 +600,12 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .seller-area-shell .dashboard-nav .dashboard-menu-button { display: inline-flex; }
 .seller-area-shell .dashboard-nav .dashboard-mobile-nav { display: none; }
 .seller-area-shell .dashboard-main { padding-top: 28px; }
+.seller-area-shell .seller-area-summary { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+.seller-area-shell .seller-area-summary span { padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: #faf8ff; font-size: 11px; }
+.seller-area-shell .seller-area-summary strong { margin-right: 4px; color: var(--ink); font-size: 15px; }
+.seller-area-shell .checkbox-row { justify-content: space-between; }
+.seller-area-shell .checkbox-row small { margin-left: auto; color: var(--muted); font-size: 10px; }
+.seller-area-shell .checkbox-row-disabled { opacity: .5; }
 .seller-area-shell > .bottom-nav { position: fixed; display: flex; left: 0; right: 0; bottom: 0; z-index: 100; height: 70px; justify-content: space-around; align-items: center; border-top: 1px solid var(--line); background: rgba(255,255,255,.97); }
 .seller-area-shell > .bottom-nav button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 76px; height: 58px; color: #aaa5b3; font-size: 10px; line-height: 1; }
 .seller-area-shell > .bottom-nav button svg { display: block; width: 20px; height: 20px; }
@@ -762,3 +768,7 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .seller-order-no-results { margin: 14px 0; color: #7b718a; font-size: 12px; text-align: center; }
 .seller-order-date-time, .order-date-time { display: block; margin-top: 3px; color: #948aa4; font-size: 10px; font-weight: 500; }
 @media (max-width: 520px) { .seller-order-filters > label { flex-basis: calc(50% - 4px); }.seller-order-custom-dates { flex-basis: 100%; } }
+.order-card-head small .order-header-pin { position: static !important; display: inline-flex; margin: 6px 0 0; transform: none !important; }
+.seller-address-editor { margin: 0 16px 18px; }
+.seller-address-editor form { display: grid; gap: 10px; }
+.seller-address-editor textarea { width: 100%; box-sizing: border-box; min-height: 76px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fff; font: inherit; resize: vertical; }
