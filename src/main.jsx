@@ -1982,7 +1982,58 @@ function ExistingMemberSellerEntryScreen({ onContinue, onLogout }) {
   return <main className="auth-screen"><div className="auth-card"><GatedCartLogo /><p className="eyebrow">GATEDCART MEMBER</p><h1>You already have an account</h1><p className="auth-copy">This mobile number is already registered with GatedCart. Continue to your normal marketplace experience.</p><button type="button" className="auth-button" onClick={onContinue}>Continue to GatedCart <Icon name="arrow" size={16} /></button><button type="button" className="auth-back" onClick={onLogout}>Sign out</button></div></main>;
 }
 
+function usePullToRefresh() {
+  useEffect(() => {
+    if (!('ontouchstart' in window)) return undefined;
+    let startY = 0;
+    let pulling = false;
+    let armed = false;
+    const indicator = document.createElement('div');
+    indicator.className = 'pull-refresh-indicator';
+    indicator.textContent = 'Pull to refresh';
+    document.body.appendChild(indicator);
+    const isAtTop = () => window.scrollY <= 0 && [...document.querySelectorAll('.home-content, .store-content, main')].every(element => element.scrollTop <= 0);
+    const onStart = event => {
+      if (event.touches.length !== 1 || !isAtTop()) return;
+      startY = event.touches[0].clientY;
+      pulling = true;
+      armed = false;
+    };
+    const onMove = event => {
+      if (!pulling || !event.touches.length) return;
+      const distance = event.touches[0].clientY - startY;
+      if (distance <= 0) return;
+      event.preventDefault();
+      const progress = Math.min(distance / 84, 1);
+      indicator.style.transform = `translate(-50%, ${Math.round(progress * 48 - 56)}px)`;
+      armed = distance >= 84;
+      indicator.textContent = armed ? 'Release to refresh' : 'Pull to refresh';
+      indicator.classList.add('visible');
+    };
+    const onEnd = () => {
+      if (!pulling) return;
+      const shouldRefresh = armed;
+      pulling = false;
+      armed = false;
+      indicator.classList.remove('visible');
+      if (shouldRefresh) window.location.reload();
+    };
+    window.addEventListener('touchstart', onStart, { passive: true });
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd, { passive: true });
+    window.addEventListener('touchcancel', onEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onStart);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchcancel', onEnd);
+      indicator.remove();
+    };
+  }, []);
+}
+
 function App() {
+  usePullToRefresh();
   const initialSellerRegistrationIntent = (() => { const params = new URLSearchParams(window.location.search); return params.get('seller-registration') === 'outside' || params.get('isSellorReg') === 'true'; })();
   const [screen, setScreen] = useState('home');
   const [selectedSeller, setSelectedSeller] = useState(null);

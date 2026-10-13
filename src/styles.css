@@ -769,6 +769,9 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .seller-order-date-time, .order-date-time { display: block; margin-top: 3px; color: #948aa4; font-size: 10px; font-weight: 500; }
 @media (max-width: 520px) { .seller-order-filters > label { flex-basis: calc(50% - 4px); }.seller-order-custom-dates { flex-basis: 100%; } }
 .order-card-head small .order-header-pin { position: static !important; display: inline-flex; margin: 6px 0 0; transform: none !important; }
+
+.pull-refresh-indicator { position: fixed; top: 0; left: 50%; z-index: 9999; padding: 8px 14px; border-radius: 0 0 18px 18px; color: #fff; background: var(--purple, #5b3cc4); font-size: 12px; font-weight: 700; opacity: 0; pointer-events: none; transform: translate(-50%, -56px); transition: opacity .15s ease; }
+.pull-refresh-indicator.visible { opacity: 1; }
 .seller-address-editor { margin: 0 16px 18px; }
 .seller-address-editor form { display: grid; gap: 10px; }
 .seller-address-editor textarea { width: 100%; box-sizing: border-box; min-height: 76px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fff; font: inherit; resize: vertical; }
