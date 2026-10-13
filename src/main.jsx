@@ -1990,7 +1990,7 @@ function usePullToRefresh() {
     let armed = false;
     const indicator = document.createElement('div');
     indicator.className = 'pull-refresh-indicator';
-    indicator.textContent = 'Pull to refresh';
+    indicator.innerHTML = '<span class="pull-refresh-glyph">↻</span>';
     document.body.appendChild(indicator);
     const isAtTop = () => window.scrollY <= 0 && [...document.querySelectorAll('.home-content, .store-content, main')].every(element => element.scrollTop <= 0);
     const onStart = event => {
@@ -2004,10 +2004,9 @@ function usePullToRefresh() {
       const distance = event.touches[0].clientY - startY;
       if (distance <= 0) return;
       event.preventDefault();
-      const progress = Math.min(distance / 84, 1);
-      indicator.style.transform = `translate(-50%, ${Math.round(progress * 48 - 56)}px)`;
+      indicator.style.transform = `translate(-50%, ${Math.min(distance, 120) - 56}px)`;
       armed = distance >= 84;
-      indicator.textContent = armed ? 'Release to refresh' : 'Pull to refresh';
+      indicator.classList.toggle('armed', armed);
       indicator.classList.add('visible');
     };
     const onEnd = () => {
@@ -2016,6 +2015,7 @@ function usePullToRefresh() {
       pulling = false;
       armed = false;
       indicator.classList.remove('visible');
+      indicator.classList.remove('armed');
       if (shouldRefresh) window.location.reload();
     };
     window.addEventListener('touchstart', onStart, { passive: true });

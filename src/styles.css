@@ -770,8 +770,11 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 @media (max-width: 520px) { .seller-order-filters > label { flex-basis: calc(50% - 4px); }.seller-order-custom-dates { flex-basis: 100%; } }
 .order-card-head small .order-header-pin { position: static !important; display: inline-flex; margin: 6px 0 0; transform: none !important; }
 
-.pull-refresh-indicator { position: fixed; top: 0; left: 50%; z-index: 9999; padding: 8px 14px; border-radius: 0 0 18px 18px; color: #fff; background: var(--purple, #5b3cc4); font-size: 12px; font-weight: 700; opacity: 0; pointer-events: none; transform: translate(-50%, -56px); transition: opacity .15s ease; }
+.pull-refresh-indicator { position: fixed; top: 0; left: 50%; z-index: 9999; display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid rgba(245,124,0,.16); border-radius: 50%; color: #f57c00; background: #fff; box-shadow: 0 6px 18px rgba(34,24,68,.16); font: 34px/1 Arial, sans-serif; opacity: 0; pointer-events: none; transform: translate(-50%, -58px); transition: opacity .18s ease, transform .12s ease; }
 .pull-refresh-indicator.visible { opacity: 1; }
+.pull-refresh-glyph { display: inline-block; color: #f57c00; font-size: 34px; line-height: 1; will-change: transform; }
+.pull-refresh-indicator.armed .pull-refresh-glyph { animation: pull-refresh-spin .75s cubic-bezier(.4,0,.2,1) infinite; }
+@keyframes pull-refresh-spin { to { transform: rotate(360deg); } }
 .seller-address-editor { margin: 0 16px 18px; }
 .seller-address-editor form { display: grid; gap: 10px; }
 .seller-address-editor textarea { width: 100%; box-sizing: border-box; min-height: 76px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fff; font: inherit; resize: vertical; }
