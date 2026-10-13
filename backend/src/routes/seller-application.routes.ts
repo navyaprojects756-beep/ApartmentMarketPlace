@@ -12,15 +12,23 @@ sellerApplicationRouter.post('/apply', requireAuth, async (request, response, ne
   try {
     const input = applicationSchema.parse(request.body);
     const context = await getPrimaryApartment(request.auth!.userId);
-    if (!context) {
+    if (input.sellerType === 'APARTMENT' && !context) {
       response.status(400).json({ error: { code: 'COMMUNITY_REQUIRED', message: 'Select an apartment before applying as a seller' } });
       return;
     }
-    if (input.sellerType === 'APARTMENT' && input.deliveryApartmentIds?.some(id => id !== context.apartmentId)) {
+    if (input.sellerType === 'APARTMENT' && input.deliveryApartmentIds?.some(id => id !== context?.apartmentId)) {
       response.status(400).json({ error: { code: 'INVALID_APARTMENT_SCOPE', message: 'Apartment sellers can only serve their own apartment' } });
       return;
     }
-    const profile = await prisma.sellerProfile.create({ data: { userId: request.auth!.userId, sellerType: input.sellerType, sellerName: input.sellerName, businessName: input.businessName, description: input.description, apartmentId: input.sellerType === 'APARTMENT' ? context.apartmentId : undefined, status: 'PENDING', deliveryAreas: input.sellerType === 'OUTSIDE' ? { create: (input.deliveryApartmentIds ?? [context.apartmentId]).map(apartmentId => ({ apartmentId, isApproved: false })) } : undefined } });
+    const apartmentIds = input.deliveryApartmentIds || [];
+    if (apartmentIds.length) {
+      const activeApartments = await prisma.apartment.findMany({ where: { id: { in: apartmentIds }, isActive: true }, select: { id: true } });
+      if (activeApartments.length !== apartmentIds.length) {
+        response.status(400).json({ error: { code: 'INVALID_DELIVERY_APARTMENTS', message: 'One or more selected apartments are unavailable' } });
+        return;
+      }
+    }
+    const profile = await prisma.sellerProfile.create({ data: { userId: request.auth!.userId, sellerType: input.sellerType, sellerName: input.sellerName, businessName: input.businessName, description: input.description, apartmentId: input.sellerType === 'APARTMENT' ? context!.apartmentId : undefined, status: 'PENDING', deliveryAreas: input.sellerType === 'OUTSIDE' ? { create: apartmentIds.map(apartmentId => ({ apartmentId, isApproved: false })) } : undefined } });
     response.status(201).json(profile);
   } catch (error) {
     next(error);
@@ -39,7 +47,16 @@ sellerApplicationRouter.patch('/:sellerId/status', requireAuth, requireRole('GLO
   try {
     const sellerId = z.string().uuid().parse(request.params.sellerId);
     const { status } = z.object({ status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED', 'INACTIVE']) }).parse(request.body);
-    const updated = await prisma.sellerProfile.update({ where: { id: sellerId }, data: { status } });
+    const updated = await prisma.$transaction(async tx => {
+      const seller = await tx.sellerProfile.update({ where: { id: sellerId }, data: { status } });
+      const role = await tx.role.findUniqueOrThrow({ where: { code: seller.sellerType === 'OUTSIDE' ? 'OUTSIDE_SELLER' : 'APARTMENT_SELLER' } });
+      if (status === 'APPROVED') {
+        await tx.userRole.upsert({ where: { userId_roleId: { userId: seller.userId, roleId: role.id } }, update: {}, create: { userId: seller.userId, roleId: role.id } });
+      } else {
+        await tx.userRole.deleteMany({ where: { userId: seller.userId, roleId: role.id } });
+      }
+      return seller;
+    });
     try {
       await prisma.auditLog.create({ data: { actorId: request.auth!.userId, action: 'SELLER_STATUS_CHANGED', entityType: 'SellerProfile', entityId: sellerId, afterData: { status } } });
     } catch (auditError) {

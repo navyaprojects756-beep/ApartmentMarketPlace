@@ -38,6 +38,10 @@ Authorization: Bearer <accessToken>
 - `GET /account-deletion-requests/mine` — latest deletion request for the authenticated customer.
 - `POST /account-deletion-requests` — authenticated customer account deletion request; accepts optional `{ "reason": "..." }`.
 
+### Outside seller registration
+
+Use `https://gatedcart.cheritech.com/?isSellorReg=true` as the private outside-seller registration entry link. The link is not shown in the normal customer UI. After OTP login, a new user sees the outside-seller form without apartment/block/flat residence fields or apartment selection. Existing members see a member message and can continue to the normal marketplace. A submitted application remains `PENDING` until Global Admin approval; pending outside sellers see only the pending status on later logins. Approval assigns the `OUTSIDE_SELLER` role, and subsequent normal logins open the Seller Portal, where delivery areas can be configured.
+
 ### Global categories and category browsing
 
 - `GET /home/categories` — active global product categories for the authenticated customer.

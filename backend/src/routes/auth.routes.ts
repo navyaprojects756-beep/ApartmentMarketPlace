@@ -27,6 +27,19 @@ function dummyOtp(phone: string) {
   return normalizePhone(phone).slice(-5);
 }
 
+async function isRegisteredMember(phone: string) {
+  const user = await prisma.user.findUnique({
+    where: { phone },
+    select: {
+      apartments: { select: { id: true }, take: 1 },
+      sellerProfile: { select: { id: true } },
+      deliveryBoy: { select: { id: true } },
+      roles: { select: { role: { select: { code: true } } } },
+    },
+  });
+  return Boolean(user && (user.apartments.length || user.sellerProfile || user.deliveryBoy || user.roles.some(item => item.role.code === 'GLOBAL_ADMIN')));
+}
+
 const bootstrapRoles: Array<{ code: RoleCode; name: string }> = [
   { code: 'CUSTOMER', name: 'Customer' },
   { code: 'APARTMENT_SELLER', name: 'Apartment Seller' },
@@ -109,6 +122,7 @@ authRouter.post('/request-otp', async (request, response, next) => {
   try {
     const { phone: rawPhone, name } = phoneSchema.parse(request.body);
     const phone = canonicalPhone(rawPhone);
+    const existingUser = await isRegisteredMember(phone);
     const user = await upsertPhoneUser(phone, name);
     const otp = dummyOtp(phone);
     await prisma.otpRequest.create({
@@ -119,7 +133,7 @@ authRouter.post('/request-otp', async (request, response, next) => {
         expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       },
     });
-    response.json({ message: 'OTP generated', expiresInSeconds: 300, developmentOtp: otp });
+    response.json({ message: 'OTP generated', expiresInSeconds: 300, developmentOtp: otp, isExistingUser: existingUser });
   } catch (error) {
     next(error);
   }
@@ -149,8 +163,10 @@ authRouter.post('/firebase/exchange', async (request, response, next) => {
       response.status(401).json({ error: { code: 'FIREBASE_PHONE_REQUIRED', message: 'A verified phone number is required.' } });
       return;
     }
-    const user = await upsertPhoneUser(canonicalPhone(decoded.phone_number), name || decoded.name);
-    response.json(await sessionResponse(user.id));
+    const phone = canonicalPhone(decoded.phone_number);
+    const existingUser = await isRegisteredMember(phone);
+    const user = await upsertPhoneUser(phone, name || decoded.name);
+    response.json({ ...(await sessionResponse(user.id)), isExistingUser: existingUser });
   } catch (error) {
     next(error);
   }
