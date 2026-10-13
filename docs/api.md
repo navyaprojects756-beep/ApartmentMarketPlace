@@ -102,6 +102,14 @@ The request body is `{ "code": "123456" }`. The API checks the single order PIN 
 - `GET /exports/seller/orders/:orderId/print.pdf`
 - `GET /health`
 
+### Mobile app updates
+
+- `GET /app-update?platform=android` — public version policy read by the Expo shell before loading the WebView.
+- `GET /admin/settings/mobile-app-update` — Global Admin reads the Android update policy.
+- `PATCH /admin/settings/mobile-app-update` — Global Admin updates `latestVersion`, `minimumVersion`, `mode`, `storeUrl`, `title`, and `message`.
+
+The policy is stored in the `PlatformSetting` row with key `mobile_app_update_policy`. After publishing a new Play Store build, update `latestVersion` in the Global Admin portal under `Settings` → `Mobile app` → `Update policy`. Set `minimumVersion` and `mode` to force an update when required.
+
 Seller-category endpoints remain available only for backward compatibility with existing records; the active seller UI uses `/seller/catalog-categories` and `Product.globalCategoryId` for new and edited products.
 
 ### Push notifications

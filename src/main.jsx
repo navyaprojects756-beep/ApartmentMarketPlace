@@ -1295,7 +1295,20 @@ function ApartmentSellerVisibilityControls({ token }) {
 }
 
 function AdminControls({ token }) {
-  return <AdminHomePromotions token={token} />;
+  return <><AdminHomePromotions token={token} /><MobileAppUpdateSettings token={token} /></>;
+}
+
+function MobileAppUpdateSettings({ token }) {
+  const [config, setConfig] = useState({ latestVersion: '1.0.0', minimumVersion: '1.0.0', mode: 'OPTIONAL', storeUrl: 'https://play.google.com/store/apps/details?id=com.cheritech.gatedcart', title: 'A new version is available', message: 'Update GatedCart to get the latest improvements.' });
+  const [message, setMessage] = useState('');
+  useEffect(() => { fetch(`${API_BASE}/admin/settings/mobile-app-update`, { headers: { Authorization: `Bearer ${token}` } }).then(response => response.ok ? response.json() : null).then(data => { if (data) setConfig(current => ({ ...current, ...data })); }).catch(() => setMessage('Unable to load app update settings.')); }, [token]);
+  async function save(event) {
+    event.preventDefault(); setMessage('');
+    const response = await fetch(`${API_BASE}/admin/settings/mobile-app-update`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(config) });
+    const data = await response.json().catch(() => null);
+    setMessage(response.ok ? 'Mobile app update policy saved.' : data?.error?.message || 'Unable to save app update policy.');
+  }
+  return <section className="dashboard-panel admin-resource-panel"><div className="panel-heading"><div><p className="eyebrow">MOBILE APP</p><h2>Update policy</h2><p>Control optional or mandatory Android updates before customers enter the app.</p></div></div><form className="quick-product-form app-update-settings-form" onSubmit={save}><label>Latest version<input value={config.latestVersion} onChange={event => setConfig(current => ({ ...current, latestVersion: event.target.value }))} placeholder="1.1.0" required /></label><label>Minimum version<input value={config.minimumVersion} onChange={event => setConfig(current => ({ ...current, minimumVersion: event.target.value }))} placeholder="1.0.0" required /></label><label>Update mode<select value={config.mode} onChange={event => setConfig(current => ({ ...current, mode: event.target.value }))}><option value="OPTIONAL">Optional</option><option value="MANDATORY">Mandatory</option></select></label><label>Play Store URL<input type="url" value={config.storeUrl} onChange={event => setConfig(current => ({ ...current, storeUrl: event.target.value }))} required /></label><label>Prompt title<input value={config.title} onChange={event => setConfig(current => ({ ...current, title: event.target.value }))} required /></label><label>Prompt message<input value={config.message} onChange={event => setConfig(current => ({ ...current, message: event.target.value }))} required /></label><button className="primary-button">Save update policy</button></form>{message && <p className="dashboard-message">{message}</p>}</section>;
 }
 
 function DashboardScreen({ role }) {

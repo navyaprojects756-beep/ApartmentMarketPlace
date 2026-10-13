@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
+import { appUpdateSchema } from './app-update.routes.js';
 
 export const adminRouter = Router();
 const modeSchema = z.object({ mode: z.enum(['LOCAL_ONLY', 'OUTSIDE_ONLY', 'BOTH']) });
@@ -82,6 +83,27 @@ adminRouter.patch('/settings/home-seller-display-mode', requireAuth, requireRole
     const setting = await prisma.platformSetting.upsert({ where: { key: 'home_seller_display_mode' }, update: { value: mode, updatedById: request.auth!.userId }, create: { key: 'home_seller_display_mode', value: mode, description: 'Controls local/outside seller visibility on customer home', updatedById: request.auth!.userId } });
     await prisma.auditLog.create({ data: { actorId: request.auth!.userId, action: 'HOME_SELLER_DISPLAY_MODE_CHANGED', entityType: 'PlatformSetting', entityId: setting.id, beforeData: previous ? { mode: previous.value } : undefined, afterData: { mode } } });
     response.json({ mode: setting.value });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get('/settings/mobile-app-update', requireAuth, requireRole('GLOBAL_ADMIN'), async (_request, response, next) => {
+  try {
+    const setting = await prisma.platformSetting.findUnique({ where: { key: 'mobile_app_update_policy' } });
+    response.json(setting?.value ? JSON.parse(setting.value) : null);
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch('/settings/mobile-app-update', requireAuth, requireRole('GLOBAL_ADMIN'), async (request, response, next) => {
+  try {
+    const input = appUpdateSchema.parse(request.body);
+    const previous = await prisma.platformSetting.findUnique({ where: { key: 'mobile_app_update_policy' } });
+    const setting = await prisma.platformSetting.upsert({ where: { key: 'mobile_app_update_policy' }, update: { value: JSON.stringify(input), updatedById: request.auth!.userId }, create: { key: 'mobile_app_update_policy', value: JSON.stringify(input), description: 'Android mobile app update policy', updatedById: request.auth!.userId } });
+    await prisma.auditLog.create({ data: { actorId: request.auth!.userId, action: 'MOBILE_APP_UPDATE_POLICY_CHANGED', entityType: 'PlatformSetting', entityId: setting.id, beforeData: previous?.value ? JSON.parse(previous.value) : undefined, afterData: input } });
+    response.json(input);
   } catch (error) {
     next(error);
   }
