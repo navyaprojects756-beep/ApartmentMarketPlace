@@ -7,6 +7,7 @@ import { appUpdateSchema } from './app-update.routes.js';
 export const adminRouter = Router();
 const modeSchema = z.object({ mode: z.enum(['LOCAL_ONLY', 'OUTSIDE_ONLY', 'BOTH']) });
 const homePromotionSchema = z.object({ imageUrls: z.array(z.string().url()).min(1).max(10), endAt: z.coerce.date().nullable().optional() });
+const maintenanceSchema = z.object({ enabled: z.boolean(), message: z.string().trim().min(1).max(1000) });
 
 adminRouter.get('/home-promotions', requireAuth, requireRole('GLOBAL_ADMIN'), async (_request, response, next) => {
   try {
@@ -103,6 +104,27 @@ adminRouter.patch('/settings/mobile-app-update', requireAuth, requireRole('GLOBA
     const previous = await prisma.platformSetting.findUnique({ where: { key: 'mobile_app_update_policy' } });
     const setting = await prisma.platformSetting.upsert({ where: { key: 'mobile_app_update_policy' }, update: { value: JSON.stringify(input), updatedById: request.auth!.userId }, create: { key: 'mobile_app_update_policy', value: JSON.stringify(input), description: 'Android mobile app update policy', updatedById: request.auth!.userId } });
     await prisma.auditLog.create({ data: { actorId: request.auth!.userId, action: 'MOBILE_APP_UPDATE_POLICY_CHANGED', entityType: 'PlatformSetting', entityId: setting.id, beforeData: previous?.value ? JSON.parse(previous.value) : undefined, afterData: input } });
+    response.json(input);
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get('/settings/maintenance', requireAuth, requireRole('GLOBAL_ADMIN'), async (_request, response, next) => {
+  try {
+    const setting = await prisma.platformSetting.findUnique({ where: { key: 'maintenance_mode' } });
+    response.json(setting?.value ? JSON.parse(setting.value) : { enabled: false, message: 'GatedCart is temporarily unavailable for maintenance. Please try again shortly.' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch('/settings/maintenance', requireAuth, requireRole('GLOBAL_ADMIN'), async (request, response, next) => {
+  try {
+    const input = maintenanceSchema.parse(request.body);
+    const previous = await prisma.platformSetting.findUnique({ where: { key: 'maintenance_mode' } });
+    const setting = await prisma.platformSetting.upsert({ where: { key: 'maintenance_mode' }, update: { value: JSON.stringify(input), updatedById: request.auth!.userId }, create: { key: 'maintenance_mode', value: JSON.stringify(input), description: 'Controls the platform-wide maintenance screen', updatedById: request.auth!.userId } });
+    await prisma.auditLog.create({ data: { actorId: request.auth!.userId, action: 'MAINTENANCE_MODE_CHANGED', entityType: 'PlatformSetting', entityId: setting.id, beforeData: previous?.value ? JSON.parse(previous.value) : undefined, afterData: input } });
     response.json(input);
   } catch (error) {
     next(error);

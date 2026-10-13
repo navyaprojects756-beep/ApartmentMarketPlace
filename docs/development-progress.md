@@ -349,3 +349,13 @@ Native token acquisition and production WebView loading are working. Earlier API
 - [ ] Redeploy API and frontend and verify takeaway/delivery snapshots against the production database.
 
 Historical note: orders created before the snapshot migration may not have immutable address values if their related address records were later edited.
+
+## 2026-10-13 platform controls and mobile UX checkpoint
+
+- [x] Added Global Admin maintenance mode with an enable switch and configurable message.
+- [x] Added public maintenance status API and customer/seller maintenance screen with Global Admin bypass.
+- [x] Added pull-to-refresh with current-screen restoration after reload.
+- [x] Moved customer search results into a non-layout-changing overlay and added `No items found.` empty state.
+- [x] Added outside-seller business address to the existing Settings form and excluded it for community sellers.
+- [x] Added native push-token rotation re-registration for Expo/FCM devices.
+- [ ] Build and install the non-production APK, then verify maintenance mode and push delivery on a physical device.

@@ -2491,3 +2491,12 @@ Orders created before the snapshot migration can only display the address data s
 - Seller Orders supports Today, Yesterday, custom From/To, and status filtering with no-results handling.
 - Seller and customer order cards show order date/time.
 - The UI labels `PREPARING` as `Processing`. Delivery seller actions are Accept, Processing, Out for delivery, and Delivered; takeaway actions are Accept, Processing, Ready, and Handed over.
+
+# Current implementation additions - 2026-10-13 platform maintenance and mobile UX
+
+- Added Global Admin-controlled platform maintenance mode with a custom message and Global Admin bypass.
+- Added a public maintenance status endpoint used by the shared web/mobile client.
+- Added pull-to-refresh with restoration of the current customer screen after reload.
+- Search results now overlay the existing Home layout below the search box and show `No items found.` when empty.
+- Outside seller business address is managed in the existing seller Settings form; community sellers do not see that field.
+- Native push registration re-registers rotated Expo/FCM tokens.

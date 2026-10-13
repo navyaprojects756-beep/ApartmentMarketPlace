@@ -112,6 +112,14 @@ The request body is `{ "code": "123456" }`. The API checks the single order PIN 
 - `GET /admin/settings/mobile-app-update` — Global Admin reads the Android update policy.
 - `PATCH /admin/settings/mobile-app-update` — Global Admin updates `latestVersion`, `minimumVersion`, `mode`, `storeUrl`, `title`, and `message`.
 
+### Maintenance mode
+
+- `GET /maintenance` — public read of the current `{ "enabled": boolean, "message": string }` maintenance configuration for the web/mobile client.
+- `GET /admin/settings/maintenance` — Global Admin reads the maintenance configuration.
+- `PATCH /admin/settings/maintenance` — Global Admin updates `{ "enabled": boolean, "message": string }`.
+
+The setting is stored in `PlatformSetting` with key `maintenance_mode`. When enabled, the client shows the configured maintenance screen to customers and sellers while Global Admin remains available through the admin portal.
+
 The policy is stored in the `PlatformSetting` row with key `mobile_app_update_policy`. After publishing a new Play Store build, update `latestVersion` in the Global Admin portal under `Settings` → `Mobile app` → `Update policy`. Set `minimumVersion` and `mode` to force an update when required.
 
 Seller-category endpoints remain available only for backward compatibility with existing records; the active seller UI uses `/seller/catalog-categories` and `Product.globalCategoryId` for new and edited products.
@@ -130,6 +138,8 @@ New orders receive a customer-facing `orderNumber` in the format `GC-YYMMDD-RAND
 The seller Orders workspace supports date filters for Today, Yesterday, and a custom From/To range, together with status filtering. Seller-facing transitions are Accept → Processing → Out for delivery → Delivered for delivery orders, and Accept → Processing → Ready → Handed over for takeaway orders. The persisted API status remains `PREPARING` while the UI displays `Processing`.
 
 Push registration diagnostics log request receipt, authorization presence, authenticated user ID, insert/update operation, and a token suffix only. The API trusts one Render reverse proxy (`app.set('trust proxy', 1)`) so rate-limit client-IP validation works correctly in production.
+
+The native client also listens for Expo/FCM token rotation and re-registers the new token against `POST /push-devices`.
 
 The implementation uses backend scope checks for apartment sellers, outside seller delivery areas, delivery-boy seller/apartment links, order ownership, and admin roles.
 

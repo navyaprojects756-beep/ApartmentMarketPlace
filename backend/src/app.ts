@@ -32,6 +32,7 @@ import { randomUUID } from 'node:crypto';
 import { recordErrorLog } from './services/error-log.service.js';
 import { clientErrorsRouter } from './routes/client-errors.routes.js';
 import { appUpdateRouter } from './routes/app-update.routes.js';
+import { maintenanceRouter } from './routes/maintenance.routes.js';
 
 export const app = express();
 
@@ -74,6 +75,7 @@ app.get('/api-docs/openapi.json', (_request, response) => response.json(openapi)
 
 app.use('/api/v1/health', healthRouter);
 app.use('/api/v1', appUpdateRouter);
+app.use('/api/v1', maintenanceRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/home', homeRouter);
 app.use('/api/v1/sellers', sellerApplicationRouter);

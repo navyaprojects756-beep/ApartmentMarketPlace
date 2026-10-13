@@ -272,3 +272,11 @@ Order addresses are captured at checkout so order history is stable:
 - Migration: `20261004170000_order_fulfillment_snapshots`.
 
 Customer cancellation uses the application modal component/presentation and keeps the API status transition behind explicit confirmation. The customer progress timeline includes a small top gap for visual separation from the order header.
+
+## Platform maintenance and client refresh architecture — 2026-10-13
+
+- Maintenance mode is a JSON `PlatformSetting` named `maintenance_mode`, managed by Global Admin through protected admin endpoints.
+- The public maintenance endpoint allows the authenticated web/mobile client to load the status before rendering customer or seller screens. Global Admin remains available through the admin portal.
+- The WebView client uses a touch pull-to-refresh handler. It stores the current screen in session storage before reload and restores that screen after reload.
+- Home search results are absolutely positioned below the search control, keeping the existing home content layout unchanged while results are visible.
+- Seller address is part of the existing seller settings update and is presented only for outside sellers.

@@ -193,3 +193,12 @@ Orders created before this migration may still use their existing relational add
 - The existing unique `orders.order_number` constraint guarantees that two orders cannot share the same displayed reference. Existing orders retain their original references.
 - Seller Orders supports Today, Yesterday, Custom From/To, and status filters, with order date/time shown on seller and customer order cards.
 - Delivery seller actions are Accept, Processing, Out for delivery, and Delivered. Takeaway seller actions are Accept, Processing, Ready, and Handed over.
+
+## Current platform controls and mobile UX — 2026-10-13
+
+- Global Admin Settings includes platform maintenance mode with an on/off switch and a custom message. When enabled, customers and sellers see a maintenance screen; Global Admin access remains available.
+- Maintenance mode is stored in `PlatformSetting` under `maintenance_mode` and is read publicly through `GET /api/v1/maintenance`.
+- Customer search results appear as an overlay below the search box without moving the home banner, categories, or community services. Empty searches display `No items found.`
+- Mobile pull-to-refresh preserves the current page, including Orders, instead of returning to Home after reload.
+- Outside sellers can save a business address from the existing seller Settings form. Community sellers do not see that field; the address is used in seller/order details.
+- Native push registration now re-registers tokens when Expo/FCM rotates them. Android and iOS use package identifier `com.cheritech.gatedcart`.

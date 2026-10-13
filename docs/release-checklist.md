@@ -139,3 +139,20 @@ npx prisma migrate deploy --schema prisma/schema.prisma
 npm run api:build
 npm run build
 ```
+
+## 2026-10-13 non-production APK and maintenance verification
+
+- [ ] Confirm `mobile/app.json` Android package is `com.cheritech.gatedcart`.
+- [ ] Confirm `mobile/google-services.json` contains the matching Firebase Android client.
+- [ ] Build the preview APK:
+
+```bash
+cd mobile
+npx eas build --platform android --profile preview
+```
+
+- [ ] Install the APK as a fresh install and allow notification permission.
+- [ ] Log in and confirm backend logs show `[push] device registered`.
+- [ ] Send a Global Admin test notification and confirm it arrives.
+- [ ] Enable maintenance mode, verify customers and sellers see the configured message, and verify Global Admin can still open the admin portal.
+- [ ] Disable maintenance mode after testing.

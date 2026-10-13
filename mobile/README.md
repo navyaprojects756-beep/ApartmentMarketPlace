@@ -85,3 +85,17 @@ The hosted API must apply migration `20261004170000_order_fulfillment_snapshots`
 ## Current order references and seller filters - 2026-10-13
 
 New orders shown in the shared WebView use a compact globally unique reference such as `GC-261013-X7K4M2`. Existing references remain unchanged. The customer and seller order cards show date/time, and the seller Orders view supports Today, Yesterday, custom From/To, and status filters. The UI displays `PREPARING` as `Processing` while the API status remains unchanged.
+
+## Current mobile behavior and non-production build — 2026-10-13
+
+- Pulling down from the top refreshes the WebView and preserves the current page, including Orders.
+- The customer search result list overlays the home content below the search box and does not extend the page layout.
+- Platform maintenance mode is controlled by Global Admin through the hosted web application. Non-admin users see the configured maintenance message.
+- Push tokens are registered after login and are re-registered when Expo/FCM rotates a token. The Android package and Firebase client are both `com.cheritech.gatedcart`.
+- Build an installable non-production APK with:
+
+```bash
+npx eas build --platform android --profile preview
+```
+
+Install the fresh preview APK, allow notifications, log in, and verify that the API logs show `[push] device registered` before testing a notification campaign.

@@ -1296,7 +1296,20 @@ function ApartmentSellerVisibilityControls({ token }) {
 }
 
 function AdminControls({ token }) {
-  return <><AdminHomePromotions token={token} /><MobileAppUpdateSettings token={token} /></>;
+  return <><AdminHomePromotions token={token} /><MobileAppUpdateSettings token={token} /><MaintenanceSettings token={token} /></>;
+}
+
+function MaintenanceSettings({ token }) {
+  const [config, setConfig] = useState({ enabled: false, message: 'GatedCart is temporarily unavailable while we make a few improvements. Please try again shortly.' });
+  const [message, setMessage] = useState('');
+  useEffect(() => { fetch(`${API_BASE}/admin/settings/maintenance`, { headers: { Authorization: `Bearer ${token}` } }).then(response => response.ok ? response.json() : null).then(data => { if (data) setConfig(data); }).catch(() => setMessage('Unable to load maintenance settings.')); }, [token]);
+  async function save(event) {
+    event.preventDefault(); setMessage('');
+    const response = await fetch(`${API_BASE}/admin/settings/maintenance`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(config) });
+    const data = await response.json().catch(() => null);
+    if (response.ok) { setConfig(data); setMessage('Maintenance settings saved.'); } else setMessage(data?.error?.message || 'Unable to save maintenance settings.');
+  }
+  return <section className="dashboard-panel admin-resource-panel"><div className="panel-heading"><div><p className="eyebrow">PLATFORM ACCESS</p><h2>Maintenance mode</h2><p>Temporarily block customers and sellers while Global Admin access remains available.</p></div><span className={`status ${config.enabled ? 'status-pending' : 'status-approved'}`}>{config.enabled ? 'ON' : 'OFF'}</span></div><form className="quick-product-form app-update-settings-form" onSubmit={save}><label className="checkbox-row"><input type="checkbox" checked={config.enabled} onChange={event => setConfig(current => ({ ...current, enabled: event.target.checked }))} /> Enable maintenance mode</label><label>Maintenance message<textarea value={config.message} onChange={event => setConfig(current => ({ ...current, message: event.target.value }))} maxLength={1000} rows={4} required /></label><button className="primary-button">Save maintenance settings</button></form>{message && <p className="dashboard-message">{message}</p>}</section>;
 }
 
 function MobileAppUpdateSettings({ token }) {
@@ -1982,6 +1995,10 @@ function ExistingMemberSellerEntryScreen({ onContinue, onLogout }) {
   return <main className="auth-screen"><div className="auth-card"><GatedCartLogo /><p className="eyebrow">GATEDCART MEMBER</p><h1>You already have an account</h1><p className="auth-copy">This mobile number is already registered with GatedCart. Continue to your normal marketplace experience.</p><button type="button" className="auth-button" onClick={onContinue}>Continue to GatedCart <Icon name="arrow" size={16} /></button><button type="button" className="auth-back" onClick={onLogout}>Sign out</button></div></main>;
 }
 
+function MaintenanceScreen({ message }) {
+  return <main className="auth-screen maintenance-screen"><div className="auth-card"><GatedCartLogo /><p className="eyebrow">GATEDCART</p><h1>We’ll be back soon</h1><p className="auth-copy">{message || 'GatedCart is temporarily unavailable while we make a few improvements. Please try again shortly.'}</p><div className="maintenance-icon" aria-hidden="true">⚙</div></div></main>;
+}
+
 function usePullToRefresh(currentPage) {
   const currentPageRef = useRef(currentPage);
   currentPageRef.current = currentPage;
@@ -2050,6 +2067,7 @@ function App() {
   const [sessionUser, setSessionUser] = useState(null);
   const [sellerStatus, setSellerStatus] = useState(null);
   const [sessionReady, setSessionReady] = useState(() => Boolean(window.localStorage.getItem(ACCESS_TOKEN_KEY)));
+  const [maintenance, setMaintenance] = useState({ checked: false, enabled: false, message: '' });
   const [orderSuccess, setOrderSuccess] = useState([]);
   const [notificationOrderId, setNotificationOrderId] = useState(null);
   const [sellerRegistrationIntent, setSellerRegistrationIntent] = useState(initialSellerRegistrationIntent);
@@ -2058,6 +2076,12 @@ function App() {
   const [sellerApplicationLoading, setSellerApplicationLoading] = useState(true);
   usePullToRefresh(screen);
   useEffect(() => { window.sessionStorage.removeItem('gatedcart_refresh_screen'); }, []);
+  useEffect(() => {
+    fetch(`${API_BASE}/maintenance`)
+      .then(response => response.ok ? response.json() : null)
+      .then(data => setMaintenance({ checked: true, enabled: Boolean(data?.enabled), message: data?.message || '' }))
+      .catch(() => setMaintenance({ checked: true, enabled: false, message: '' }));
+  }, []);
   useEffect(() => {
     const goBack = () => {
       if (screen === 'store') setScreen('home');
@@ -2102,6 +2126,8 @@ function App() {
     if (window.__gatedcartPendingNotification) { window.__gatedcartNativeNotification(window.__gatedcartPendingNotification); delete window.__gatedcartPendingNotification; }
     return () => { if (window.__gatedcartNativeNotification) delete window.__gatedcartNativeNotification; };
   }, [accessToken]);
+  const isGlobalAdminSession = Boolean(sessionUser?.roles?.some(role => (typeof role === 'string' ? role : role?.code || role?.role?.code) === 'GLOBAL_ADMIN'));
+  if (maintenance.checked && maintenance.enabled && !isGlobalAdminSession && !isAdminPortal) return <MaintenanceScreen message={maintenance.message} />;
   if (previewRole === 'seller') return <SellerDashboardScreen />;
   if (previewRole === 'delivery') return <DeliveryDashboardScreen />;
   if (previewRole === 'admin') return <AdminDashboardScreen />;

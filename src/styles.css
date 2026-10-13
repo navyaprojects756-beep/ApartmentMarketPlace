@@ -778,6 +778,8 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .pull-refresh-glyph { display: inline-block; color: #f57c00; font-size: 34px; line-height: 1; will-change: transform; }
 .pull-refresh-indicator.armed .pull-refresh-glyph { animation: pull-refresh-spin .75s cubic-bezier(.4,0,.2,1) infinite; }
 @keyframes pull-refresh-spin { to { transform: rotate(360deg); } }
+.maintenance-screen .auth-card { text-align: center; }
+.maintenance-icon { display: grid; place-items: center; width: 58px; height: 58px; margin: 24px auto 0; border-radius: 50%; color: #ff6800; background: #fff1e8; font-size: 28px; }
 .seller-address-editor { margin: 0 16px 18px; }
 .seller-address-editor form { display: grid; gap: 10px; }
 .seller-address-editor textarea { width: 100%; box-sizing: border-box; min-height: 76px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fff; font: inherit; resize: vertical; }
