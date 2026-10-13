@@ -186,3 +186,10 @@ npm run build
 ```
 
 Orders created before this migration may still use their existing relational address data because no historical snapshot existed at the time they were placed.
+
+## Current order references and seller workflow - 2026-10-13
+
+- New orders use a customer-friendly reference such as `GC-261013-X7K4M2`. The date and random code do not expose the total order count.
+- The existing unique `orders.order_number` constraint guarantees that two orders cannot share the same displayed reference. Existing orders retain their original references.
+- Seller Orders supports Today, Yesterday, Custom From/To, and status filters, with order date/time shown on seller and customer order cards.
+- Delivery seller actions are Accept, Processing, Out for delivery, and Delivered. Takeaway seller actions are Accept, Processing, Ready, and Handed over.

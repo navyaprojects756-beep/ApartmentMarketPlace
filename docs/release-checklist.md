@@ -122,6 +122,15 @@ adb logcat -v time "ReactNativeJS:I" "*:S"
 - [ ] Confirm the progress timeline spacing and delivery/takeaway address labels on mobile and desktop.
 - [ ] Rebuild and redeploy both API and frontend after migration deployment.
 
+## Order references and seller filters - 2026-10-13
+
+- [x] Generate new order references as `GC-YYMMDD-RANDOM` using the existing unique order-number field.
+- [x] Preserve existing order references and internal UUIDs.
+- [x] Add seller Today, Yesterday, custom From/To, and status filters.
+- [x] Show order date/time in seller and customer order cards.
+- [x] Verify delivery and takeaway seller transition labels and Processing display text.
+- [ ] Create concurrent orders in the deployed environment and verify no duplicate references are accepted.
+
 Commands:
 
 ```bash

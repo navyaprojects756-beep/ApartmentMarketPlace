@@ -95,6 +95,12 @@ backend/                     Backend API service (being implemented)
 - Money values use PostgreSQL `numeric` through Prisma `Decimal`.
 - Inventory changes and order creation must use transactions and row-level protection.
 
+## Order references and seller order controls
+
+New order references use `GC-YYMMDD-RANDOM`, generated with an India-local date and a cryptographic random suffix. `Order.orderNumber` remains globally unique through its Prisma/database `@unique` constraint, so concurrent customers cannot receive the same reference. Existing historical values are preserved.
+
+The seller order workspace applies date and status filters client-side to the scoped seller queue and displays order date/time. User-facing `PREPARING` is labelled `Processing`; delivery and takeaway use separate seller transition labels while retaining the shared backend status model.
+
 ## Home seller visibility
 
 The apartment seller visibility setting accepts:

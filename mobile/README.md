@@ -81,3 +81,7 @@ The shared WebView now uses the same order-history rules on Android, iOS, and br
 - The order status timeline has separated top spacing for compact mobile readability.
 
 The hosted API must apply migration `20261004170000_order_fulfillment_snapshots` before testing new orders on the mobile WebView.
+
+## Current order references and seller filters - 2026-10-13
+
+New orders shown in the shared WebView use a compact globally unique reference such as `GC-261013-X7K4M2`. Existing references remain unchanged. The customer and seller order cards show date/time, and the seller Orders view supports Today, Yesterday, custom From/To, and status filters. The UI displays `PREPARING` as `Processing` while the API status remains unchanged.

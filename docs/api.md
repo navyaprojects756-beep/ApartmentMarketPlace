@@ -111,6 +111,12 @@ Seller-category endpoints remain available only for backward compatibility with 
 
 The API stores device tokens in `push_devices`. New orders notify the customer and seller; order status changes notify the customer. Push payloads use the default notification sound and include `route` and `orderId` data for mobile tap navigation.
 
+### Order references and seller order workflow
+
+New orders receive a customer-facing `orderNumber` in the format `GC-YYMMDD-RANDOM`, for example `GC-261013-X7K4M2`. The field remains globally unique through the database unique constraint; existing orders keep their historical order numbers. The random suffix prevents order-volume disclosure.
+
+The seller Orders workspace supports date filters for Today, Yesterday, and a custom From/To range, together with status filtering. Seller-facing transitions are Accept → Processing → Out for delivery → Delivered for delivery orders, and Accept → Processing → Ready → Handed over for takeaway orders. The persisted API status remains `PREPARING` while the UI displays `Processing`.
+
 Push registration diagnostics log request receipt, authorization presence, authenticated user ID, insert/update operation, and a token suffix only. The API trusts one Render reverse proxy (`app.set('trust proxy', 1)`) so rate-limit client-IP validation works correctly in production.
 
 The implementation uses backend scope checks for apartment sellers, outside seller delivery areas, delivery-boy seller/apartment links, order ownership, and admin roles.

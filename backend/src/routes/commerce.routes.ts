@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { randomBytes } from 'node:crypto';
 import { Prisma, type OrderStatus } from '@prisma/client';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.middleware.js';
@@ -11,6 +12,16 @@ export const commerceRouter = Router();
 
 const cartItemSchema = z.object({ productId: z.string().uuid(), quantity: z.number().int().positive() });
 const checkoutSchema = z.object({ sellerId: z.string().uuid(), items: z.array(cartItemSchema).min(1), fulfillmentType: z.enum(['DELIVERY', 'PICKUP']), paymentMethod: z.enum(['CASH_ON_DELIVERY', 'DUMMY_PAYMENT']), addressId: z.string().uuid().optional(), customerNotes: z.string().max(2000).optional() });
+const orderReferenceAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function createOrderReference(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', year: '2-digit', month: '2-digit', day: '2-digit' }).formatToParts(date);
+  const day = parts.find(part => part.type === 'day')?.value || '00';
+  const month = parts.find(part => part.type === 'month')?.value || '00';
+  const year = parts.find(part => part.type === 'year')?.value || '00';
+  const randomPart = Array.from(randomBytes(6), value => orderReferenceAlphabet[value % orderReferenceAlphabet.length]).join('');
+  return `GC-${year}${month}${day}-${randomPart}`;
+}
 
 async function sellerIsVisible(userId: string, sellerId: string) {
   const context = await getPrimaryApartment(userId);
@@ -93,7 +104,7 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
       }
       const deliveryCharge = input.fulfillmentType === 'DELIVERY' ? (seller.deliveryCharge ?? new Prisma.Decimal(0)) : new Prisma.Decimal(0);
       const total = subtotal.add(deliveryCharge);
-      const created = await tx.order.create({ data: { orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`, customerId: request.auth!.userId, sellerId: seller.id, apartmentId: context.apartmentId, blockId: context.blockId, flatId: context.flatId, addressId: input.addressId, subtotal, discount: 0, deliveryCharge, total, paymentMethod: input.paymentMethod, paymentStatus: input.paymentMethod === 'DUMMY_PAYMENT' ? 'PAID' : 'PENDING', fulfillmentType: input.fulfillmentType, fulfillmentAddress, fulfillmentPhone, verificationCode: String(Math.floor(100000 + Math.random() * 900000)), customerNotes: input.customerNotes, items: { create: orderItems }, statusHistory: { create: { toStatus: 'PENDING' } } } });
+      const created = await tx.order.create({ data: { orderNumber: createOrderReference(), customerId: request.auth!.userId, sellerId: seller.id, apartmentId: context.apartmentId, blockId: context.blockId, flatId: context.flatId, addressId: input.addressId, subtotal, discount: 0, deliveryCharge, total, paymentMethod: input.paymentMethod, paymentStatus: input.paymentMethod === 'DUMMY_PAYMENT' ? 'PAID' : 'PENDING', fulfillmentType: input.fulfillmentType, fulfillmentAddress, fulfillmentPhone, verificationCode: String(Math.floor(100000 + Math.random() * 900000)), customerNotes: input.customerNotes, items: { create: orderItems }, statusHistory: { create: { toStatus: 'PENDING' } } } });
       for (const item of orderItems) {
         const product = products.find(record => record.id === item.productId)!;
         if (product.inventoryTracking) await tx.inventoryMovement.create({ data: { productId: product.id, type: 'SALE', quantity: -item.quantity, orderId: created.id, reason: `Order ${created.orderNumber}` } });

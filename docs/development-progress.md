@@ -85,6 +85,10 @@ Verification checkpoint: database migration status, web build, backend build, An
 - [x] Seller dashboard now includes category creation/deactivation and product availability controls.
 - [x] Seller dashboard now includes date-filtered live sales reporting metrics.
 - [x] Responsive Delivery dashboard now loads the protected delivery queue and exposes valid status actions.
+- [x] Added compact seller order filters for Today, Yesterday, custom From/To dates, and status.
+- [x] Added seller/customer order date-time display and no-results handling for filtered seller orders.
+- [x] Added globally unique customer-friendly `GC-YYMMDD-RANDOM` order references without exposing order counts.
+- [x] Updated seller workflow labels for delivery and takeaway orders; `PREPARING` is displayed as `Processing`.
 - [x] Role preview navigation added: `/?role=seller`, `/?role=delivery`, and `/?role=admin`.
 - [x] Expo Android/iOS mobile shell created under `mobile/` with package identifiers and shared customer Home starter screen.
 - [x] OpenAPI JSON endpoint added at `/api-docs/openapi.json`.

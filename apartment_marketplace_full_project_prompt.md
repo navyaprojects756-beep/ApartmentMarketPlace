@@ -2483,3 +2483,11 @@ The implemented order workflow now preserves fulfillment contact details at chec
 - Prisma migration: `prisma/migrations/20261004170000_order_fulfillment_snapshots/migration.sql`.
 
 Orders created before the snapshot migration can only display the address data still available through their existing relations; an address changed before the snapshot was added cannot be reconstructed retroactively.
+
+# Current implementation additions - 2026-10-13 order references and seller filtering
+
+- New orders use globally unique customer-facing references in the form `GC-YYMMDD-RANDOM`; the random portion avoids exposing total order counts.
+- Existing internal UUIDs and historical order numbers are preserved.
+- Seller Orders supports Today, Yesterday, custom From/To, and status filtering with no-results handling.
+- Seller and customer order cards show order date/time.
+- The UI labels `PREPARING` as `Processing`. Delivery seller actions are Accept, Processing, Out for delivery, and Delivered; takeaway actions are Accept, Processing, Ready, and Handed over.
