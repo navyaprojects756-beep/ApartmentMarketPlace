@@ -138,7 +138,7 @@ button { cursor: pointer; border: 0; background: transparent; color: inherit; }
 .seller-ad-strip { display: grid; gap: 5px; margin: 20px 0; padding: 16px 18px; border: 1px solid #e6dcff; border-radius: 14px; background: linear-gradient(120deg, #f5f0ff, #fff9ef); }
 .seller-ad-strip strong { color: var(--ink); font-size: 17px; }
 .seller-ad-strip p { margin: 0; color: #777080; font-size: 12px; }
- .search-results { position: relative; z-index: 4; margin: -18px 0 26px; padding: 14px; border: 1px solid #ebe8f3; border-radius: 16px; background: #fff; box-shadow: 0 16px 32px rgba(52, 31, 101, .1); }
+ .search-results { position: relative; z-index: 4; margin: 12px 0 26px; padding: 14px; border: 1px solid #ebe8f3; border-radius: 16px; background: #fff; box-shadow: 0 16px 32px rgba(52, 31, 101, .1); }
  .search-results-heading { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; }
  .search-results-heading button { border: 0; background: transparent; color: #6d4aff; cursor: pointer; font-weight: 700; }
  .search-result-row { display: flex; width: 100%; flex-direction: column; gap: 4px; padding: 11px 8px; border: 0; border-top: 1px solid #f0edf6; background: transparent; text-align: left; cursor: pointer; }
@@ -621,6 +621,9 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .seller-group .group-title button { display: none; }
 .home-content > .section-heading:has(+ .seller-sections) { display: none; }
 .home-content > .seller-sections { margin-top: 26px; }
+.app-shell:not(.storefront-screen) > .home-content { position: relative; }
+.app-shell:not(.storefront-screen) > .home-content > .search-results { position: absolute; top: 140px; left: 0; right: 0; z-index: 20; max-height: min(430px, calc(100dvh - 180px)); margin: 0; overflow-y: auto; box-shadow: 0 16px 32px rgba(52, 31, 101, .16); }
+@media (max-width: 560px) { .app-shell:not(.storefront-screen) > .home-content > .search-results { top: 138px; } }
 .app-shell:not(.storefront-screen) > .home-content { scrollbar-width: none; -ms-overflow-style: none; }
 .app-shell:not(.storefront-screen) > .home-content::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .seller-image { height: 142px; flex-basis: 142px; }
