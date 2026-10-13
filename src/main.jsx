@@ -2049,7 +2049,7 @@ function App() {
   const [accessToken, setAccessToken] = useState(() => window.localStorage.getItem(ACCESS_TOKEN_KEY));
   const [sessionUser, setSessionUser] = useState(null);
   const [sellerStatus, setSellerStatus] = useState(null);
-  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionReady, setSessionReady] = useState(() => Boolean(window.localStorage.getItem(ACCESS_TOKEN_KEY)));
   const [orderSuccess, setOrderSuccess] = useState([]);
   const [notificationOrderId, setNotificationOrderId] = useState(null);
   const [sellerRegistrationIntent, setSellerRegistrationIntent] = useState(initialSellerRegistrationIntent);
