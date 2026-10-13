@@ -52,7 +52,8 @@ sellerRouter.get('/:sellerId', requireAuth, async (request, response, next) => {
       response.status(404).json({ error: { code: 'SELLER_CLOSED', message: 'This seller is currently closed' } });
       return;
     }
-    response.json(seller);
+    const sellerUser = await prisma.user.findUnique({ where: { id: seller.userId }, select: { phone: true, apartments: { where: { isPrimary: true }, include: { apartment: true, block: true, flat: true } } } });
+    response.json({ ...seller, user: sellerUser });
   } catch (error) {
     next(error);
   }

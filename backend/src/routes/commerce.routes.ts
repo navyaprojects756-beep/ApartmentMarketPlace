@@ -146,7 +146,7 @@ commerceRouter.get('/orders', requireAuth, async (request, response, next) => {
   }
 });
 
-const transitions: Record<OrderStatus, OrderStatus[]> = { PENDING: ['ACCEPTED', 'REJECTED', 'CANCELLED'], ACCEPTED: ['PREPARING', 'CANCELLED'], REJECTED: [], PREPARING: ['READY_FOR_PICKUP', 'CANCELLED'], READY_FOR_PICKUP: ['ASSIGNED_TO_DELIVERY_BOY', 'PICKED_UP'], ASSIGNED_TO_DELIVERY_BOY: ['PICKED_UP'], PICKED_UP: ['OUT_FOR_DELIVERY', 'COMPLETED'], OUT_FOR_DELIVERY: ['DELIVERED'], DELIVERED: ['COMPLETED'], COMPLETED: [], CANCELLED: [] };
+const transitions: Record<OrderStatus, OrderStatus[]> = { PENDING: ['ACCEPTED', 'REJECTED', 'CANCELLED'], ACCEPTED: ['PREPARING', 'CANCELLED'], REJECTED: [], PREPARING: ['READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'CANCELLED'], READY_FOR_PICKUP: ['ASSIGNED_TO_DELIVERY_BOY', 'PICKED_UP', 'OUT_FOR_DELIVERY'], ASSIGNED_TO_DELIVERY_BOY: ['PICKED_UP', 'OUT_FOR_DELIVERY'], PICKED_UP: ['OUT_FOR_DELIVERY', 'COMPLETED'], OUT_FOR_DELIVERY: ['DELIVERED'], DELIVERED: ['COMPLETED'], COMPLETED: [], CANCELLED: [] };
 
 commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, response, next) => {
   try {

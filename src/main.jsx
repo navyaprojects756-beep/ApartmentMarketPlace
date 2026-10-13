@@ -573,6 +573,7 @@ function GatedCartLoginScreen({ onAuthenticated }) {
   useEffect(() => { if (step === 'otp') document.querySelectorAll('.otp-input').forEach(input => { input.placeholder = '-----'; }); }, [step]);
   useEffect(() => { setOtp(current => current.replace(/\D/g, '').slice(0, AUTH_PROVIDER === 'firebase' ? 6 : 5)); }, [otp]);
   useEffect(() => { if (step !== 'otp') return undefined; const inputs = document.querySelectorAll('.gatedcart-login .otp-input'); const blockInvalid = event => { if (event.data && /\D/.test(event.data)) event.preventDefault(); }; const cleanPaste = event => { event.preventDefault(); setOtp(event.clipboardData.getData('text').replace(/\D/g, '').slice(0, AUTH_PROVIDER === 'firebase' ? 6 : 5)); }; inputs.forEach(input => { input.addEventListener('beforeinput', blockInvalid); input.addEventListener('paste', cleanPaste); }); return () => inputs.forEach(input => { input.removeEventListener('beforeinput', blockInvalid); input.removeEventListener('paste', cleanPaste); }); }, [step]);
+  useEffect(() => { const footer = document.querySelector('.gatedcart-login footer'); if (!footer || footer.querySelector('.login-terms-copy')) return undefined; const terms = document.createElement('a'); terms.className = 'login-terms-copy'; terms.href = '/terms-and-conditions'; terms.textContent = 'By continuing, you agree to the Terms and Conditions.'; footer.appendChild(terms); return () => terms.remove(); }, [step]);
   async function requestOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { if (AUTH_PROVIDER === 'firebase') { await requestFirebaseOtp(phone); setDevelopmentOtp(''); } else { const response = await fetch(`${API_BASE}/auth/request-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) }); const data = await readApiResponse(response); if (!response.ok) throw new Error(data.error?.message || 'Unable to send OTP'); setDevelopmentOtp(data.developmentOtp || ''); } setStep('otp'); } catch (requestError) { reportClientError(requestError, 'login.request-otp'); setError(safeUserErrorMessage(requestError, 0)); } finally { setLoading(false); } }
   async function verifyOtp(event) { event.preventDefault(); setLoading(true); setError(''); try { const data = AUTH_PROVIDER === 'firebase' ? await verifyFirebaseOtp(otp) : await (async () => { const response = await fetch(`${API_BASE}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, otp }) }); const result = await readApiResponse(response); if (!response.ok) throw new Error(result.error?.message || 'Invalid OTP'); return result; })(); onAuthenticated(data); } catch (verifyError) { reportClientError(verifyError, 'login.verify-otp'); setError(safeUserErrorMessage(verifyError, 0)); } finally { setLoading(false); } }
   return <main className="gatedcart-login"><div className="login-cloud cloud-a" /><div className="login-cloud cloud-b" /><header><GatedCartLogo /><div className="login-local-note">Shop Local<br /><strong>Live Better</strong><i /></div></header><section className="gatedcart-login-content"><div className="login-copy"><h1>{step === 'phone' ? 'Welcome Back!' : 'Verify your number'}</h1><p>{step === 'phone' ? 'Enter your mobile number to continue' : `Enter the 5-digit OTP sent to ${phone}`}</p></div>{step === 'phone' ? <form onSubmit={requestOtp}><label className="phone-field"><span className="phone-icon">▯</span><b>+91</b><span className="phone-chevron">⌄</span><i /><input value={phone} onChange={event => setPhone(event.target.value)} placeholder="Enter mobile number" inputMode="tel" required /></label><button className="gatedcart-orange-button" disabled={loading}>{loading ? 'Sending…' : 'Send OTP'} <span>→</span></button><small className="login-helper">We’ll send a 6-digit OTP to your mobile number</small></form> : <form onSubmit={verifyOtp}><label className="auth-label">One-time password</label><input className="auth-input otp-input" value={otp} onChange={event => setOtp(event.target.value)} placeholder="00000" inputMode="numeric" maxLength={5} autoFocus required />{developmentOtp && <p className="dev-otp">Development OTP: <strong>{developmentOtp}</strong></p>}<button className="gatedcart-orange-button" disabled={loading}>{loading ? 'Checking…' : 'Verify OTP'} <span>→</span></button><button type="button" className="auth-back" onClick={() => setStep('phone')}>Use a different number</button></form>}{error && <p className="auth-error">{error}</p>}</section><div className="delivery-illustration"><svg className="delivery-scene" viewBox="0 0 900 300" preserveAspectRatio="none" role="img" aria-label="A delivery rider on a scooter arriving at a leafy community gate"><rect width="900" height="300" fill="#fff" /><path d="M0 202h900v98H0z" fill="#f5fafc" /><g opacity=".72" fill="#dce8e8"><path d="M255 151h64V90h34v61h31v-81h54v81h48v-52h43v52h48v-68h55v68h68v-43h38v43h45v-25h52v25H255z" /><path d="M45 172h70V119h35v53h32v-68h52v68h40v-43h40v43H45z" /></g><g fill="#fff"><rect x="283" y="111" width="10" height="15"/><rect x="352" y="94" width="10" height="15"/><rect x="405" y="121" width="10" height="15"/><rect x="486" y="105" width="10" height="15"/><rect x="574" y="111" width="10" height="15"/><rect x="674" y="145" width="10" height="15"/></g><g fill="#b5d889"><circle cx="76" cy="166" r="41"/><circle cx="111" cy="148" r="39"/><circle cx="146" cy="171" r="45"/><circle cx="748" cy="175" r="42"/><circle cx="789" cy="147" r="48"/><circle cx="832" cy="175" r="40"/></g><g fill="#86be68"><path d="M82 198h12l-8-65h-9zM135 199h12l7-67h-9zM778 207h13l-2-71h-9zM824 205h12l9-65h-9z"/><path d="M35 179q38-37 76 0-38 30-76 0ZM735 184q45-48 91 0-42 35-91 0Z"/></g><g fill="none" stroke="#9bca94" stroke-width="12"><path d="M697 254V177c0-62 92-62 92 0v77"/><path d="M790 254V180c0-61 83-61 83 0v74"/><path d="M692 254h196"/></g><path d="M0 272Q370 184 900 248v52H0z" fill="#edf6f9"/><g transform="translate(112 176) scale(1.55)"><path d="M8 52h143c12 0 17-17 4-22l-35-12-28-25H45L19 19 0 28z" fill="#ff6808"/><path d="M35 8h55l17 20H20z" fill="#f7f8f5"/><path d="M48 1c1-25 18-36 32-31 15 5 22 20 17 34L85 17H54z" fill="#ff8030"/><path d="m74-26 21 9-5 17-22-4z" fill="#14213d"/><path d="M95-20 116 5l-8 4L91-13z" fill="#14213d"/><path d="M112 6h27l9 24-12 3-14-17z" fill="#ff6808"/><rect x="53" y="17" width="25" height="6" rx="3" fill="#fff"/><path d="M15 14 0 3l9-7 23 17z" fill="#ff6808"/><circle cx="36" cy="57" r="17" fill="#14213d"/><circle cx="36" cy="57" r="8" fill="#fff"/><circle cx="130" cy="57" r="17" fill="#14213d"/><circle cx="130" cy="57" r="8" fill="#fff"/><path d="M3 36h-24" stroke="#ff6808" stroke-width="5" stroke-linecap="round"/><path d="M-5 46h-40" stroke="#ff6808" stroke-width="3" stroke-linecap="round"/><path d="M-13 57h-23" stroke="#ff6808" stroke-width="3" stroke-linecap="round"/></g></svg></div><footer>SHOP <i /> SUPPORT LOCAL <i /> STRONGER TOGETHER</footer></main>;
@@ -772,12 +773,51 @@ function CommunitySelectorV2({ accessToken, onSelected }) {
   return <main className="auth-screen community-screen"><div className="auth-card community-card"><Logo /><p className="eyebrow">SET UP YOUR COMMUNITY</p><h1>Where should we deliver?</h1><p className="auth-copy">Choose your apartment, block and flat number.</p><form onSubmit={submit}><label className="auth-label">Apartment</label><select className="auth-input" value={apartmentId} onChange={event => { setApartmentId(event.target.value); setBlockId(''); setFlatId(''); setManualFlatNumber(''); }}>{apartments.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select>{blocks.length > 0 && <><label className="auth-label">Block</label><select className="auth-input" value={blockId} onChange={event => { setBlockId(event.target.value); setFlatId(''); }}><option value="">Select block</option>{blocks.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></>}<label className="auth-label">Flat number</label>{flats.length > 0 ? <select className="auth-input" value={flatId} onChange={event => { setFlatId(event.target.value); setManualFlatNumber(''); }}><option value="">Select flat</option>{flats.map(item => <option value={item.id} key={item.id}>{item.number}</option>)}</select> : <input className="auth-input" value={manualFlatNumber} onChange={event => { setManualFlatNumber(event.target.value); setFlatId(''); }} placeholder="Enter flat number" required />}<button className="auth-button" disabled={!apartmentId || saving}>{saving ? 'Saving…' : 'Continue to GatedCart'} <Icon name="arrow" size={16} /></button></form>{error && <p className="auth-error">{error}</p>}</div></main>;
 }
 
-function CommunitySelectorV3({ accessToken, onSelected, onLogout }) {
-  const [apartments, setApartments] = useState([]); const [apartmentId, setApartmentId] = useState(''); const [blockId, setBlockId] = useState(''); const [flatId, setFlatId] = useState(''); const [manualFlatNumber, setManualFlatNumber] = useState(''); const [error, setError] = useState(''); const [saving, setSaving] = useState(false);
-  useEffect(() => { fetch(`${API_BASE}/apartments`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()).then(data => { const list = Array.isArray(data) ? data : []; setApartments(list); if (list[0]) setApartmentId(list[0].id); }).catch(() => setError('Unable to load communities. Please try again.')); }, [accessToken]);
+function CommunitySelectorV3Legacy({ accessToken, onSelected, onLogout }) {
+  const [apartments, setApartments] = useState([]); const [apartmentId, setApartmentId] = useState(''); const [blockId, setBlockId] = useState(''); const [flatId, setFlatId] = useState(''); const [manualFlatNumber, setManualFlatNumber] = useState(''); const [name, setName] = useState(''); const [acceptedTerms, setAcceptedTerms] = useState(false); const [error, setError] = useState(''); const [saving, setSaving] = useState(false);
+  useEffect(() => { Promise.all([fetch(`${API_BASE}/apartments`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()), fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json())]).then(([data, user]) => { const list = Array.isArray(data) ? data : []; setApartments(list); if (list[0]) setApartmentId(list[0].id); setName(user?.name || ''); }).catch(() => setError('Unable to load communities. Please try again.')); }, [accessToken]);
   const apartment = apartments.find(item => item.id === apartmentId); const blocks = apartment?.blocks || []; const block = blocks.find(item => item.id === blockId); const flats = block?.flats || apartment?.flats || [];
-  async function submit(event) { event.preventDefault(); setSaving(true); setError(''); try { const response = await fetch(`${API_BASE}/apartments/me`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ apartmentId, blockId: blockId || null, flatId: flatId || null, manualFlatNumber: manualFlatNumber || null }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error?.message || 'Unable to save community details.'); onSelected(); } catch (saveError) { setError(saveError.message); } finally { setSaving(false); } }
+  async function submit(event) { event.preventDefault(); setSaving(true); setError(''); try { const profileResponse = await fetch(`${API_BASE}/profile`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ name: name.trim() }) }); const profileData = await profileResponse.json(); if (!profileResponse.ok) throw new Error(profileData.error?.message || 'Please enter your name.'); const response = await fetch(`${API_BASE}/apartments/me`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ apartmentId, blockId: blockId || null, flatId: flatId || null, manualFlatNumber: manualFlatNumber || null }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error?.message || 'Unable to save community details.'); onSelected(); } catch (saveError) { setError(saveError.message); } finally { setSaving(false); } }
   return <main className="community-setup-page"><header className="community-setup-header"><GatedCartLogo /><button type="button" className="community-logout-button" onClick={onLogout}>← Back to sign in</button></header><section className="community-setup-layout"><div className="community-setup-intro"><span className="community-step-badge">STEP 1 OF 1</span><h1>Let’s set up<br /><em>your community.</em></h1><p>Tell us where you live so we can show the right sellers, products and delivery options available near you.</p><div className="community-setup-points"><span><b>01</b><strong>Private marketplace</strong><small>Only see sellers serving your community.</small></span><span><b>02</b><strong>Easy delivery</strong><small>Orders reach your apartment doorstep.</small></span></div></div><section className="community-setup-card"><div className="community-card-heading"><span>YOUR DELIVERY DETAILS</span><b>ALMOST THERE</b></div><h2>Where should we deliver?</h2><p>Complete your address details to continue to GatedCart.</p><form onSubmit={submit}><label className="community-field"><span>Apartment</span><select value={apartmentId} onChange={event => { setApartmentId(event.target.value); setBlockId(''); setFlatId(''); setManualFlatNumber(''); }} required><option value="">Select apartment</option>{apartments.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>{blocks.length > 0 && <label className="community-field"><span>Block</span><select value={blockId} onChange={event => { setBlockId(event.target.value); setFlatId(''); setManualFlatNumber(''); }} required><option value="">Select block</option>{blocks.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>}<label className="community-field"><span>Flat number</span>{flats.length > 0 ? <select value={flatId} onChange={event => { setFlatId(event.target.value); setManualFlatNumber(''); }} required><option value="">Select flat</option>{flats.map(item => <option value={item.id} key={item.id}>{item.number}</option>)}</select> : <input value={manualFlatNumber} onChange={event => { setManualFlatNumber(event.target.value); setFlatId(''); }} placeholder="Enter flat number" required />}</label><button className="community-continue-button" disabled={!apartmentId || saving}>{saving ? 'Saving details…' : 'Continue to GatedCart'} <Icon name="arrow" size={17} /></button></form>{error && <p className="auth-error">{error}</p>}<small className="community-privacy-note">Your community details are used only to show relevant marketplace services.</small></section></section></main>;
+}
+
+function CommunitySelectorV3({ accessToken, onSelected, onLogout }) {
+  const [apartments, setApartments] = useState([]);
+  const [apartmentId, setApartmentId] = useState('');
+  const [blockId, setBlockId] = useState('');
+  const [flatId, setFlatId] = useState('');
+  const [manualFlatNumber, setManualFlatNumber] = useState('');
+  const [name, setName] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API_BASE}/apartments`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()),
+      fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()),
+    ]).then(([data, user]) => {
+      const list = Array.isArray(data) ? data : [];
+      setApartments(list);
+      setName(user?.name || '');
+    }).catch(() => setError('Unable to load communities. Please try again.'));
+  }, [accessToken]);
+  const apartment = apartments.find(item => item.id === apartmentId);
+  const blocks = apartment?.blocks || [];
+  const flats = blocks.find(item => item.id === blockId)?.flats || apartment?.flats || [];
+  async function submit(event) {
+    event.preventDefault();
+    setSaving(true); setError('');
+    try {
+      const profileResponse = await fetch(`${API_BASE}/profile`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ name: name.trim() }) });
+      const profileData = await profileResponse.json();
+      if (!profileResponse.ok) throw new Error(profileData.error?.message || 'Please enter your name.');
+      const response = await fetch(`${API_BASE}/apartments/me`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ apartmentId, blockId: blockId || null, flatId: flatId || null, manualFlatNumber: manualFlatNumber || null }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error?.message || 'Unable to save community details.');
+      onSelected();
+    } catch (saveError) { setError(saveError.message); } finally { setSaving(false); }
+  }
+  return <main className="community-setup-page"><header className="community-setup-header"><GatedCartLogo /><button type="button" className="community-logout-button" onClick={onLogout}>← Back to sign in</button></header><section className="community-setup-layout"><div className="community-setup-intro"><span className="community-step-badge">STEP 1 OF 1</span><h1>Let’s set up<br /><em>your community.</em></h1><p>Tell us where you live so we can show the right sellers, products and delivery options available near you.</p></div><section className="community-setup-card"><div className="community-card-heading"><span>YOUR DELIVERY DETAILS</span><b>ALMOST THERE</b></div><h2>Where should we deliver?</h2><p>Complete your address details to continue to GatedCart.</p><form onSubmit={submit}><label className="community-field"><span>Name</span><input value={name} onChange={event => setName(event.target.value)} placeholder="Enter your name" minLength={2} maxLength={120} required /></label><label className="community-field"><span>Apartment</span><select value={apartmentId} onChange={event => { setApartmentId(event.target.value); setBlockId(''); setFlatId(''); setManualFlatNumber(''); }} required><option value="">Select apartment</option>{apartments.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>{blocks.length > 0 && <label className="community-field"><span>Block</span><select value={blockId} onChange={event => { setBlockId(event.target.value); setFlatId(''); setManualFlatNumber(''); }} required><option value="">Select block</option>{blocks.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>}<label className="community-field"><span>Flat number</span>{flats.length > 0 ? <select value={flatId} onChange={event => setFlatId(event.target.value)} required><option value="">Select flat</option>{flats.map(item => <option value={item.id} key={item.id}>{item.number}</option>)}</select> : <input value={manualFlatNumber} onChange={event => setManualFlatNumber(event.target.value)} placeholder="Enter flat number" required />}</label><label className="terms-checkbox"><input type="checkbox" checked={acceptedTerms} onChange={event => setAcceptedTerms(event.target.checked)} required /><span>I agree to the <a href="/terms-and-conditions">Terms and Conditions</a>.</span></label><button className="community-continue-button" disabled={!apartmentId || !acceptedTerms || saving}>{saving ? 'Saving details…' : 'Continue to GatedCart'} <Icon name="arrow" size={17} /></button></form>{error && <p className="auth-error">{error}</p>}</section></section></main>;
 }
 
 function CategoryProductsScreen({ categoryId, accessToken, onBack, onAdd, onRemove, cart = [], cartCount, showSeller, onNavigate }) {
@@ -962,6 +1002,8 @@ function InteractiveMultiSellerCartScreen({ cart, accessToken, onBack, onComplet
     return result;
   }, {}));
   const [sellerInfo, setSellerInfo] = useState({});
+  const [communityAddress, setCommunityAddress] = useState('Your apartment');
+  const [communityApartmentAddress, setCommunityApartmentAddress] = useState('Community address not provided');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -978,6 +1020,48 @@ function InteractiveMultiSellerCartScreen({ cart, accessToken, onBack, onComplet
     });
     return () => { active = false; };
   }, [accessToken, groupKey]);
+  useEffect(() => {
+    fetch(`${API_BASE}/home`, { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then(response => response.json())
+      .then(home => {
+        const address = home?.apartment;
+        if (address) setCommunityAddress([address.apartment?.name, address.block?.name, address.flat?.number ? `Flat ${address.flat.number}` : address.manualFlatNumber ? `Flat ${address.manualFlatNumber}` : ''].filter(Boolean).join(' · ') || 'Your apartment');
+      })
+      .catch(() => {});
+  }, [accessToken]);
+  useEffect(() => {
+    fetch(`${API_BASE}/home`, { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then(response => response.json())
+      .then(home => {
+        const apartment = home?.apartment?.apartment;
+        if (apartment?.address || apartment?.name) setCommunityApartmentAddress([apartment.name, apartment.address, apartment.city, apartment.state, apartment.pincode].filter(Boolean).join(' · '));
+      })
+      .catch(() => {});
+  }, [accessToken]);
+  useEffect(() => {
+    const modes = document.querySelectorAll('.cart-content .checkout-mode');
+    groups.forEach((group, index) => {
+      const mode = modes[index];
+      const seller = sellerInfo[group.sellerId] || group.seller || {};
+      if (!mode) return;
+      const delivery = seller.deliveryEnabled === true;
+      const eyebrow = mode.querySelector('.eyebrow');
+      const title = mode.querySelector('strong');
+      let detail = mode.querySelector('small');
+      if (!detail) {
+        detail = document.createElement('small');
+        mode.appendChild(detail);
+      }
+      const sellerAssociation = seller.user?.apartments?.find(item => item.isPrimary) || seller.user?.apartments?.[0];
+      const sellerAddress = seller.sellerType === 'APARTMENT'
+        ? [sellerAssociation?.apartment?.name, sellerAssociation?.block?.name, sellerAssociation?.flat?.number ? `Flat ${sellerAssociation.flat.number}` : sellerAssociation?.manualFlatNumber ? `Flat ${sellerAssociation.manualFlatNumber}` : ''].filter(Boolean).join(' · ') || communityApartmentAddress
+        : seller.address || seller.apartment?.address || 'Seller address not provided';
+      if (eyebrow) eyebrow.textContent = delivery ? 'DELIVERY TO' : 'TAKEAWAY';
+      if (title) title.textContent = delivery ? communityAddress : sellerAddress;
+      if (delivery) detail.remove();
+      else detail.textContent = `Seller phone: ${seller.user?.phone || seller.phone || 'Phone number not provided'}`;
+    });
+  }, [sellerInfo, communityAddress, groupKey]);
   const sellerName = seller => seller.businessName || seller.sellerName || seller.name || 'Seller';
   const openProduct = item => { const seller = sellerInfo[item.sellerId] || groups.find(group => group.sellerId === item.sellerId)?.seller || {}; setSelectedProduct({ product: item, seller: { ...seller, name: sellerName(seller) } }); };
   async function checkout() {
@@ -1014,8 +1098,8 @@ function OrdersScreen({ accessToken, onBack }) {
 }
 
 const orderProgressSteps = order => order.fulfillmentType === 'PICKUP'
-  ? [['PENDING', 'Placed', 'clock'], ['ACCEPTED', 'Accepted', 'check'], ['PREPARING', 'Packing', 'box'], ['READY_FOR_PICKUP', 'Ready', 'bag'], ['COMPLETED', 'Picked up', 'check']]
-  : [['PENDING', 'Placed', 'clock'], ['ACCEPTED', 'Accepted', 'check'], ['PREPARING', 'Packing', 'box'], ['OUT_FOR_DELIVERY', 'On the way', 'arrow'], ['DELIVERED', 'Delivered', 'home']];
+  ? [['PENDING', 'Placed', 'clock'], ['ACCEPTED', 'Accepted', 'check'], ['PREPARING', 'Processing', 'box'], ['READY_FOR_PICKUP', 'Ready', 'bag'], ['COMPLETED', 'Picked up', 'check']]
+  : [['PENDING', 'Placed', 'clock'], ['ACCEPTED', 'Accepted', 'check'], ['PREPARING', 'Processing', 'box'], ['OUT_FOR_DELIVERY', 'On the way', 'arrow'], ['DELIVERED', 'Delivered', 'home']];
 
 function OrderProgress({ order }) {
   const exception = ['REJECTED', 'CANCELLED'].includes(order.status);
@@ -1043,10 +1127,66 @@ function DetailedOrdersScreenLegacy({ accessToken, onBack }) {
 }
 
 function DetailedOrdersScreen({ accessToken, onBack, onProfile, showSeller, initialOrderId }) {
-  const [orders, setOrders] = useState([]); const [expanded, setExpanded] = useState(initialOrderId || null); const [message, setMessage] = useState('');
-  useEffect(() => { fetch(`${API_BASE}/orders`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()).then(data => { const list = Array.isArray(data) ? data : []; setOrders(list); if (initialOrderId) setExpanded(initialOrderId); }).catch(() => setMessage('Unable to load orders.')); }, [accessToken, initialOrderId]);
+  const [orders, setOrders] = useState([]); const [buyerAssociation, setBuyerAssociation] = useState(null); const [expanded, setExpanded] = useState(null); const [message, setMessage] = useState('');
+  useEffect(() => {
+    document.querySelectorAll('.detailed-order-card .order-status').forEach(status => {
+      if (status.textContent?.trim() === 'PREPARING') status.textContent = 'Processing';
+    });
+    document.querySelectorAll('.detailed-order-card').forEach(card => {
+      const order = orders.find(item => card.textContent?.includes(item.orderNumber));
+      const headerInfo = card.querySelector('.order-card-head > div');
+      if (order && headerInfo && !headerInfo.querySelector('.order-date-time')) {
+        const date = document.createElement('small');
+        date.className = 'order-date-time';
+        date.textContent = `Order date: ${new Date(order.createdAt).toLocaleString()}`;
+        headerInfo.appendChild(date);
+      }
+    });
+  }, [orders, expanded]);
+  useEffect(() => { fetch(`${API_BASE}/orders`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()).then(data => { const list = Array.isArray(data) ? data : []; setOrders(list); }).catch(() => setMessage('Unable to load orders.')); }, [accessToken]);
+  useEffect(() => { fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()).then(user => setBuyerAssociation(user?.apartments?.find(item => item.isPrimary) || user?.apartments?.[0] || null)).catch(() => {}); }, [accessToken]);
+  useEffect(() => {
+    if (message !== 'This order can no longer be cancelled.') return undefined;
+    const backdrop = document.createElement('div');
+    backdrop.className = 'confirm-dialog-backdrop cancellation-notice-backdrop';
+    backdrop.innerHTML = '<section class="confirm-dialog cancellation-notice" role="alertdialog" aria-modal="true"><h2>Order already accepted</h2><p>The seller has already accepted this order, so it can no longer be cancelled.</p><p>Please contact the seller directly if you need help with this order.</p><div class="confirm-dialog-actions"><button type="button" data-close-notice>Close</button></div></section>';
+    document.body.appendChild(backdrop);
+    backdrop.querySelector('[data-close-notice]').addEventListener('click', () => { backdrop.remove(); setMessage(''); });
+    return () => backdrop.remove();
+  }, [message]);
   async function cancel(order) { const confirmed = await new Promise(resolve => { const backdrop = document.createElement('div'); backdrop.className = 'confirm-dialog-backdrop'; backdrop.innerHTML = '<section class="confirm-dialog" role="alertdialog" aria-modal="true"><h2>Cancel this order?</h2><p>Are you sure you want to cancel this order?</p><div class="confirm-dialog-actions"><button type="button" data-cancel>Keep order</button><button type="button" class="danger-button" data-confirm>Confirm</button></div></section>'; document.body.appendChild(backdrop); const finish = value => { backdrop.remove(); resolve(value); }; backdrop.querySelector('[data-cancel]').addEventListener('click', () => finish(false)); backdrop.querySelector('[data-confirm]').addEventListener('click', () => finish(true)); }); if (!confirmed) return; const response = await fetch(`${API_BASE}/orders/${order.id}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ status: 'CANCELLED', note: 'Cancelled by customer' }) }); if (response.ok) { setOrders(current => current.map(item => item.id === order.id ? { ...item, status: 'CANCELLED' } : item)); setMessage(`${order.orderNumber} cancelled.`); } else setMessage('This order can no longer be cancelled.'); }
-  function addressFor(order) { const flatNumber = order.flat?.number || order.address?.manualFlatNumber || order.customer?.apartments?.[0]?.flat?.number || order.customer?.apartments?.[0]?.manualFlatNumber; const details = [order.address?.addressLine, order.apartment?.name, order.block?.name, flatNumber ? `Flat ${flatNumber}` : 'Flat number not provided'].filter(Boolean).join(' · '); return [details, order.customer?.phone ? `Phone ${order.customer.phone}` : ''].filter(Boolean).join('\n') || 'Community address'; }
+  function addressFor(order) {
+    const flatNumber = order.flat?.number || order.address?.manualFlatNumber || order.customer?.apartments?.[0]?.flat?.number || order.customer?.apartments?.[0]?.manualFlatNumber;
+    const registeredFlat = flatNumber || buyerAssociation?.flat?.number || buyerAssociation?.manualFlatNumber;
+    const buyerAddress = [order.address?.addressLine, !/flat\s/i.test(order.address?.addressLine || '') && registeredFlat ? `Flat ${registeredFlat}` : ''].filter(Boolean).join(' · ') || [order.apartment?.name, order.block?.name, registeredFlat ? `Flat ${registeredFlat}` : ''].filter(Boolean).join(' · ') || 'Community address';
+    const sellerAssociation = order.seller?.user?.apartments?.find(item => item.isPrimary) || order.seller?.user?.apartments?.[0];
+    const sellerAddress = [sellerAssociation?.apartment?.name, sellerAssociation?.block?.name, sellerAssociation?.flat?.number ? `Flat ${sellerAssociation.flat.number}` : sellerAssociation?.manualFlatNumber ? `Flat ${sellerAssociation.manualFlatNumber}` : ''].filter(Boolean).join(' · ') || order.seller?.address || order.seller?.apartment?.address || 'Seller address not provided';
+    const sellerPhone = order.seller?.user?.phone || order.seller?.phone || 'Phone number not provided';
+    return [`Buyer address: ${buyerAddress}`, `Seller address: ${sellerAddress}`, `Seller phone: ${sellerPhone}`].join('\n');
+  }
+  useEffect(() => {
+    document.querySelectorAll('.detailed-order-card.expanded').forEach(card => {
+      if (card.querySelector('.order-address-sections')) return;
+      const order = orders.find(item => card.textContent?.includes(item.orderNumber));
+      const container = card.querySelector('.order-detail-grid > div');
+      if (!order || !container) return;
+      const label = container.querySelector('.detail-label');
+      const address = container.querySelector('.order-address');
+      if (label) label.style.display = 'none';
+      if (address) address.style.display = 'none';
+      const flatNumber = order.flat?.number || order.address?.manualFlatNumber || order.customer?.apartments?.[0]?.flat?.number || order.customer?.apartments?.[0]?.manualFlatNumber;
+      const registeredFlat = flatNumber || buyerAssociation?.flat?.number || buyerAssociation?.manualFlatNumber;
+      const buyerAddress = [order.address?.addressLine, !/flat\s/i.test(order.address?.addressLine || '') && registeredFlat ? `Flat ${registeredFlat}` : ''].filter(Boolean).join(' · ') || [order.apartment?.name, order.block?.name, registeredFlat ? `Flat ${registeredFlat}` : ''].filter(Boolean).join(' · ') || 'Community address';
+      const sellerAssociation = order.seller?.user?.apartments?.find(item => item.isPrimary) || order.seller?.user?.apartments?.[0];
+      const sellerAddress = [sellerAssociation?.apartment?.name, sellerAssociation?.block?.name, sellerAssociation?.flat?.number ? `Flat ${sellerAssociation.flat.number}` : sellerAssociation?.manualFlatNumber ? `Flat ${sellerAssociation.manualFlatNumber}` : ''].filter(Boolean).join(' · ') || order.seller?.address || order.seller?.apartment?.address || 'Seller address not provided';
+      const sellerName = order.seller?.businessName || order.seller?.sellerName || 'Seller';
+      const sellerPhone = order.seller?.user?.phone || order.seller?.phone || 'Phone number not provided';
+      const sections = document.createElement('div');
+      sections.className = 'order-address-sections';
+      sections.innerHTML = `<details><summary>Delivery To</summary><p>${buyerAddress}<br />Phone: ${order.customer?.phone || 'Phone number not provided'}</p></details><details><summary>Seller details · ${sellerName}</summary><p>${sellerAddress}<br />Phone: ${sellerPhone}</p></details>`;
+      container.appendChild(sections);
+    });
+  }, [orders, buyerAssociation, expanded]);
   return <div className="app-shell storefront-screen"><header className="store-header"><button className="back-button" onClick={onBack}><Icon name="back" size={21} /></button><Logo /></header><main className="orders-content page-width"><p className="eyebrow">YOUR COMMUNITY ORDERS</p><h1>Order tracking</h1><p className="orders-copy">Every step is visible from order placed to verified handover.</p>{message && <p className="cart-message">{message}</p>}<div className="orders-list">{orders.length === 0 ? <div className="orders-empty">No orders yet. Your next favourite is probably nearby.</div> : orders.map(order => <article className={`order-card detailed-order-card ${expanded === order.id ? 'expanded' : ''}`} key={order.id}><button className="order-card-toggle" onClick={() => setExpanded(expanded === order.id ? null : order.id)}><div className="order-card-head"><div><strong>{order.orderNumber}</strong><small>{order.seller?.businessName || order.seller?.sellerName} · {new Date(order.createdAt).toLocaleDateString()} <OrderVerificationCodes order={order} /></small></div><span className={`order-status status-${order.status.toLowerCase().replaceAll('_', '-')}`}>{order.status.replaceAll('_', ' ')}</span></div><div className="order-card-foot"><span>{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0} items · {order.fulfillmentType === 'PICKUP' ? 'Takeaway' : 'Delivery'}</span><strong>₹{Number(order.total).toFixed(2)}</strong><span>{expanded === order.id ? 'Close' : 'View details'}</span></div></button>{expanded === order.id && <div className="order-detail"><OrderProgress order={order} /><div className="order-detail-grid"><div><small className="detail-label">{order.fulfillmentType === 'PICKUP' ? 'TAKEAWAY' : 'DELIVERY'} ADDRESS</small><p className="order-address">{addressFor(order)}</p></div><div><small className="detail-label">PAYMENT</small><p>{order.paymentMethod?.replaceAll('_', ' ')} · {order.paymentStatus}</p></div></div><div className="order-items-list">{(order.items || []).map(item => <div className="order-item-line" key={item.id}><span>{item.productName} <small>× {item.quantity}</small></span><strong>₹{Number(item.totalPrice).toFixed(2)}</strong></div>)}</div>{order.deliveryAssignment?.deliveryBoy?.user && <p className="order-assignee">Delivery by {order.deliveryAssignment.deliveryBoy.user.name || order.deliveryAssignment.deliveryBoy.user.phone}</p>}{order.status === 'PENDING' && <div className="order-detail-actions"><button className="cancel-order-button" onClick={() => cancel(order)}>Cancel order</button></div>}</div>}</article>)}</div></main><BottomNav active="bag" onNavigate={target => target === 'home' ? onBack() : target === 'profile' ? onProfile() : undefined} /></div>;
 }
 
@@ -1577,9 +1717,65 @@ function SellerCrudPortal({ accessToken, onLogout }) {
   }, []);
   useEffect(() => {
     if (tab !== 'orders') return;
+    const panel = document.querySelector('.dashboard-main .dashboard-panel');
+    if (panel) {
+      panel.querySelector('.seller-order-filters')?.remove();
+      const filters = document.createElement('div');
+      filters.className = 'seller-order-filters';
+      filters.innerHTML = '<label><span>Date</span><select data-order-date><option value="all">All dates</option><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="custom">Custom range</option></select></label><label><span>Status</span><select data-order-status><option value="all">All statuses</option><option value="PENDING">Pending</option><option value="ACCEPTED">Accepted</option><option value="PREPARING">Processing</option><option value="READY_FOR_PICKUP">Ready for pickup</option><option value="OUT_FOR_DELIVERY">Out for delivery</option><option value="DELIVERED">Delivered</option><option value="COMPLETED">Completed</option><option value="CANCELLED">Cancelled</option></select></label><div class="seller-order-custom-dates" data-custom-dates hidden><label><span>From</span><input type="date" data-order-from /></label><label><span>To</span><input type="date" data-order-to /></label></div>';
+      panel.prepend(filters);
+      const dateSelect = filters.querySelector('[data-order-date]');
+      const statusSelect = filters.querySelector('[data-order-status]');
+      const customDates = filters.querySelector('[data-custom-dates]');
+      const fromInput = filters.querySelector('[data-order-from]');
+      const toInput = filters.querySelector('[data-order-to]');
+      const dateKey = value => { const date = new Date(value); if (Number.isNaN(date.getTime())) return ''; return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; };
+      const today = new Date();
+      const todayKey = dateKey(today);
+      const yesterdayDate = new Date(today); yesterdayDate.setDate(today.getDate() - 1);
+      const yesterdayKey = dateKey(yesterdayDate);
+      const applyFilters = () => {
+        const dateMode = dateSelect.value;
+        const selectedStatus = statusSelect.value;
+        customDates.hidden = dateMode !== 'custom';
+        const from = fromInput.value;
+        const to = toInput.value || from;
+        orders.forEach(order => {
+          const card = [...panel.querySelectorAll('.seller-order-card')].find(item => item.textContent?.includes(order.orderNumber));
+          if (!card) return;
+          const orderDate = dateKey(order.createdAt);
+          const dateMatches = dateMode === 'all' || (dateMode === 'today' && orderDate === todayKey) || (dateMode === 'yesterday' && orderDate === yesterdayKey) || (dateMode === 'custom' && Boolean(from) && orderDate >= from && orderDate <= to);
+          const statusMatches = selectedStatus === 'all' || order.status === selectedStatus;
+          card.classList.toggle('seller-order-filtered', !(dateMatches && statusMatches));
+        });
+        const visibleCount = orders.filter(order => {
+          const orderDate = dateKey(order.createdAt);
+          const dateMatches = dateMode === 'all' || (dateMode === 'today' && orderDate === todayKey) || (dateMode === 'yesterday' && orderDate === yesterdayKey) || (dateMode === 'custom' && Boolean(from) && orderDate >= from && orderDate <= to);
+          return dateMatches && (selectedStatus === 'all' || order.status === selectedStatus);
+        }).length;
+        let emptyState = panel.querySelector('.seller-order-no-results');
+        if (!emptyState) { emptyState = document.createElement('p'); emptyState.className = 'seller-order-no-results'; panel.querySelector('.seller-order-list')?.after(emptyState); }
+        emptyState.textContent = visibleCount ? '' : 'No orders found.';
+        emptyState.hidden = visibleCount > 0;
+      };
+      [dateSelect, statusSelect, fromInput, toInput].forEach(input => input.addEventListener('change', applyFilters));
+      applyFilters();
+    }
     orders.forEach(order => {
       const card = [...document.querySelectorAll('.seller-order-card')].find(item => item.textContent?.includes(order.orderNumber));
       if (!card) return;
+      const statusLabel = card.querySelector('.seller-order-head > div > small:not(.seller-order-date-time)');
+      const headInfo = card.querySelector('.seller-order-head > div');
+      if (headInfo && !headInfo.querySelector('.seller-order-date-time')) {
+        const dateLabel = document.createElement('small');
+        dateLabel.className = 'seller-order-date-time';
+        dateLabel.textContent = new Date(order.createdAt).toLocaleString();
+        headInfo.insertBefore(dateLabel, statusLabel || null);
+      }
+      if (statusLabel) {
+        statusLabel.className = `order-status status-${String(order.status || '').toLowerCase().replaceAll('_', '-')}`;
+        statusLabel.textContent = order.status === 'PREPARING' ? 'Processing' : String(order.status || '').replaceAll('_', ' ');
+      }
       let items = card.querySelector('.seller-order-items');
       if (!items) {
         items = document.createElement('div');
@@ -1603,7 +1799,7 @@ function SellerCrudPortal({ accessToken, onLogout }) {
         const actions = footer.querySelector('.seller-order-actions');
         if (actions) {
           actions.replaceChildren();
-          (transitions[order.status] || []).forEach(([nextStatus, label]) => {
+          sellerTransitions(order).forEach(([nextStatus, label]) => {
             const action = document.createElement('button');
             action.type = 'button';
             action.className = 'order-action';
@@ -1627,7 +1823,7 @@ function SellerCrudPortal({ accessToken, onLogout }) {
         orderFooter.appendChild(total);
         const actions = document.createElement('div');
         actions.className = 'seller-order-actions';
-        (transitions[order.status] || []).forEach(([nextStatus, label]) => {
+        sellerTransitions(order).forEach(([nextStatus, label]) => {
           const action = document.createElement('button');
           action.type = 'button';
           action.className = 'order-action';
@@ -1684,12 +1880,28 @@ function SellerCrudPortal({ accessToken, onLogout }) {
   async function saveProductImages(product, urls) { await run(async () => { for (const [index, imageUrl] of urls.entries()) await request(`/seller/products/${product.id}/images`, { method: 'POST', body: JSON.stringify({ imageUrl, sortOrder: (product.images?.length || 0) + index }) }); }, 'Product images uploaded.'); }
   async function submitAd(event) { event.preventDefault(); if (!adForm.imageUrls.length) { setMessage('Upload at least one advertisement image.'); return; } await run(() => request('/seller/advertisements', { method: 'POST', body: JSON.stringify({ ...adForm, title: 'Seller advertisement', description: undefined }) }), 'Advertisement submitted for admin approval.'); setAdForm({ title: '', description: '', imageUrls: [] }); }
   const nav = [['overview', 'Overview'], ['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory'], ['delivery', 'Delivery boys'], ['areas', 'Delivery areas'], ['ads', 'Seller ads'], ['media', 'Store media'], ['settings', 'Store settings']];
-  const transitions = { PENDING: [['ACCEPTED', 'Accept'], ['REJECTED', 'Reject']], ACCEPTED: [['PREPARING', 'Start packing']], PREPARING: [['READY_FOR_PICKUP', 'Mark ready']], READY_FOR_PICKUP: [['PICKED_UP', 'Mark picked up']], ASSIGNED_TO_DELIVERY_BOY: [['PICKED_UP', 'Mark picked up']], PICKED_UP: [['OUT_FOR_DELIVERY', 'Out for delivery']], OUT_FOR_DELIVERY: [['DELIVERED', 'Delivered']] };
+  const sellerTransitions = order => {
+    const deliveryFlow = {
+      PENDING: [['ACCEPTED', 'Accept']],
+      ACCEPTED: [['PREPARING', 'Packing']],
+      PREPARING: [['OUT_FOR_DELIVERY', 'Out for delivery']],
+      READY_FOR_PICKUP: [['OUT_FOR_DELIVERY', 'Out for delivery']],
+      ASSIGNED_TO_DELIVERY_BOY: [['OUT_FOR_DELIVERY', 'Out for delivery']],
+      OUT_FOR_DELIVERY: [['DELIVERED', 'Delivered']]
+    };
+    const takeawayFlow = {
+      PENDING: [['ACCEPTED', 'Accept']],
+      ACCEPTED: [['PREPARING', 'Packing']],
+      PREPARING: [['READY_FOR_PICKUP', 'Ready']],
+      READY_FOR_PICKUP: [['PICKED_UP', 'Handed over']]
+    };
+    return (order.fulfillmentType === 'DELIVERY' ? deliveryFlow : takeawayFlow)[order.status] || [];
+  };
   if (tab === 'products') return <SellerProductManagerV3 accessToken={accessToken} onBack={() => setTab('overview')} onLogout={onLogout} onNavigate={setTab} />;
   if (tab === 'settings') return <SellerSettingsWorkspace accessToken={accessToken} onBack={() => setTab('overview')} onNavigate={setTab} onLogout={onLogout} />;
   if (tab === 'media') return <SellerMediaCenter accessToken={accessToken} onBack={() => setTab('overview')} onNavigate={setTab} />;
   const tabLabel = nav.find(([key]) => key === tab)?.[1] || 'Overview';
-  return <div className="dashboard-shell"><header className="dashboard-nav"><Logo /><div className="profile-chip"><span>SL</span><b>{tabLabel}</b></div></header><div className="dashboard-layout"><SellerWorkspaceSidebar active={tab} onNavigate={setTab} /><main className="dashboard-main"><div className="dashboard-heading"><p className="eyebrow">SELLER WORKSPACE</p><h1>{tab === 'overview' ? `Good morning, ${settings?.businessName || 'Seller'}` : tabLabel}</h1><p>{tab === 'overview' ? 'Manage your store, products, orders and delivery settings.' : `${tabLabel} management is ready.`}</p></div>{message && <p className="dashboard-message">{message}</p>}{tab === 'overview' ? <><div className="metric-grid"><div className="metric-card" onClick={() => setTab('orders')}><span>Orders</span><strong>{orders.length}</strong><small>Open seller orders</small></div><div className="metric-card" onClick={() => setTab('products')}><span>Products</span><strong>{products.length}</strong><small>Manage your catalog</small></div><div className="metric-card" onClick={() => setTab('inventory')}><span>Low stock</span><strong>{products.filter(product => product.inventoryTracking && Number(product.inventory?.quantity) <= Number(product.inventory?.lowStockLevel ?? 0)).length}</strong><small>Review inventory</small></div><div className="metric-card" onClick={() => setTab('settings')}><span>Store status</span><strong>{settings?.isOpen ? 'Open' : 'Closed'}</strong><small>Update store settings</small></div></div><section className="dashboard-panel"><h2>Seller workspace</h2><p className="orders-copy">Use the sidebar to manage orders, products, delivery staff, service areas, advertisements and store settings.</p></section></> : <section className="dashboard-panel"><h2>{tabLabel}</h2><p className="orders-copy">This section is loading from the seller workspace data. Use Products, Store media or Store settings for the currently available management tools.</p>{tab === 'orders' && (orders.length ? <div className="seller-order-list">{orders.map(order => <article className="seller-order-card" key={order.id}><div className="seller-order-head"><div><strong>{order.orderNumber}</strong><small>{order.status?.replaceAll('_', ' ')}</small></div><strong>₹{Number(order.total || 0).toFixed(2)}</strong></div></article>)}</div> : <p className="empty-panel-copy">No orders found.</p>)}{tab === 'inventory' && <div className="product-availability-list">{products.map(product => <div className="availability-row" key={product.id}><span>{product.name}</span><strong>{product.inventoryTracking ? `${product.inventory?.quantity ?? 0} units` : 'Not tracked'}</strong></div>)}</div>}{tab !== 'orders' && tab !== 'inventory' && <p className="empty-panel-copy">No records to show yet.</p>}</section>}</main></div></div>;
+  return <div className="dashboard-shell"><header className="dashboard-nav"><Logo /><div className="profile-chip"><span>SL</span><b>{tabLabel}</b></div></header><div className="dashboard-layout"><SellerWorkspaceSidebar active={tab} onNavigate={setTab} /><main className="dashboard-main"><div className="dashboard-heading"><p className="eyebrow">SELLER WORKSPACE</p><h1>{tab === 'overview' ? `Good morning, ${settings?.businessName || 'Seller'}` : tabLabel}</h1><p>{tab === 'overview' ? 'Manage your store, products, orders and delivery settings.' : `${tabLabel} management is ready.`}</p></div>{message && <p className="dashboard-message">{message}</p>}{tab === 'overview' ? <><div className="metric-grid"><div className="metric-card" onClick={() => setTab('orders')}><span>Orders</span><strong>{orders.length}</strong><small>Open seller orders</small></div><div className="metric-card" onClick={() => setTab('products')}><span>Products</span><strong>{products.length}</strong><small>Manage your catalog</small></div><div className="metric-card" onClick={() => setTab('inventory')}><span>Low stock</span><strong>{products.filter(product => product.inventoryTracking && Number(product.inventory?.quantity) <= Number(product.inventory?.lowStockLevel ?? 0)).length}</strong><small>Review inventory</small></div><div className="metric-card" onClick={() => setTab('settings')}><span>Store status</span><strong>{settings?.isOpen ? 'Open' : 'Closed'}</strong><small>Update store settings</small></div></div><section className="dashboard-panel"><h2>Seller workspace</h2><p className="orders-copy">Use the sidebar to manage orders, products, delivery staff, service areas, advertisements and store settings.</p></section></> : <section className="dashboard-panel"><h2>{tabLabel}</h2>{tab !== 'orders' && <p className="orders-copy">This section is loading from the seller workspace data. Use Products, Store media or Store settings for the currently available management tools.</p>}{tab === 'orders' && (orders.length ? <div className="seller-order-list">{orders.map(order => <article className="seller-order-card" key={order.id}><div className="seller-order-head"><div><strong>{order.orderNumber}</strong><small>{order.status?.replaceAll('_', ' ')}</small></div><strong>₹{Number(order.total || 0).toFixed(2)}</strong></div></article>)}</div> : <p className="empty-panel-copy">No orders found.</p>)}{tab === 'inventory' && <div className="product-availability-list">{products.map(product => <div className="availability-row" key={product.id}><span>{product.name}</span><strong>{product.inventoryTracking ? `${product.inventory?.quantity ?? 0} units` : 'Not tracked'}</strong></div>)}</div>}{tab !== 'orders' && tab !== 'inventory' && <p className="empty-panel-copy">No records to show yet.</p>}</section>}</main></div></div>;
 }
 
 function SellerArea({ accessToken, onLogout, onBack, onNavigate }) {
@@ -1702,6 +1914,17 @@ function OrderSuccessScreen({ orders = [], onTrack, onContinue }) {
 
 function PublicPolicyPage({ type }) {
   const privacy = type === 'privacy';
+  useEffect(() => {
+    const card = document.querySelector('.public-policy-card');
+    if (!card || card.querySelector('.policy-back-link')) return undefined;
+    const back = document.createElement('a');
+    back.className = 'policy-back-link';
+    back.href = '/';
+    back.textContent = '← Back';
+    back.addEventListener('click', event => { event.preventDefault(); window.history.back(); });
+    card.prepend(back);
+    return () => back.remove();
+  }, []);
   const terms = <><p>These Terms govern your use of GatedCart, a community marketplace operated by Cheritech. By using GatedCart, you agree to these Terms.</p><h2>Marketplace role</h2><p>GatedCart provides information and technology that helps residents discover community sellers, products and service providers. Sellers and service providers are independent parties. Their descriptions, prices, quality, availability, conduct and fulfilment are their responsibility.</p><h2>Products, sellers and services</h2><p>Information shown in GatedCart is provided by sellers or service providers and may change. Please verify important details directly with the relevant seller or provider before placing an order or using a service. GatedCart does not manufacture, own or guarantee third-party products or services.</p><h2>Orders and delivery</h2><p>Order acceptance, preparation, product quality, cancellations, refunds and delivery are handled according to the arrangements shown for the relevant seller. GatedCart is not responsible for delays, loss, damage, quality issues or service-provider conduct caused by a seller, delivery provider, or events outside our reasonable control. This does not limit rights or remedies that cannot legally be excluded.</p><h2>User content and image uploads</h2><p>Sellers, service providers, administrators, and other authorized users may upload product, store, service, provider, or promotional images and descriptions. The uploader is responsible for having all ownership rights, permissions, licenses, and consent, including consent from any identifiable person shown in an image.</p><p>Users must not upload content that is illegal, fraudulent, defamatory, discriminatory, threatening, sexually explicit, excessively violent, invasive of privacy, infringing of intellectual-property rights, harmful to children, misleading, or otherwise unlawful. Users must not upload malware or another person's personal data without permission.</p><h2>Misuse, moderation, and enforcement</h2><p>Cheritech may review, remove, disable, or restrict content; suspend or deactivate accounts; restrict uploads; cancel affected listings; and preserve relevant records when we reasonably believe content or conduct violates these Terms, harms users, compromises platform safety, or may breach the law. We may cooperate with law-enforcement, regulators, courts, or other authorized bodies and disclose information where legally required or reasonably necessary to protect people, property, or the service.</p><p>Users must not bypass upload controls, impersonate another person or business, manipulate images or descriptions to mislead customers, or use GatedCart to harass, defraud, threaten, or unlawfully target another person. Cheritech does not guarantee that every uploaded item will be identified before publication. Concerns may be sent to <a href="mailto:vmydealer@gmail.com">vmydealer@gmail.com</a>.</p><h2>Content rights and permission</h2><p>You retain ownership of content you upload, but grant Cheritech a non-exclusive, worldwide, royalty-free license to host, store, reproduce, resize, display, and distribute it as needed to operate, secure, promote, and improve GatedCart. You represent that you have the right to grant this license.</p><h2>Acceptable use</h2><p>You must provide accurate information, keep your account secure, use the service lawfully, and not misuse the platform, interfere with its operation, impersonate another person, or submit misleading content.</p><h2>Account deletion</h2><p>You may request account deletion from the <a href="/delete-account">dedicated account deletion page</a>. Requests are recorded and reviewed. Some transaction, fraud-prevention, tax or legally required records may be retained for the required period.</p><h2>Changes and contact</h2><p>We may update these Terms as the service changes. Continued use after an update means you accept the revised Terms. Questions can be sent to <a href="mailto:vmydealer@gmail.com">vmydealer@gmail.com</a>.</p></>;
   return <main className="public-policy-page"><article className="public-policy-card"><a className="public-policy-brand" href="/">GatedCart</a><p className="eyebrow">CHERITECH</p><h1>{privacy ? 'Privacy Policy' : 'Terms and Conditions'}</h1><p className="public-policy-updated">Last updated: 29 September 2026</p>{privacy ? <><p>GatedCart is a community marketplace operated by Cheritech. This policy explains how we collect, use, store and protect information when you use the GatedCart application and website.</p><h2>Information we collect</h2><p>We may collect your name, mobile number, email address, apartment and delivery details, saved addresses, orders, seller applications, support messages, device and notification identifiers, and information you provide when using marketplace services.</p><h2>How we use information</h2><p>We use this information to authenticate your account, show sellers and community services available to your apartment, process orders, provide delivery updates, send notifications you enable, prevent misuse, provide support, and meet legal and accounting obligations.</p><h2>Sharing and service providers</h2><p>We share information only as needed to operate the service, such as with the seller or delivery provider involved in your order, hosting and authentication providers, notification services, and authorities where legally required. We do not sell your personal information.</p><h2>Security and retention</h2><p>We use reasonable technical and organizational safeguards. We retain information only for as long as needed for the purposes described here, legal requirements, dispute resolution, fraud prevention, and legitimate business records.</p><h2>Your choices and account deletion</h2><p>You can update your profile and community details in the app. You can submit an account deletion request from the <a href="/delete-account">dedicated account deletion page</a>. We record the request in our database for review and will delete associated personal data when the request is completed, except information we must retain by law or for legitimate records.</p><h2>Contact</h2><p>For privacy questions or deletion requests, contact Cheritech at <a href="mailto:vmydealer@gmail.com">vmydealer@gmail.com</a>.</p></> : terms}</article></main>;
 }
