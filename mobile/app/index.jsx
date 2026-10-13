@@ -100,9 +100,14 @@ export default function Home() {
       if (active) { pushToken.current = result.data; injectPushContext(); }
     }
     void registerNotifications().catch(error => console.error('[push] registration failed', error?.message || error));
+    const tokenChanged = Notifications.addPushTokenListener(event => {
+      if (!event?.data) return;
+      pushToken.current = event.data;
+      injectPushContext();
+    });
     const received = Notifications.addNotificationReceivedListener(() => injectPushContext());
     const response = Notifications.addNotificationResponseReceivedListener(event => { pendingNotification.current = event.notification.request.content.data; injectPushContext(); });
-    return () => { active = false; received.remove(); response.remove(); };
+    return () => { active = false; tokenChanged.remove(); received.remove(); response.remove(); };
   }, []);
   function handleMessage(event) {
     try {

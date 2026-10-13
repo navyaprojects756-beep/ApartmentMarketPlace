@@ -1982,7 +1982,9 @@ function ExistingMemberSellerEntryScreen({ onContinue, onLogout }) {
   return <main className="auth-screen"><div className="auth-card"><GatedCartLogo /><p className="eyebrow">GATEDCART MEMBER</p><h1>You already have an account</h1><p className="auth-copy">This mobile number is already registered with GatedCart. Continue to your normal marketplace experience.</p><button type="button" className="auth-button" onClick={onContinue}>Continue to GatedCart <Icon name="arrow" size={16} /></button><button type="button" className="auth-back" onClick={onLogout}>Sign out</button></div></main>;
 }
 
-function usePullToRefresh() {
+function usePullToRefresh(currentPage) {
+  const currentPageRef = useRef(currentPage);
+  currentPageRef.current = currentPage;
   useEffect(() => {
     if (!('ontouchstart' in window)) return undefined;
     let startY = 0;
@@ -2016,7 +2018,10 @@ function usePullToRefresh() {
       armed = false;
       indicator.classList.remove('visible');
       indicator.classList.remove('armed');
-      if (shouldRefresh) window.location.reload();
+      if (shouldRefresh) {
+        window.sessionStorage.setItem('gatedcart_refresh_screen', currentPageRef.current || 'home');
+        window.location.reload();
+      }
     };
     window.addEventListener('touchstart', onStart, { passive: true });
     window.addEventListener('touchmove', onMove, { passive: false });
@@ -2033,9 +2038,8 @@ function usePullToRefresh() {
 }
 
 function App() {
-  usePullToRefresh();
   const initialSellerRegistrationIntent = (() => { const params = new URLSearchParams(window.location.search); return params.get('seller-registration') === 'outside' || params.get('isSellorReg') === 'true'; })();
-  const [screen, setScreen] = useState('home');
+  const [screen, setScreen] = useState(() => window.sessionStorage.getItem('gatedcart_refresh_screen') || 'home');
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedCommunityService, setSelectedCommunityService] = useState(null);
@@ -2052,6 +2056,8 @@ function App() {
   const [sellerRegistrationExisting, setSellerRegistrationExisting] = useState(false);
   const [sellerApplication, setSellerApplication] = useState(null);
   const [sellerApplicationLoading, setSellerApplicationLoading] = useState(true);
+  usePullToRefresh(screen);
+  useEffect(() => { window.sessionStorage.removeItem('gatedcart_refresh_screen'); }, []);
   useEffect(() => {
     const goBack = () => {
       if (screen === 'store') setScreen('home');
