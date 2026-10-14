@@ -266,11 +266,12 @@ function Icon({ name, size = 20 }) {
   const paths = {
     search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
     bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></>,
-    map: <><path d="m9 18-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z" /><path d="M9 3v15M15 6v15" /></>,
+    map: <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>,
     arrow: <><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></>,
     star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />,
     home: <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9M9 20v-6h6v6" /></>,
     bag: <><path d="M6 8h12l1 13H5L6 8Z" /><path d="M9 8a3 3 0 0 1 6 0" /></>,
+    cart: <><circle cx="9" cy="19" r="1.5" /><circle cx="18" cy="19" r="1.5" /><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 1.9-1.5L20 8H6" /></>,
     user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
     store: <><path d="M4 10h16v10H4z" /><path d="M3 10 5 4h14l2 6" /><path d="M8 14h8" /></>,
     plus: <><path d="M12 5v14M5 12h14" /></>,
@@ -744,12 +745,29 @@ function Topbar({ onNavigate, onLogout, user, cartCount = 0, onCart }) {
   return <header className="topbar">
     <Logo />
     <div className="topbar-actions">
-      <button className="location-pill"><Icon name="map" size={17} /><span><small>Delivering to</small>{apartmentName} <b>⌄</b></span></button>
-      <button className="icon-button notification"><Icon name="bell" size={20} /><span /></button>
-      <button className="icon-button cart-button topbar-cart-button" onClick={onCart} aria-label="Open cart"><Icon name="bag" size={20} />{cartCount > 0 && <span>{cartCount}</span>}</button>
+      <button type="button" className="location-pill" onClick={onNavigate} aria-label="Update delivery address"><Icon name="map" size={17} /><span><small>Delivering to</small>{apartmentName} <b>⌄</b></span></button>
+      <button className="icon-button cart-button topbar-cart-button" onClick={onCart} aria-label="Open cart"><Icon name="cart" size={20} />{cartCount > 0 && <span>{cartCount}</span>}</button>
       <button className="profile-chip" onClick={() => onNavigate('profile')}><span>{(user?.name || user?.phone || 'N').slice(0, 2).toUpperCase()}</span><b>{user?.name || 'Your profile'}</b><em>⌄</em></button>
     </div>
   </header>;
+}
+
+function CustomerStoreHeader({ onBack, onNavigate, onCart, cartCount = 0, user, label, hideCart = false }) {
+  const apartmentName = user?.apartments?.find(item => item.isPrimary)?.apartment?.name || user?.apartment?.name || 'Your community';
+  return <header className="store-header customer-store-header">
+    {onBack && <button className="back-button" onClick={onBack} aria-label="Go back"><Icon name="back" size={21} /></button>}
+    <Logo />
+    {label && <span className="customer-store-header-label">{label}</span>}
+    <div className="store-header-actions">
+      <button type="button" className="location-pill" onClick={onNavigate} aria-label="Update delivery address"><Icon name="map" size={16} /><span><small>Delivering to</small>{apartmentName} <b>⌄</b></span></button>
+      <button type="button" className="icon-button cart-button" onClick={onCart} aria-label="Open cart"><Icon name="cart" size={19} />{cartCount > 0 && <span>{cartCount}</span>}</button>
+      <button type="button" className="profile-chip" onClick={() => onNavigate?.('profile')} aria-label="Open profile"><span>{(user?.name || user?.phone || 'N').slice(0, 2).toUpperCase()}</span><b>{user?.name || 'Profile'}</b><em>⌄</em></button>
+    </div>
+  </header>;
+}
+
+function CustomerPageShell({ children, onNavigate, onCart, user, hideCart = false }) {
+  return <div className="customer-page-shell"><CustomerStoreHeader onNavigate={onNavigate} onCart={onCart} user={user} hideCart={hideCart} /><div>{children}</div></div>;
 }
 
 function BottomNav({ active = 'home', onNavigate, showSeller = false }) {
@@ -994,7 +1012,11 @@ function MultiSellerCartScreen({ cart, accessToken, onBack, onComplete, onNaviga
   return <div className="app-shell storefront-screen"><header className="store-header"><button className="back-button" onClick={onBack}><Icon name="back" size={21} /></button><Logo /><button className="icon-button cart-button" aria-label="Cart"><Icon name="bag" size={20} /><span>{cart.reduce((sum, item) => sum + item.quantity, 0)}</span></button></header><main className="cart-content page-width"><p className="eyebrow">YOUR BAG</p><h1>Your order</h1><p className="cart-seller">Items are grouped by seller and placed as separate orders.</p>{groups.map(group => { const seller = sellerInfo[group.sellerId] || group.seller || {}; const isDelivery = seller.deliveryEnabled === true; const groupTotal = group.items.reduce((sum, item) => sum + Number(item.numericPrice || String(item.price).replace(/[^0-9.]/g, '')) * item.quantity, 0); return <section className="multi-cart-group" key={group.sellerId}><div className="multi-cart-group-heading"><div><p className="eyebrow">SELLER</p><h2>{seller.businessName || seller.sellerName || seller.name || 'Seller'}</h2></div><span>{isDelivery ? 'Delivery' : 'Takeaway'}</span></div><section className="checkout-mode"><p className="eyebrow">{isDelivery ? 'DELIVERY' : 'TAKEAWAY'}</p><strong>{isDelivery ? `Delivering to ${communityAddress}` : `Takeaway from ${seller.businessName || seller.sellerName || seller.name || 'seller'}`}</strong>{isDelivery ? <small>Delivery order</small> : <small>Collect your order from the seller.</small>}</section><div className="cart-list">{group.items.map(item => <div className="cart-item" key={item.productId || item.name}>{item.images?.[0]?.imageUrl ? <img className="cart-thumb cart-thumb-image" src={assetUrl(item.images[0].imageUrl)} alt={`${item.name} image`} /> : <div className={`cart-thumb ${item.color}`}>{item.icon}</div>}<div><strong>{item.name}</strong><small>{item.price}</small></div><span>× {item.quantity}</span></div>)}</div><div className="cart-total"><span>Seller total</span><strong>₹{groupTotal.toFixed(2)}</strong></div></section>; })}<div className="cart-total multi-cart-total"><span>Overall total</span><strong>₹{total.toFixed(2)}</strong></div>{message && <p className={`cart-message ${success ? 'success-message' : ''}`}>{message}</p>}{success && <div className="order-success-animation" aria-label="Orders placed successfully"><span>✓</span></div>}<button className="auth-button" onClick={checkout} disabled={submitting || success}>{success ? 'Orders placed' : submitting ? 'Placing orders…' : `Place ${groups.length} order${groups.length === 1 ? '' : 's'}`} {!success && <Icon name="arrow" size={16} />}</button></main><BottomNav active="bag" showSeller={showSeller} onNavigate={onNavigate || (target => target === 'home' ? onBack() : undefined)} /></div>;
 }
 
-function InteractiveMultiSellerCartScreen({ cart, accessToken, onBack, onComplete, onNavigate, showSeller, onAdd, onRemove }) {
+function InteractiveMultiSellerCartScreen(props) {
+  return <CustomerPageShell onNavigate={() => props.onNavigate?.('profile')} onCart={() => props.onNavigate?.('bag')}><InteractiveMultiSellerCartScreenContent {...props} /></CustomerPageShell>;
+}
+
+function InteractiveMultiSellerCartScreenContent({ cart, accessToken, onBack, onComplete, onNavigate, showSeller, onAdd, onRemove }) {
   const groups = Object.values(cart.reduce((result, item) => {
     const sellerId = item.sellerId || item.seller?.id;
     if (!sellerId) return result;
@@ -1267,7 +1289,7 @@ function DeleteAccountPage({ accessToken, onBack, onLogout }) {
 function ProfileScreen({ accessToken, onBack, onOrders, onLogout, onSellerStatusChange, showSeller, onSeller }) {
   const [user, setUser] = useState(null); const [editingName, setEditingName] = useState(false); const [name, setName] = useState(''); const [message, setMessage] = useState(''); useEffect(() => { fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()).then(data => { setUser(data); setName(data.name || ''); }).catch(() => {}); }, [accessToken]);
   async function saveName(event) { event.preventDefault(); const response = await fetch(`${API_BASE}/profile`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ name }) }); const data = await response.json(); if (response.ok) { setUser(current => ({ ...current, ...data })); setEditingName(false); setMessage('Name updated successfully.'); } else setMessage(data.error?.message || 'Unable to update name.'); }
-  return <div className="app-shell storefront-screen profile-screen"><header className="store-header"><button className="back-button" onClick={onBack}><Icon name="back" size={21} /></button><Logo /><div className="profile-header-label">My profile</div></header><main className="profile-content page-width"><p className="eyebrow">YOUR ACCOUNT</p><h1>Profile</h1><p className="orders-copy">Keep your community and delivery details up to date.</p><section className="account-identity-card"><div className="account-avatar">{(user?.name || user?.phone || 'N').slice(0, 1).toUpperCase()}</div>{editingName ? <form className="name-edit-form" onSubmit={saveName}><input value={name} onChange={event => setName(event.target.value)} minLength={2} maxLength={120} required autoFocus /><div><button className="name-save-button">Save</button><button type="button" className="name-cancel-button" onClick={() => setEditingName(false)}>Cancel</button></div></form> : <div><strong>{user?.name || 'Your name'}</strong><small>{user?.phone || 'Phone number'}</small></div>} {!editingName && <button className="profile-edit-name-button" onClick={() => setEditingName(true)}>Edit name</button>}<button className="profile-logout-button" onClick={onLogout}>Log out</button></section>{message && <p className="cart-message">{message}</p>}<SellerApplicationCard accessToken={accessToken} onStatusChange={onSellerStatusChange} /><CommunityDetailsPanel accessToken={accessToken} /><CommunityRegistrationFormV2 accessToken={accessToken} /><div className="policy-links"><a href="/privacy-policy">Privacy Policy</a><a href="/terms-and-conditions">Terms and Conditions</a></div></main><BottomNav active="user" showSeller={showSeller} onNavigate={target => target === 'home' ? onBack() : target === 'bag' ? onOrders() : target === 'seller' ? onSeller() : undefined} /></div>;
+  return <div className="app-shell storefront-screen profile-screen"><header className="store-header"><button className="back-button" onClick={onBack}><Icon name="back" size={21} /></button><Logo /><div className="profile-header-label">My profile</div></header><main className="profile-content page-width"><section className="account-identity-card"><div className="account-avatar">{(user?.name || user?.phone || 'N').slice(0, 1).toUpperCase()}</div>{editingName ? <form className="name-edit-form" onSubmit={saveName}><input value={name} onChange={event => setName(event.target.value)} minLength={2} maxLength={120} required autoFocus /><div><button className="name-save-button">Save</button><button type="button" className="name-cancel-button" onClick={() => setEditingName(false)}>Cancel</button></div></form> : <div><strong>{user?.name || 'Your name'}</strong><small>{user?.phone || 'Phone number'}</small></div>} {!editingName && <button className="profile-edit-name-button" onClick={() => setEditingName(true)}>Edit name</button>}<button className="profile-logout-button" onClick={onLogout}>Log out</button></section>{message && <p className="cart-message">{message}</p>}<SellerApplicationCard accessToken={accessToken} onStatusChange={onSellerStatusChange} /><CommunityDetailsPanel accessToken={accessToken} /><CommunityRegistrationFormV2 accessToken={accessToken} /><div className="policy-links"><a href="/privacy-policy">Privacy Policy</a><a href="/terms-and-conditions">Terms and Conditions</a></div></main><BottomNav active="user" showSeller={showSeller} onNavigate={target => target === 'home' ? onBack() : target === 'bag' ? onOrders() : target === 'seller' ? onSeller() : undefined} /></div>;
 }
 
 const dashboardCopy = {
@@ -1508,7 +1530,7 @@ function LiveStorefrontScreenV4({ seller, accessToken, onBack, onAdd, onRemove, 
 
 function CustomerStorefront({ cartConflictItem, onConfirmCartConflict, onCancelCartConflict, stockNotice, onDismissStockNotice, cartCount, onCart, ...storefrontProps }) {
   const onNavigate = target => target === 'bag' ? onCart() : storefrontProps.onNavigate?.(target);
-  return <><CartConflictToast item={cartConflictItem} onConfirm={onConfirmCartConflict} onCancel={onCancelCartConflict} /><StockNoticeToast message={stockNotice} onClose={onDismissStockNotice} /><LiveStorefrontScreenV4 {...storefrontProps} onNavigate={onNavigate} cartCount={cartCount} onCart={onCart} /><CartBottomBar cartCount={cartCount} onCart={onCart} /></>;
+  return <div className="customer-storefront-with-controls"><CustomerStoreHeader onBack={storefrontProps.onBack} onNavigate={() => onNavigate('profile')} onCart={onCart} user={storefrontProps.user} cartCount={cartCount} /><CartConflictToast item={cartConflictItem} onConfirm={onConfirmCartConflict} onCancel={onCancelCartConflict} /><StockNoticeToast message={stockNotice} onClose={onDismissStockNotice} /><LiveStorefrontScreenV4 {...storefrontProps} onNavigate={onNavigate} cartCount={cartCount} onCart={onCart} /><CartBottomBar cartCount={cartCount} onCart={onCart} /></div>;
 }
 
 function SellerPortal({ accessToken, onLogout }) {
@@ -2167,14 +2189,14 @@ function App() {
   if (screen === 'cart') {
     const returnScreen = selectedSeller ? 'store' : 'home';
     const navigateFromCart = target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('cart') : target === 'profile' ? setScreen('profile') : target === 'seller' ? setScreen('seller') : undefined;
-    if (!cart.length) return <EmptyCartScreen onBack={() => setScreen(returnScreen)} onNavigate={navigateFromCart} showSeller={isApprovedSeller} />;
+    if (!cart.length) return <CustomerPageShell onNavigate={() => setScreen('profile')} onCart={() => setScreen('cart')} user={sessionUser} hideCart><EmptyCartScreen onBack={() => setScreen(returnScreen)} onNavigate={navigateFromCart} showSeller={isApprovedSeller} /></CustomerPageShell>;
     return <InteractiveMultiSellerCartScreen cart={cart} accessToken={accessToken} onAdd={addToCart} onRemove={removeFromCart} onBack={() => setScreen(returnScreen)} onComplete={orders => { setCart([]); setOrderSuccess(Array.isArray(orders) ? orders : []); setScreen('success'); }} showSeller={isApprovedSeller} onNavigate={navigateFromCart} />;
   }
   if (screen === 'success') return <OrderSuccessScreen orders={orderSuccess} onTrack={() => setScreen('orders')} onContinue={() => setScreen('home')} />;
-  if (screen === 'orders') return <DetailedOrdersScreen accessToken={accessToken} onBack={() => setScreen('home')} onProfile={() => setScreen('profile')} showSeller={isApprovedSeller} initialOrderId={notificationOrderId || orderSuccess?.[0]?.id} />;
+  if (screen === 'orders') return <CustomerPageShell onNavigate={() => setScreen('profile')} onCart={() => setScreen('cart')} user={sessionUser}><DetailedOrdersScreen accessToken={accessToken} onBack={() => setScreen('home')} onProfile={() => setScreen('profile')} showSeller={isApprovedSeller} initialOrderId={notificationOrderId || orderSuccess?.[0]?.id} /></CustomerPageShell>;
   if (screen === 'category') return <CategoryProductsScreen categoryId={selectedCategory} accessToken={accessToken} onBack={() => setScreen('home')} onAdd={addToCart} onRemove={removeFromCart} cart={cart} cartCount={cartCount} showSeller={isApprovedSeller} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('cart') : target === 'profile' ? setScreen('profile') : undefined} />;
   if (screen === 'community-service' && selectedCommunityService) return <CommunityServiceProvidersScreen service={selectedCommunityService} accessToken={accessToken} onBack={() => setScreen('home')} showSeller={isApprovedSeller} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('cart') : target === 'profile' ? setScreen('profile') : undefined} />;
-  if (screen === 'profile') return <ProfileScreen accessToken={accessToken} showSeller={isApprovedSeller} onBack={() => setScreen('home')} onOrders={() => setScreen('orders')} onSeller={() => setScreen('seller')} onSellerStatusChange={setSellerStatus} onLogout={logout} />;
+  if (screen === 'profile') return <CustomerPageShell onNavigate={() => setScreen('profile')} onCart={() => setScreen('cart')} user={sessionUser}><ProfileScreen accessToken={accessToken} showSeller={isApprovedSeller} onBack={() => setScreen('home')} onOrders={() => setScreen('orders')} onSeller={() => setScreen('seller')} onSellerStatusChange={setSellerStatus} onLogout={logout} /></CustomerPageShell>;
   if (screen === 'seller') return <SellerArea accessToken={accessToken} onBack={() => setScreen('home')} onLogout={logout} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('orders') : target === 'profile' ? setScreen('profile') : undefined} />;
   return screen === 'home' ? <HomeScreen accessToken={accessToken} showSeller={isApprovedSeller} cartCount={cartCount} onCart={() => setScreen('cart')} cartConflictItem={cartConflictItem} onConfirmCartConflict={confirmCartConflict} onCancelCartConflict={cancelCartConflict} onOrders={() => setScreen('orders')} onProfile={() => setScreen('profile')} onSeller={() => setScreen('seller')} onLogout={logout} onOpenCategory={categoryId => { setSelectedCategory(categoryId); setScreen('category'); }} onOpenCommunityService={service => { setSelectedCommunityService(service); setScreen('community-service'); }} onOpenSeller={(seller) => { setSelectedSeller(seller); setScreen('store'); }} /> : <CustomerStorefront seller={selectedSeller} accessToken={accessToken} onBack={() => setScreen('home')} onAdd={addToCart} onRemove={removeFromCart} onCart={() => setScreen('cart')} cart={cart} cartCount={cartCount} showSeller={isApprovedSeller} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('orders') : target === 'profile' ? setScreen('profile') : target === 'seller' ? setScreen('seller') : undefined} cartConflictItem={cartConflictItem} onConfirmCartConflict={confirmCartConflict} onCancelCartConflict={cancelCartConflict} stockNotice={stockNotice} onDismissStockNotice={() => setStockNotice('')} />;
 }
