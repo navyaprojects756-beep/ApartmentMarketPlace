@@ -2500,3 +2500,9 @@ Orders created before the snapshot migration can only display the address data s
 - Search results now overlay the existing Home layout below the search box and show `No items found.` when empty.
 - Outside seller business address is managed in the existing seller Settings form; community sellers do not see that field.
 - Native push registration re-registers rotated Expo/FCM tokens.
+
+# Current implementation additions - 2026-10-14 mobile browser theme
+
+- The root web document sets the supported mobile browser theme color to GatedCart orange (`#ff6b00`) instead of purple.
+- Matching Windows tile color metadata is also configured.
+- This browser-only metadata change does not alter the native Expo app configuration and does not require a new APK build.

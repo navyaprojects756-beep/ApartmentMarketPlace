@@ -99,3 +99,7 @@ npx eas build --platform android --profile preview
 ```
 
 Install the fresh preview APK, allow notifications, log in, and verify that the API logs show `[push] device registered` before testing a notification campaign.
+
+## Mobile browser theme update - 2026-10-14
+
+- The shared web entry document uses GatedCart orange (`#ff6b00`) as the mobile browser theme color. This affects Android mobile Chrome when the hosted app is opened in a browser and does not require a new native APK build.

@@ -189,3 +189,7 @@ The database fields are:
 Migration: `20261004170000_order_fulfillment_snapshots`. Existing orders from before this migration remain compatible but may fall back to their existing relational address data.
 
 Customer cancellation is confirmed through the frontend's in-app modal before the existing `PATCH /orders/:orderId/status` cancellation request is sent.
+
+## Web client theme metadata - 2026-10-14
+
+The browser theme color is configured in the root web document as GatedCart orange (`#ff6b00`). This is a client-shell setting and does not change API behavior or require a backend migration.

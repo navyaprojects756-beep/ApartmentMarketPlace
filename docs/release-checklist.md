@@ -156,3 +156,9 @@ npx eas build --platform android --profile preview
 - [ ] Send a Global Admin test notification and confirm it arrives.
 - [ ] Enable maintenance mode, verify customers and sellers see the configured message, and verify Global Admin can still open the admin portal.
 - [ ] Disable maintenance mode after testing.
+
+## 2026-10-14 mobile browser theme verification
+
+- [x] Set the root web document theme color to GatedCart orange (`#ff6b00`).
+- [x] Add the Windows tile color metadata with the same orange value.
+- [ ] Deploy the updated web build and verify the browser chrome color on Android Chrome after a hard refresh or cache refresh.

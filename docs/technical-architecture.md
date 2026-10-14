@@ -280,3 +280,7 @@ Customer cancellation uses the application modal component/presentation and keep
 - The WebView client uses a touch pull-to-refresh handler. It stores the current screen in session storage before reload and restores that screen after reload.
 - Home search results are absolutely positioned below the search control, keeping the existing home content layout unchanged while results are visible.
 - Seller address is part of the existing seller settings update and is presented only for outside sellers.
+
+## Mobile browser theme metadata - 2026-10-14
+
+The root `index.html` sets the browser theme metadata to `#ff6b00`, matching the GatedCart orange UI. This controls supported mobile browser status/address-bar coloring for the hosted web app and is independent of native Expo theme configuration.

@@ -359,3 +359,10 @@ Historical note: orders created before the snapshot migration may not have immut
 - [x] Added outside-seller business address to the existing Settings form and excluded it for community sellers.
 - [x] Added native push-token rotation re-registration for Expo/FCM devices.
 - [ ] Build and install the non-production APK, then verify maintenance mode and push delivery on a physical device.
+
+## 2026-10-14 mobile browser theme checkpoint
+
+- [x] Changed the root web `theme-color` metadata from purple to GatedCart orange (`#ff6b00`).
+- [x] Added matching `msapplication-TileColor` metadata.
+- [x] Verified the production web build and `git diff --check`.
+- [ ] Verify the deployed site on Android Chrome after refreshing cached page metadata.

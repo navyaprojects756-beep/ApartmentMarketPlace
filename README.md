@@ -202,3 +202,7 @@ Orders created before this migration may still use their existing relational add
 - Mobile pull-to-refresh preserves the current page, including Orders, instead of returning to Home after reload.
 - Outside sellers can save a business address from the existing seller Settings form. Community sellers do not see that field; the address is used in seller/order details.
 - Native push registration now re-registers tokens when Expo/FCM rotates them. Android and iOS use package identifier `com.cheritech.gatedcart`.
+
+## Mobile browser theme update - 2026-10-14
+
+- The web entry document now sets the mobile browser theme color to GatedCart orange (`#ff6b00`) instead of purple. This affects supported Android browser status/address-bar styling; the native app and in-app UI are unchanged.
