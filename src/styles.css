@@ -785,9 +785,14 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .location-pill { cursor: pointer; }
 .customer-storefront-with-controls > .storefront-screen > .store-header { display: none; }
 .customer-page-shell > div > .storefront-screen > .store-header { display: none; }
+.customer-storefront-with-controls > .storefront-screen,
+.customer-page-shell > div > .storefront-screen { padding-top: 0; }
 .customer-store-header .cart-button.is-hidden { visibility: hidden; pointer-events: none; }
 .customer-store-header .profile-chip { flex: 0 0 auto; }
 .customer-store-header .brand { margin-left: 0; }
+.customer-page-shell .orders-content { padding-top: 28px; }
+.customer-page-shell .detailed-order-card .order-card-head small .order-header-pin { position: absolute !important; top: 48px; right: 0; left: auto; display: inline-flex; margin: 0; transform: none !important; color: #e85d00; font-size: 9px; font-weight: 800; }
+.customer-page-shell .detailed-order-card .order-header-pin b { font-size: 8px; }
 @media (max-width: 560px) {
   .location-pill { display: flex; flex: 0 1 108px; min-width: 0; max-width: 108px; padding: 6px 7px; gap: 5px; }
   .location-pill svg { flex: 0 0 14px; width: 14px; height: 14px; }
