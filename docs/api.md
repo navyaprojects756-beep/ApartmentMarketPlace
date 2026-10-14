@@ -10,8 +10,7 @@ Authorization: Bearer <accessToken>
 
 ## Authentication
 
-- `POST /auth/request-otp` — `{ "phone": "9000000010" }`
-- `POST /auth/verify-otp` — `{ "phone": "9000000010", "otp": "00010" }`
+- `POST /auth/firebase/exchange` — `{ "idToken": "<Firebase ID token>", "name": "Optional display name" }`; verifies the Firebase phone session and issues the GatedCart API session.
 - `POST /auth/refresh`
 - `POST /auth/logout`
 - `GET /auth/me`
@@ -193,3 +192,7 @@ Customer cancellation is confirmed through the frontend's in-app modal before th
 ## Web client theme metadata - 2026-10-14
 
 The browser theme color is configured in the root web document as GatedCart orange (`#ff6b00`). This is a client-shell setting and does not change API behavior or require a backend migration.
+
+## Authentication release contract - 2026-10-14
+
+`POST /auth/firebase/exchange` is the only login exchange endpoint. The client sends a verified Firebase phone ID token; the API validates it with Firebase Admin and returns the GatedCart access and refresh tokens. The removed dummy OTP endpoints must not be used by clients or deployment smoke tests.

@@ -10,7 +10,7 @@ This document records implementation decisions, technical structure, database co
 - Mobile target: React Native + Expo with shared feature and domain code.
 - Backend target: Node.js + Express + TypeScript.
 - Persistence: PostgreSQL with Prisma ORM.
-- Authentication: phone number + dummy OTP for local development; JWT access and refresh tokens.
+- Authentication: Firebase phone authentication; the API verifies Firebase ID tokens and issues JWT access and refresh tokens.
 - File storage: local filesystem abstraction for development.
 - Local operations: native PostgreSQL or optional Docker Compose PostgreSQL service.
 - API style: versioned REST under `/api/v1`.
@@ -20,8 +20,7 @@ This document records implementation decisions, technical structure, database co
 ## Implemented API foundation
 
 - `GET /api/v1/health` — API and PostgreSQL health.
-- `POST /api/v1/auth/request-otp` — local dummy OTP generation.
-- `POST /api/v1/auth/verify-otp` — OTP verification and token issuance.
+- `POST /api/v1/auth/firebase/exchange` — verify a Firebase phone ID token and issue API tokens.
 - `POST /api/v1/auth/refresh` — refresh-token rotation.
 - `POST /api/v1/auth/logout` — revoke active refresh sessions.
 - `GET /api/v1/auth/me` — authenticated user, roles, and community associations.
@@ -284,3 +283,10 @@ Customer cancellation uses the application modal component/presentation and keep
 ## Mobile browser theme metadata - 2026-10-14
 
 The root `index.html` sets the browser theme metadata to `#ff6b00`, matching the GatedCart orange UI. This controls supported mobile browser status/address-bar coloring for the hosted web app and is independent of native Expo theme configuration.
+
+## Firebase-only authentication - 2026-10-14
+
+- The only public authentication exchange is `POST /api/v1/auth/firebase/exchange`.
+- The legacy dummy OTP request and verification endpoints are removed.
+- The backend verifies Firebase Admin ID tokens before creating the GatedCart JWT session.
+- Production must use Firebase Admin credentials and strong non-default JWT secrets.

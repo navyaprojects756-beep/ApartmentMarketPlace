@@ -7,7 +7,7 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
   JWT_ACCESS_SECRET: z.string().min(16).default('local-development-access-secret-change-me'),
   JWT_REFRESH_SECRET: z.string().min(16).default('local-development-refresh-secret-change-me'),
-  AUTH_PROVIDER: z.enum(['dummy', 'firebase', 'exotel']).default('dummy'),
+  AUTH_PROVIDER: z.literal('firebase').default('firebase'),
   FIREBASE_PROJECT_ID: z.string().min(1).optional(),
   FIREBASE_CLIENT_EMAIL: z.string().email().optional(),
   FIREBASE_PRIVATE_KEY: z.string().optional(),

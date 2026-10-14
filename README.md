@@ -27,7 +27,7 @@ Stop it with `docker compose down`; add `-v` only when you intentionally want to
 
 The seed creates four apartments, all user roles, six named sellers (including apartment and outside sellers), 50+ products, inventory, delivery assignments, advertisements, and sample orders.
 
-Dummy OTP is always the last five digits of the phone number.
+Production authentication uses Firebase phone OTP. The local seeded accounts and dummy OTP documentation are retained only as historical test-data notes and are not available through the production API.
 
 Seed accounts:
 
@@ -206,3 +206,10 @@ Orders created before this migration may still use their existing relational add
 ## Mobile browser theme update - 2026-10-14
 
 - The web entry document now sets the mobile browser theme color to GatedCart orange (`#ff6b00`) instead of purple. This affects supported Android browser status/address-bar styling; the native app and in-app UI are unchanged.
+
+## Live deployment readiness - 2026-10-14
+
+- Authentication is Firebase phone-authentication only. The dummy OTP request and verification API endpoints have been removed.
+- Before deployment, configure Firebase Admin credentials, strong JWT access/refresh secrets, the production frontend URL, and persistent image storage in Render.
+- Rotate both JWT secrets once after deployment to invalidate sessions created by the removed dummy-login flow.
+- No Prisma migration is required for this authentication change. Run the frontend build, backend typecheck, and a real Firebase login smoke test before announcing the live release.

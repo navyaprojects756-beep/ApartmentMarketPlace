@@ -5,8 +5,7 @@ export const openapi = {
   tags: [{ name: 'Auth' }, { name: 'Marketplace' }, { name: 'Commerce' }, { name: 'Admin' }],
   paths: {
     '/health': { get: { tags: ['Marketplace'], summary: 'API and database health' } },
-    '/auth/request-otp': { post: { tags: ['Auth'], summary: 'Request local dummy OTP' } },
-    '/auth/verify-otp': { post: { tags: ['Auth'], summary: 'Verify OTP and issue tokens' } },
+    '/auth/firebase/exchange': { post: { tags: ['Auth'], summary: 'Exchange a verified Firebase phone session for an API session' } },
     '/auth/me': { get: { tags: ['Auth'], summary: 'Get current authenticated user' } },
     '/home': { get: { tags: ['Marketplace'], summary: 'Get scoped customer home data' } },
     '/apartments': { get: { tags: ['Marketplace'], summary: 'List active apartments' } },

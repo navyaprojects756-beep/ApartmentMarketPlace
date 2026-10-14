@@ -11,20 +11,13 @@ import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.middleware.js';
 
 const phoneSchema = z.object({ phone: z.string().trim().regex(/^\+?[0-9]{10,15}$/, 'Enter a valid phone number'), name: z.string().trim().min(2).max(120).optional() });
-const verifySchema = phoneSchema.extend({ otp: z.string().trim().regex(/^[0-9]{5}$/, 'OTP must contain 5 digits') });
-
 function normalizePhone(phone: string) {
   return phone.replace(/\s+/g, '');
 }
 
 function canonicalPhone(phone: string) {
   const normalized = normalizePhone(phone);
-  const canonical = normalized.replace(/^\+91/, '');
-  return canonical === '9000000001' ? '9493499405' : canonical;
-}
-
-function dummyOtp(phone: string) {
-  return normalizePhone(phone).slice(-5);
+  return normalized.replace(/^\+91/, '');
 }
 
 async function isRegisteredMember(phone: string) {
@@ -117,43 +110,6 @@ async function sessionResponse(userId: string) {
 }
 
 export const authRouter = Router();
-
-authRouter.post('/request-otp', async (request, response, next) => {
-  try {
-    const { phone: rawPhone, name } = phoneSchema.parse(request.body);
-    const phone = canonicalPhone(rawPhone);
-    const existingUser = await isRegisteredMember(phone);
-    const user = await upsertPhoneUser(phone, name);
-    const otp = dummyOtp(phone);
-    await prisma.otpRequest.create({
-      data: {
-        userId: user.id,
-        phone,
-        codeHash: await bcrypt.hash(otp, 10),
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-      },
-    });
-    response.json({ message: 'OTP generated', expiresInSeconds: 300, developmentOtp: otp, isExistingUser: existingUser });
-  } catch (error) {
-    next(error);
-  }
-});
-
-authRouter.post('/verify-otp', async (request, response, next) => {
-  try {
-    const { phone: rawPhone, otp } = verifySchema.parse(request.body);
-    const phone = canonicalPhone(rawPhone);
-    const record = await prisma.otpRequest.findFirst({ where: { phone, verifiedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'desc' } });
-    if (!record || !(await bcrypt.compare(otp, record.codeHash))) {
-      response.status(401).json({ error: { code: 'INVALID_OTP', message: 'The OTP is invalid or expired' } });
-      return;
-    }
-    await prisma.otpRequest.update({ where: { id: record.id }, data: { verifiedAt: new Date() } });
-    response.json(await sessionResponse(record.userId!));
-  } catch (error) {
-    next(error);
-  }
-});
 
 authRouter.post('/firebase/exchange', async (request, response, next) => {
   try {

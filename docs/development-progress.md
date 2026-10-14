@@ -360,6 +360,22 @@ Historical note: orders created before the snapshot migration may not have immut
 - [x] Added native push-token rotation re-registration for Expo/FCM devices.
 - [ ] Build and install the non-production APK, then verify maintenance mode and push delivery on a physical device.
 
+## Firebase-only authentication update - 2026-10-14
+
+- [x] Removed the public dummy OTP request and verification API endpoints.
+- [x] Configured the backend and web client for Firebase phone authentication only.
+- [x] Disabled admin and role preview query routes in production builds.
+- [ ] Configure Firebase Admin credentials and verify phone login on the deployed API and web app.
+
+## 2026-10-14 live release checkpoint
+
+- [x] Firebase-only authentication is implemented and documented.
+- [x] No database migration is required for the authentication change.
+- [x] Frontend build and backend typecheck pass locally.
+- [ ] Complete Render environment configuration and deploy the web/API services.
+- [ ] Run hosted Firebase login and role-based smoke tests.
+- [ ] Rotate JWT secrets after deployment so sessions issued by the removed dummy flow cannot be refreshed.
+
 ## 2026-10-14 mobile browser theme checkpoint
 
 - [x] Changed the root web `theme-color` metadata from purple to GatedCart orange (`#ff6b00`).

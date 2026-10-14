@@ -162,3 +162,16 @@ npx eas build --platform android --profile preview
 - [x] Set the root web document theme color to GatedCart orange (`#ff6b00`).
 - [x] Add the Windows tile color metadata with the same orange value.
 - [ ] Deploy the updated web build and verify the browser chrome color on Android Chrome after a hard refresh or cache refresh.
+
+## 2026-10-14 live deployment gate
+
+- [x] Remove dummy OTP endpoints and configure Firebase-only authentication.
+- [x] Frontend production build passes.
+- [x] Backend TypeScript check passes.
+- [ ] Set `AUTH_PROVIDER=firebase` in Render.
+- [ ] Configure `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` in Render.
+- [ ] Set strong unique `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` values.
+- [ ] Configure persistent image storage; do not rely on Render local disk for production uploads.
+- [ ] Apply all committed Prisma migrations with `prisma migrate deploy`.
+- [ ] Deploy and verify Firebase login, customer flow, seller flow, admin flow, checkout, and push registration.
+- [ ] Rotate JWT secrets after deployment to invalidate old dummy-login sessions.

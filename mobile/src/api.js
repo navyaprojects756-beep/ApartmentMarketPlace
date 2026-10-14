@@ -7,18 +7,8 @@ async function request(path, options = {}) {
   return data;
 }
 
-export async function loadDemoHome() {
-  const session = await login('9000000010');
-  return request('/home', { headers: { Authorization: `Bearer ${session.accessToken}` } });
-}
-
-export async function requestOtp(phone) {
-  return request('/auth/request-otp', { method: 'POST', body: JSON.stringify({ phone }) });
-}
-
-export async function login(phone, otp) {
-  const requested = otp ? { developmentOtp: otp } : await requestOtp(phone);
-  return request('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ phone, otp: otp || requested.developmentOtp }) });
+export async function exchangeFirebaseToken(idToken, name) {
+  return request('/auth/firebase/exchange', { method: 'POST', body: JSON.stringify({ idToken, name }) });
 }
 
 export async function loadHome(accessToken) {

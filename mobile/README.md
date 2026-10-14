@@ -28,7 +28,7 @@ EXPO_PUBLIC_API_URL=https://gatedcart-api.onrender.com/api/v1
 
 These values guarantee that browser, Android, and iOS use the same login, routes, navigation, and marketplace workflows.
 
-The mobile shell intentionally does not maintain a separate role UI. After website login, the shared web application routes customers, sellers, delivery staff, and Global Admins to the same role workspace used in the browser.
+The mobile shell intentionally does not maintain a separate role UI. After Firebase phone login in the shared WebView, the application routes customers, sellers, delivery staff, and Global Admins to the same role workspace used in the browser.
 
 ## Physical Android testing
 
@@ -103,3 +103,9 @@ Install the fresh preview APK, allow notifications, log in, and verify that the 
 ## Mobile browser theme update - 2026-10-14
 
 - The shared web entry document uses GatedCart orange (`#ff6b00`) as the mobile browser theme color. This affects Android mobile Chrome when the hosted app is opened in a browser and does not require a new native APK build.
+
+## Live release authentication - 2026-10-14
+
+- The shared WebView uses Firebase phone authentication only; dummy OTP login is no longer available.
+- The native APK does not need rebuilding for the web authentication change when it already loads the hosted web URL. Rebuild only when native code, package configuration, or notification configuration changes.
+- Verify Firebase phone login in the hosted WebView after deployment before distributing the APK.

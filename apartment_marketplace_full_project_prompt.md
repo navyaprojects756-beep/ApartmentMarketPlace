@@ -2506,3 +2506,10 @@ Orders created before the snapshot migration can only display the address data s
 - The root web document sets the supported mobile browser theme color to GatedCart orange (`#ff6b00`) instead of purple.
 - Matching Windows tile color metadata is also configured.
 - This browser-only metadata change does not alter the native Expo app configuration and does not require a new APK build.
+
+# Current implementation additions - 2026-10-14 Firebase-only live authentication
+
+- Production login uses Firebase phone authentication only.
+- The legacy dummy OTP request and verification endpoints have been removed.
+- The API exchanges verified Firebase ID tokens for GatedCart access and refresh tokens.
+- Live deployment requires Firebase Admin credentials, strong JWT secrets, persistent production storage, committed Prisma migrations, and hosted Firebase login smoke testing.
