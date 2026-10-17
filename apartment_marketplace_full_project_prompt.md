@@ -2513,3 +2513,10 @@ Orders created before the snapshot migration can only display the address data s
 - The legacy dummy OTP request and verification endpoints have been removed.
 - The API exchanges verified Firebase ID tokens for GatedCart access and refresh tokens.
 - Live deployment requires Firebase Admin credentials, strong JWT secrets, persistent production storage, committed Prisma migrations, and hosted Firebase login smoke testing.
+
+# Current implementation additions - 2026-10-17 seller and catalog behavior
+
+- Approved sellers enter the customer marketplace after normal login. Seller Portal access remains available through the customer seller entry point.
+- Seller availability uses `APP_TIME_ZONE`, defaulting to `Asia/Kolkata`, for the current weekday and time, and requires the seller's `is_open` setting.
+- Outside seller applications require non-empty seller name, business name, description, and business address. The client and API both enforce these requirements.
+- Product description, instructions, SKU, unit, category, and inventory fields are optional where supported. Product name and price remain required.

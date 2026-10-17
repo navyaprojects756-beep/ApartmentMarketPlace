@@ -175,3 +175,12 @@ npx eas build --platform android --profile preview
 - [ ] Apply all committed Prisma migrations with `prisma migrate deploy`.
 - [ ] Deploy and verify Firebase login, customer flow, seller flow, admin flow, checkout, and push registration.
 - [ ] Rotate JWT secrets after deployment to invalidate old dummy-login sessions.
+
+## 2026-10-17 seller and catalog release checks
+
+- [x] Confirm approved seller login opens the customer marketplace first.
+- [x] Confirm Seller Portal remains reachable from the customer seller entry point.
+- [x] Confirm outside seller registration requires seller name, business name, description, and business address.
+- [x] Confirm seller availability uses `Asia/Kolkata` by default and respects `is_open` and operating hours.
+- [x] Confirm product creation accepts omitted or empty optional product fields while preserving required name and price validation.
+- [ ] Deploy the latest frontend/API and run hosted smoke tests for these seller and catalog flows.

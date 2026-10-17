@@ -126,6 +126,13 @@ npm run db:status
 - Apartment settings contain seller visibility (`Community`, `Outside`, or `Both`) and apartment-specific carousel uploads.
 - Carousel images use a consistent responsive display frame with automatic rotation and pointer/touch swiping. Recommended carousel assets are `1200 × 500 px` (12:5); product images are recommended at `1000 × 1000 px`.
 
+## Seller and catalog updates - 2026-10-17
+
+- Approved sellers open the customer marketplace first after login. Seller workspace access remains available from the customer seller entry point; seller accounts are not forced directly into the seller workspace.
+- Seller availability checks use `Asia/Kolkata` for both the current weekday and time. A seller is shown only when `is_open` is true and the current India time falls within its configured operating hours.
+- Outside seller applications require seller name, business name, description, and business address. The submit button remains disabled until all four fields contain text.
+- Product description, instructions, SKU, unit, category, and inventory fields are optional where supported. Empty product details and instructions do not block product creation.
+
 ## Customer commerce and UI update - 2026-09-26
 
 - Category browsing opens the shared product-details view for every product, with corrected image framing, rounded corners, fixed product-card image areas, and stable quantity controls.
@@ -200,7 +207,7 @@ Orders created before this migration may still use their existing relational add
 - Maintenance mode is stored in `PlatformSetting` under `maintenance_mode` and is read publicly through `GET /api/v1/maintenance`.
 - Customer search results appear as an overlay below the search box without moving the home banner, categories, or community services. Empty searches display `No items found.`
 - Mobile pull-to-refresh preserves the current page, including Orders, instead of returning to Home after reload.
-- Outside sellers can save a business address from the existing seller Settings form. Community sellers do not see that field; the address is used in seller/order details.
+- Outside sellers provide a required business address during registration and can update it from Seller Settings. Community sellers do not use an outside-business address field; their apartment context is used in seller/order details.
 - Native push registration now re-registers tokens when Expo/FCM rotates them. Android and iOS use package identifier `com.cheritech.gatedcart`.
 
 ## Mobile browser theme update - 2026-10-14

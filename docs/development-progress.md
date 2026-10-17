@@ -127,7 +127,7 @@ Verification checkpoint: database migration status, web build, backend build, An
 
 - [x] Backend service structure.
 - [x] Express application and health endpoint.
-- [x] Authentication and dummy OTP APIs.
+- [x] Firebase phone authentication and session exchange.
 - [x] JWT access/refresh token handling.
 - [x] RBAC middleware.
 - [x] Seed data for every role and major workflow.
@@ -240,7 +240,7 @@ Verification checkpoint: database migration status, web build, backend build, An
 - [x] Simplified active admin apartment UI to apartment/block management; customer onboarding and Profile now always provide a flat-number field, using a predefined flat selector only when configured.
 - [x] Admin apartment rows now visibly render child blocks beneath each parent apartment, with flat-creation controls removed; blockless apartments continue directly to manual flat entry during customer registration.
 - [x] Reworked Global Admin apartment management into an expandable parent/child tree: apartment rows expand to vertical block rows, block names can be edited, and blocks can be activated/deactivated without exposing flat counts or flat-creation controls.
-- [x] Added role-driven seller login: assigning an apartment/outside seller role prepares a seller profile, and the next mobile OTP login opens the live Seller Portal with store settings, delivery-area selection, product creation/availability, inventory, and order actions.
+- [x] Added role-driven seller access: assigning an apartment/outside seller role prepares a seller profile; after approval, normal login opens the customer marketplace first and the Seller Portal remains available through the customer seller entry point.
 - [x] Verified customer visibility end to end for `9000000010`: restored Global Admin home visibility to `BOTH`; the customer Home now returns `Shop one` and its 3 available products for the matching apartment.
 - [ ] Add a dedicated lint configuration/script; the repository currently has no `lint` npm script.
 
@@ -382,3 +382,11 @@ Historical note: orders created before the snapshot migration may not have immut
 - [x] Added matching `msapplication-TileColor` metadata.
 - [x] Verified the production web build and `git diff --check`.
 - [ ] Verify the deployed site on Android Chrome after refreshing cached page metadata.
+
+## 2026-10-17 seller and catalog checkpoint
+
+- [x] Approved sellers now enter the customer marketplace after login; Seller Portal access remains available through the customer seller entry point.
+- [x] Seller availability now evaluates the configured operating hours using `APP_TIME_ZONE`, defaulting to `Asia/Kolkata`.
+- [x] Outside seller applications require seller name, business name, description, and business address in both the client form and API validation.
+- [x] Product creation accepts empty or omitted optional description, instructions, SKU, unit, category, and inventory fields where supported.
+- [ ] Update and verify the deployed frontend/API, including outside seller application, seller availability, and product creation smoke tests.

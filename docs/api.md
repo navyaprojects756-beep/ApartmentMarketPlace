@@ -39,7 +39,7 @@ Authorization: Bearer <accessToken>
 
 ### Outside seller registration
 
-Use `https://gatedcart.cheritech.com/?isSellorReg=true` as the private outside-seller registration entry link. The link is not shown in the normal customer UI. After OTP login, a new user sees the outside-seller form without apartment/block/flat residence fields or apartment selection. Existing members see a member message and can continue to the normal marketplace. A submitted application remains `PENDING` until Global Admin approval; pending outside sellers see only the pending status on later logins. Approval assigns the `OUTSIDE_SELLER` role, and subsequent normal logins open the Seller Portal, where delivery areas can be configured.
+Use `https://gatedcart.cheritech.com/?isSellorReg=true` as the private outside-seller registration entry link. The link is not shown in the normal customer UI. After OTP login, a new user sees the outside-seller form without apartment/block/flat residence fields or apartment selection. Seller name, business name, description, and business address are required; the client keeps Submit disabled until all four fields contain text, and the API accepts any non-empty trimmed address. Existing members see a member message and can continue to the normal marketplace. A submitted application remains `PENDING` until Global Admin approval; pending outside sellers see only the pending status on later logins. Approval assigns the `OUTSIDE_SELLER` role, and subsequent normal logins open the customer marketplace first; the Seller Portal remains available through the seller entry point, where delivery areas can be configured.
 
 ### Global categories and category browsing
 
