@@ -6,7 +6,7 @@ import { getPrimaryApartment } from '../services/home.service.js';
 
 export const sellerApplicationRouter = Router();
 
-const applicationSchema = z.object({ sellerType: z.enum(['APARTMENT', 'OUTSIDE']), sellerName: z.string().trim().min(2).max(160), businessName: z.string().trim().min(2).max(160), description: z.string().trim().max(2000).optional(), address: z.string().trim().min(5).max(1000).optional(), deliveryApartmentIds: z.array(z.string().uuid()).max(50).optional() });
+const applicationSchema = z.object({ sellerType: z.enum(['APARTMENT', 'OUTSIDE']), sellerName: z.string().trim().min(1).max(160), businessName: z.string().trim().min(1).max(160), description: z.string().trim().min(1).max(2000), address: z.string().trim().min(1).max(1000), deliveryApartmentIds: z.array(z.string().uuid()).max(50).optional() });
 
 sellerApplicationRouter.post('/apply', requireAuth, async (request, response, next) => {
   try {
