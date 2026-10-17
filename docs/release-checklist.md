@@ -184,3 +184,14 @@ npx eas build --platform android --profile preview
 - [x] Confirm seller availability uses `Asia/Kolkata` by default and respects `is_open` and operating hours.
 - [x] Confirm product creation accepts omitted or empty optional product fields while preserving required name and price validation.
 - [ ] Deploy the latest frontend/API and run hosted smoke tests for these seller and catalog flows.
+
+## 2026-10-18 ratings, availability, and browser push release checks
+
+- [x] Apply migration `20261017190000_ratings_and_provider_reviews` locally and confirm Prisma migration status.
+- [x] Confirm seller/product rating submission supports 1–5 stars and requires comments below 2.
+- [x] Confirm Seller Settings exposes `Display customer ratings publicly` and public aggregates stay hidden when disabled.
+- [x] Confirm community service provider ratings are accepted and public aggregates contain no reviewer identity.
+- [x] Confirm Home, storefront, category browsing, and Seller workspace use calculated current availability, including closed weekdays and timezone-aware hours.
+- [x] Confirm browser notification prompt is in-app, active-order-only, once per day, and explains blocked browser permission.
+- [x] Confirm logout deactivates the browser push token and the service worker can display notifications while the tab is closed.
+- [ ] Deploy the latest frontend/API and verify ratings, availability, browser permission, logout, and closed-tab notification delivery on the hosted domain.

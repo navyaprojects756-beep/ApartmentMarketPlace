@@ -49,6 +49,8 @@ This document records implementation decisions, technical structure, database co
 - `GET /api/v1/notifications` and `POST /api/v1/notifications/:notificationId/read` — notification state.
 - `GET /api/v1/important-alerts` and `POST /api/v1/notifications/:notificationId/dismiss` — targeted important-alert read/dismiss state.
 - `POST /api/v1/reviews` — completed-order review creation.
+- `GET /api/v1/reviews/order/:orderId` — authenticated customer's existing review IDs for the order.
+- `POST /api/v1/service-provider-reviews` — one customer rating per community service provider.
 - `GET /api/v1/seller/dashboard` — seller KPI and low-stock summary.
 - `GET /api/v1/seller/orders` — seller-scoped order queue with status, date, apartment, fulfillment, and customer search filters.
 - `POST/PATCH /api/v1/seller/categories` — seller category management.
@@ -178,8 +180,9 @@ The mobile API client uses `EXPO_PUBLIC_API_URL`; Android emulator development d
 The mobile entry flow now performs dummy-OTP authentication, loads backend-scoped Home data, supports Local/Outside/Both filters and Orders history, and can preview seller, delivery, or admin API workspaces using `EXPO_PUBLIC_ROLE_PREVIEW`. Seller previews advance valid order statuses, delivery previews advance assigned delivery statuses, and admin previews read/update the protected home seller display mode.
 The native customer Home screen now mirrors the server-enforced seller mode: it only renders the Local/Outside/Both selector when the mode is `BOTH`, and its memoized seller list remains limited to the collections returned by the scoped Home API.
 Customer discovery uses `GET /api/v1/search?q=...`; the backend applies the resident apartment relationship and effective home seller display mode before returning sellers, categories, or products.
-Completed customer orders can be reviewed once per order/product through `POST /api/v1/reviews`; `GET /api/v1/sellers/:sellerId/reviews` returns the scoped average, count, and recent review summaries.
-Seller settings are managed through `GET/PATCH /api/v1/seller/settings`, including store profile, open state, delivery/pickup availability, charges, minimum order, and operating-hour records. Global Admin user updates are audited, protect the final active admin, and order monitoring supports status, seller, apartment, and text filters.
+Completed customer orders can be reviewed once per seller and product through `POST /api/v1/reviews`; ratings are integers from 1 to 5 and ratings below 2 require a comment. Seller-level reviews use a null product relation, while product reviews are calculated separately. `GET /api/v1/reviews/order/:orderId` prevents duplicate customer UI submissions, and `GET /api/v1/sellers/:sellerId/reviews` returns the scoped average, count, and recent review summaries.
+Community service providers use `POST /api/v1/service-provider-reviews` with one review per authenticated customer/provider pair. Review comments and reviewer identity remain private; public responses expose only aggregates when display rules allow them.
+Seller settings are managed through `GET/PATCH /api/v1/seller/settings`, including store profile, open state, delivery/pickup availability, charges, minimum order, operating-hour records, and `showRatings`. Public seller/product rating values are included only when the seller enables rating display, and no rating is rendered when no reviews exist. Global Admin user updates are audited, protect the final active admin, and order monitoring supports status, seller, apartment, and text filters.
 Order status changes are transactional and audited; cancelling a previously stocked order restores each tracked product quantity and records a `CANCELLED_ORDER` inventory movement.
 Checkout supports both `DELIVERY` and `PICKUP`; the backend enforces seller capabilities and authoritative product/seller scope for either fulfillment path.
 Delivery queue reads support optional apartment, seller, status, and grouping parameters while preserving seller/apartment assignment scope.
@@ -194,7 +197,8 @@ The current repository is a working V1 MVP rather than a finished production rel
 ## Seller and catalog behavior — 2026-10-17
 
 - Outside seller applications require a non-empty seller name, business name, description, and business address. The client disables submission until all four fields contain text, and the API validates the same values after trimming whitespace.
-- Seller availability derives the weekday and current time in `APP_TIME_ZONE`, defaulting to `Asia/Kolkata`, rather than using the server's local timezone. A seller must also have `is_open` enabled.
+- Seller availability derives the weekday and current time in `APP_TIME_ZONE`, defaulting to `Asia/Kolkata`, rather than using the server's local timezone. A seller must also have `is_open` enabled, a matching non-closed weekday, and a time range containing the current time. The effective result is returned as `isCurrentlyOpen`; the configured `isOpen` flag is not itself the live status.
+- Home, storefront, and global-category product queries use the same availability helper. This prevents products from unavailable sellers from appearing through category navigation. Missing weekdays in a configured weekly schedule are treated as closed, and overnight ranges are supported.
 - Product creation accepts nullable or omitted description, instructions, SKU, unit, category, and inventory-related optional fields. Product name and price remain required, and inventory rules are still enforced by the API.
 
 ## Push notification architecture and diagnostic status — 2026-09-27
@@ -202,6 +206,8 @@ The current repository is a working V1 MVP rather than a finished production rel
 Firebase Phone Authentication is used for phone OTP identity and application session exchange. Push delivery uses `expo-notifications`, Expo Push Service, Android FCM V1, and Apple APNs through Expo. Device registration is independent of the authentication provider after the web session is established.
 
 The native shell loads `https://gatedcart.cheritech.com`, injects the Expo token into the WebView, and dispatches `gatedcart-push-token`. The hosted frontend and native fallback read the authenticated session and call `POST /api/v1/push-devices`. Registration is upserted by token, so repeated attempts are safe. Render's reverse proxy is trusted with `app.set('trust proxy', 1)` for rate-limit processing.
+
+The browser client registers an FCM Web token only after an in-app prompt is accepted. The prompt is shown for active-order users at most once per day, while the actual notification permission dialog remains browser-controlled. The Firebase Messaging service worker supports delivery when the tab is closed, and logout deactivates the browser token. Blocked browser permission is surfaced inside the app with instructions to change the site setting.
 
 Diagnostics intentionally expose only token suffixes, status values, booleans, and truncated response text. Full tokens, Firebase service-account keys, and access tokens must never be logged or committed.
 

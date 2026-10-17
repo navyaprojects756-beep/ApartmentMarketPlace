@@ -88,12 +88,35 @@ customerRouter.post('/notifications/:notificationId/dismiss', requireAuth, async
 
 customerRouter.post('/reviews', requireAuth, async (request, response, next) => {
   try {
-    const input = z.object({ orderId: z.string().uuid(), sellerId: z.string().uuid(), productId: z.string().uuid().optional(), rating: z.number().int().min(1).max(5), text: z.string().max(2000).optional() }).parse(request.body);
+    const input = z.object({ orderId: z.string().uuid(), sellerId: z.string().uuid(), productId: z.string().uuid().optional(), rating: z.number().int().min(1).max(5), text: z.string().trim().max(2000).optional() }).parse(request.body);
+    if (input.rating < 2 && !input.text) { response.status(400).json({ error: { code: 'REVIEW_COMMENT_REQUIRED', message: 'Please add a comment for ratings below 2 stars.' } }); return; }
     const order = await prisma.order.findFirst({ where: { id: input.orderId, customerId: request.auth!.userId, sellerId: input.sellerId, status: { in: ['DELIVERED', 'COMPLETED'] }, ...(input.productId ? { items: { some: { productId: input.productId } } } : {}) } });
     if (!order) { response.status(400).json({ error: { code: 'REVIEW_NOT_ELIGIBLE', message: 'Only completed orders can be reviewed' } }); return; }
     const existing = await prisma.review.findFirst({ where: { userId: request.auth!.userId, orderId: input.orderId, productId: input.productId ?? null } });
     if (existing) { response.status(409).json({ error: { code: 'REVIEW_ALREADY_EXISTS', message: 'This order item has already been reviewed' } }); return; }
-    const review = await prisma.review.create({ data: { userId: request.auth!.userId, orderId: input.orderId, sellerId: input.sellerId, productId: input.productId, rating: input.rating, text: input.text } });
+    const review = await prisma.review.create({ data: { userId: request.auth!.userId, orderId: input.orderId, sellerId: input.sellerId, productId: input.productId, rating: input.rating, text: input.text || null } });
     response.status(201).json(review);
+  } catch (error) { next(error); }
+});
+
+customerRouter.post('/service-provider-reviews', requireAuth, async (request, response, next) => {
+  try {
+    const input = z.object({ providerId: z.string().uuid(), rating: z.number().int().min(1).max(5), text: z.string().trim().max(2000).optional() }).parse(request.body);
+    if (input.rating < 2 && !input.text) { response.status(400).json({ error: { code: 'REVIEW_COMMENT_REQUIRED', message: 'Please add a comment for ratings below 2 stars.' } }); return; }
+    const provider = await prisma.communityServiceProvider.findFirst({ where: { id: input.providerId, isActive: true } });
+    if (!provider) { response.status(404).json({ error: { code: 'SERVICE_PROVIDER_NOT_FOUND', message: 'Service provider not found' } }); return; }
+    const existing = await (prisma as any).serviceProviderReview.findUnique({ where: { providerId_userId: { providerId: input.providerId, userId: request.auth!.userId } } });
+    if (existing) { response.status(409).json({ error: { code: 'REVIEW_ALREADY_EXISTS', message: 'You have already rated this service provider.' } }); return; }
+    const review = await (prisma as any).serviceProviderReview.create({ data: { providerId: input.providerId, userId: request.auth!.userId, rating: input.rating, text: input.text || null } });
+    response.status(201).json(review);
+  } catch (error) { next(error); }
+});
+
+customerRouter.get('/reviews/order/:orderId', requireAuth, async (request, response, next) => {
+  try {
+    const orderId = z.string().uuid().parse(request.params.orderId);
+    const order = await prisma.order.findFirst({ where: { id: orderId, customerId: request.auth!.userId }, select: { id: true } });
+    if (!order) { response.status(404).json({ error: { code: 'ORDER_NOT_FOUND', message: 'Order not found' } }); return; }
+    response.json(await prisma.review.findMany({ where: { orderId, userId: request.auth!.userId }, select: { id: true, orderId: true, productId: true, rating: true, text: true } }));
   } catch (error) { next(error); }
 });

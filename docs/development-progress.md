@@ -192,7 +192,7 @@ Verification checkpoint: database migration status, web build, backend build, An
 ## Requirements audit after full prompt review — 2026-09-19
 
 - [x] Core V1 foundation is implemented: PostgreSQL/Prisma, authentication, RBAC, apartment scope, home visibility enforcement, seller storefront, products, inventory, cart/checkout, orders, delivery assignment/status, advertisements, alerts, reports, PDF/CSV foundations, local storage, responsive web surfaces, seed data, and critical API tests.
-- [~] Website still needs the remaining specification-level management surfaces: review submission UI and product rating summaries, richer operating-hours editing, complete admin audit/report screens, and full delivery grouping/filter/history UI.
+- [~] Website still needs the remaining specification-level management surfaces: complete admin audit/report screens and full delivery grouping/filter/history UI.
 - [~] Backend still needs broader coverage for the remaining surfaces above plus stronger acceptance tests for inventory concurrency, pickup lifecycle, cancellation inventory restoration, review uniqueness, and report/export variants.
 - [~] Native Expo application currently covers customer Home/Orders and API-backed seller, delivery, and admin preview actions; it does not yet mirror all customer, seller, delivery, and admin web screens.
 - [ ] Production release work remains: device QA, final app assets/signing, hosted API/database, monitoring, and Play Store/App Store submission.
@@ -221,6 +221,8 @@ Verification checkpoint: database migration status, web build, backend build, An
 - [x] Documented every seeded test login: two Global Admins, one customer, six seller owners, and one delivery boy, with seeded apartments, products, inventory, advertisements, assignments, and orders.
 - [x] Added apartment-scoped global search for visible sellers, products, and categories, connected to the customer Home search field and covered by integration tests.
 - [x] Added seller rating summary/review APIs with completed-order and duplicate-review enforcement; the storefront now loads the live rating summary data.
+- [x] Added customer review submission UI for seller/product ratings, low-rating comment validation, order review lookup, and community service provider ratings.
+- [x] Added seller-controlled public rating visibility through `showRatings`; public aggregates omit ratings when disabled or when no reviews exist.
 - [x] Added seller profile/delivery/pickup/operating-settings APIs and responsive seller settings UI.
 - [x] Added protected Global Admin user activation/role management, filtered order monitoring, and responsive user/order management panels with audit-backed user updates.
 - [x] Order cancellation now restores tracked inventory in the same transaction and records inventory movement, status history, and audit data; Global Admin has controlled status override access.
@@ -390,3 +392,16 @@ Historical note: orders created before the snapshot migration may not have immut
 - [x] Outside seller applications require seller name, business name, description, and business address in both the client form and API validation.
 - [x] Product creation accepts empty or omitted optional description, instructions, SKU, unit, category, and inventory fields where supported.
 - [ ] Update and verify the deployed frontend/API, including outside seller application, seller availability, and product creation smoke tests.
+
+## 2026-10-18 ratings, availability, and web notification checkpoint
+
+- [x] Applied the seller/provider rating migration locally: `20261017190000_ratings_and_provider_reviews`.
+- [x] Enforced 1–5 ratings, required comments for ratings below 2, one review per customer/order target, and private review comments/reviewer identity.
+- [x] Added Seller Settings control for `Display customer ratings publicly`; seller and product aggregates are shown only when enabled and when reviews exist.
+- [x] Added service-provider ratings and public provider aggregates without exposing reviewer identity.
+- [x] Shared seller availability evaluation across Home, storefront, category product browsing, seller settings, and the seller dashboard. Configured active state, weekday, time range, timezone, closed days, and overnight ranges are handled consistently.
+- [x] Category navigation now excludes products from sellers who are currently unavailable. A configured schedule with no record for the current weekday treats that seller as closed.
+- [x] Seller settings expose `isCurrentlyOpen` and `availabilityReason`; the Seller workspace status card uses calculated availability rather than raw `isOpen`.
+- [x] Added browser FCM registration through the service worker, in-app permission prompt throttled to once per day for users with active orders, closed-tab delivery support, and logout token deactivation.
+- [x] Updated README, API reference, and architecture documentation for these changes.
+- [x] Verified the web build, backend TypeScript check, Prisma migration status, and `git diff --check` locally.

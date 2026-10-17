@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { getHomeData } from '../services/home.service.js';
 import { prisma } from '../lib/prisma.js';
+import { getSellerAvailability } from '../utils/seller-hours.js';
 
 export const homeRouter = Router();
 
@@ -17,8 +18,8 @@ homeRouter.get('/community-services/:serviceId/providers', requireAuth, async (r
     if (!association) { response.json({ service: null, providers: [] }); return; }
     const service = await prisma.communityService.findFirst({ where: { id: serviceId, isActive: true } });
     if (!service) { response.status(404).json({ error: { code: 'SERVICE_NOT_FOUND', message: 'Community service not found' } }); return; }
-    const providers = await prisma.communityServiceProvider.findMany({ where: { serviceId, isActive: true, apartments: { some: { apartmentId: association.apartmentId } } }, orderBy: { name: 'asc' }, include: { apartments: { where: { apartmentId: association.apartmentId }, include: { apartment: { select: { name: true } } } } } });
-    response.json({ service, providers });
+    const providers = await prisma.communityServiceProvider.findMany({ where: { serviceId, isActive: true, apartments: { some: { apartmentId: association.apartmentId } } }, orderBy: { name: 'asc' }, include: { apartments: { where: { apartmentId: association.apartmentId }, include: { apartment: { select: { name: true } } } }, reviews: { select: { rating: true } } } });
+    response.json({ service, providers: providers.map(provider => { const reviews = ((provider as any).reviews || []) as Array<{ rating: number }>; const { reviews: _reviews, ...visibleProvider } = provider as any; return { ...visibleProvider, rating: reviews.length ? Number((reviews.reduce((sum: number, item) => sum + item.rating, 0) / reviews.length).toFixed(1)) : null, reviewCount: reviews.length }; }) });
   } catch (error) { next(error); }
 });
 
@@ -35,10 +36,11 @@ homeRouter.get('/categories/:categoryId/products', requireAuth, async (request, 
     const categoryId = z.string().uuid().parse(request.params.categoryId);
     const association = await prisma.userApartment.findFirst({ where: { userId: request.auth!.userId }, orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }], include: { apartment: true } });
     if (!association) { response.json({ category: null, products: [] }); return; }
-    const sellers = await prisma.sellerProfile.findMany({ where: { status: 'APPROVED', isOpen: true, OR: [{ sellerType: 'APARTMENT', apartmentId: association.apartmentId }, { sellerType: 'OUTSIDE', deliveryAreas: { some: { apartmentId: association.apartmentId, isApproved: true, isEnabled: true } } }] }, select: { id: true } });
+    const sellers = await prisma.sellerProfile.findMany({ where: { status: 'APPROVED', isOpen: true, OR: [{ sellerType: 'APARTMENT', apartmentId: association.apartmentId }, { sellerType: 'OUTSIDE', deliveryAreas: { some: { apartmentId: association.apartmentId, isApproved: true, isEnabled: true } } }] }, select: { id: true, isOpen: true, deliveryEnabled: true, pickupEnabled: true, operatingHours: { select: { dayOfWeek: true, openTime: true, closeTime: true, isClosed: true } } } });
+    const availableSellerIds = sellers.filter(seller => getSellerAvailability(seller).isOpen).map(seller => seller.id);
     const category = await prisma.globalCategory.findFirst({ where: { id: categoryId, isActive: true } });
     if (!category) { response.status(404).json({ error: { code: 'CATEGORY_NOT_FOUND', message: 'Category not found' } }); return; }
-    const products = await prisma.product.findMany({ where: { globalCategoryId: categoryId, sellerId: { in: sellers.map(seller => seller.id) }, availability: true }, include: { images: { orderBy: { sortOrder: 'asc' } }, globalCategory: true, seller: { select: { id: true, sellerName: true, businessName: true, sellerType: true, logoUrl: true, bannerUrl: true, isOpen: true, deliveryEnabled: true, pickupEnabled: true } }, inventory: true }, orderBy: { createdAt: 'asc' }, take: 100 });
-    response.json({ category, products });
+    const products = await prisma.product.findMany({ where: { globalCategoryId: categoryId, sellerId: { in: availableSellerIds }, availability: true }, include: { images: { orderBy: { sortOrder: 'asc' } }, globalCategory: true, reviews: { select: { rating: true } }, seller: { select: { id: true, sellerName: true, businessName: true, sellerType: true, logoUrl: true, bannerUrl: true, isOpen: true, deliveryEnabled: true, pickupEnabled: true, showRatings: true } }, inventory: true }, orderBy: { createdAt: 'asc' }, take: 100 });
+    response.json({ category, products: products.map(product => { const { reviews, ...visibleProduct } = product; const canShow = product.seller.showRatings; return { ...visibleProduct, rating: canShow && reviews.length ? Number((reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length).toFixed(1)) : null, reviewCount: canShow ? reviews.length : 0 }; }) });
   } catch (error) { next(error); }
 });

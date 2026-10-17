@@ -15,7 +15,10 @@ export function getSellerAvailability(seller: SellerHours, now = new Date()) {
   const weekday = timeParts.find(part => part.type === 'weekday')?.value;
   const dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(weekday || '');
   const hours = seller.operatingHours?.find(item => item.dayOfWeek === dayOfWeek);
-  if (!hours) return { isOpen: true, reason: null };
+  // An empty schedule means the seller has not configured weekly hours yet,
+  // so the explicit isOpen setting remains authoritative. Once any weekly
+  // schedule exists, a missing day is treated as a closed day.
+  if (!hours) return seller.operatingHours?.length ? { isOpen: false, reason: 'Store is closed today.' } : { isOpen: true, reason: null };
   if (hours.isClosed || !hours.openTime || !hours.closeTime) return { isOpen: false, reason: 'Store is closed today.' };
   const currentHour = Number(timeParts.find(part => part.type === 'hour')?.value || 0);
   const currentMinute = Number(timeParts.find(part => part.type === 'minute')?.value || 0);

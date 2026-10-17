@@ -33,6 +33,8 @@ Authorization: Bearer <accessToken>
 - `GET /important-alerts`
 - `POST /notifications/:notificationId/dismiss`
 - `POST /reviews`
+- `GET /reviews/order/:orderId` — returns the authenticated customer's existing seller/product review IDs for a completed or delivered order.
+- `POST /service-provider-reviews` — submits one optional 1–5 rating per authenticated customer and community service provider; ratings below 2 require a comment.
 - `POST /uploads/image` — authenticated local JPEG/PNG/WebP image upload from a data URL
 - `GET /account-deletion-requests/mine` — latest deletion request for the authenticated customer.
 - `POST /account-deletion-requests` — authenticated customer account deletion request; accepts optional `{ "reason": "..." }`.
@@ -139,6 +141,17 @@ The seller Orders workspace supports date filters for Today, Yesterday, and a cu
 Push registration diagnostics log request receipt, authorization presence, authenticated user ID, insert/update operation, and a token suffix only. The API trusts one Render reverse proxy (`app.set('trust proxy', 1)`) so rate-limit client-IP validation works correctly in production.
 
 The native client also listens for Expo/FCM token rotation and re-registers the new token against `POST /push-devices`.
+
+Browser registration is initiated by the signed-in web client after its in-app notification prompt. The prompt is shown only when the customer has an active order and is throttled to once per day. Browser permission remains a browser-controlled setting; if it is blocked, the app can explain that the user must enable notifications in the site's browser settings. The Firebase Messaging service worker can display a received notification when the browser tab is closed. Logout deactivates the current browser token.
+
+### Seller availability and ratings
+
+- `GET /seller/settings` — returns seller settings, operating-hour records, `isCurrentlyOpen`, and an `availabilityReason`.
+- `PATCH /seller/settings` — updates seller profile, delivery/pickup settings, operating hours, and `showRatings`.
+- `GET /sellers/:sellerId/reviews` — returns the public seller rating summary when seller rating display is enabled.
+- `GET /home/community-services/:serviceId/providers` — returns apartment-scoped providers with public rating aggregates when provider reviews exist.
+
+Availability is evaluated using `APP_TIME_ZONE` (default `Asia/Kolkata`). A seller must be configured active, have a matching open schedule for the current weekday, and be inside the configured time range. Category product queries apply the same availability filter as Home and storefront queries, so unavailable sellers do not contribute products.
 
 The implementation uses backend scope checks for apartment sellers, outside seller delivery areas, delivery-boy seller/apartment links, order ownership, and admin roles.
 

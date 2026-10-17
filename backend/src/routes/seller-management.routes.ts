@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
+import { getSellerAvailability } from '../utils/seller-hours.js';
 
 export const sellerManagementRouter = Router();
 
@@ -27,7 +28,10 @@ sellerManagementRouter.get('/settings', requireAuth, async (request, response, n
   try {
     const seller = await sellerForUser(request.auth!.userId);
     if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
-    response.json(await prisma.sellerProfile.findUnique({ where: { id: seller.id }, include: { apartment: true, operatingHours: { orderBy: { dayOfWeek: 'asc' } }, deliveryAreas: { include: { apartment: true } } } }));
+    const settings = await prisma.sellerProfile.findUnique({ where: { id: seller.id }, include: { apartment: true, operatingHours: { orderBy: { dayOfWeek: 'asc' } }, deliveryAreas: { include: { apartment: true } } } });
+    if (!settings) { response.status(404).json({ error: { code: 'SELLER_NOT_FOUND', message: 'Seller profile not found' } }); return; }
+    const availability = getSellerAvailability(settings);
+    response.json({ ...settings, isCurrentlyOpen: availability.isOpen, availabilityReason: availability.reason });
   } catch (error) { next(error); }
 });
 
@@ -35,9 +39,9 @@ sellerManagementRouter.patch('/settings', requireAuth, async (request, response,
   try {
     const seller = await sellerForUser(request.auth!.userId);
     if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
-    const input = z.object({ businessName: z.string().trim().min(2).max(160).optional(), description: z.string().max(3000).nullable().optional(), address: z.string().max(1000).nullable().optional(), logoUrl: z.string().url().nullable().optional(), bannerUrl: z.string().url().nullable().optional(), isOpen: z.boolean().optional(), deliveryEnabled: z.boolean().optional(), pickupEnabled: z.boolean().optional(), minimumOrder: z.number().nonnegative().nullable().optional(), deliveryCharge: z.number().nonnegative().nullable().optional(), operatingHours: z.array(z.object({ dayOfWeek: z.number().int().min(0).max(6), openTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(), closeTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(), isClosed: z.boolean().default(false) })).max(7).optional() }).superRefine((value, context) => { if (value.deliveryEnabled === true && value.pickupEnabled === true) context.addIssue({ code: 'custom', path: ['pickupEnabled'], message: 'Choose Delivery or Takeaway, not both.' }); if (value.deliveryEnabled === false && value.pickupEnabled === false) context.addIssue({ code: 'custom', path: ['deliveryEnabled'], message: 'Choose Delivery or Takeaway.' }); }).parse(request.body);
+    const input = z.object({ businessName: z.string().trim().min(2).max(160).optional(), description: z.string().max(3000).nullable().optional(), address: z.string().max(1000).nullable().optional(), logoUrl: z.string().url().nullable().optional(), bannerUrl: z.string().url().nullable().optional(), isOpen: z.boolean().optional(), deliveryEnabled: z.boolean().optional(), pickupEnabled: z.boolean().optional(), showRatings: z.boolean().optional(), minimumOrder: z.number().nonnegative().nullable().optional(), deliveryCharge: z.number().nonnegative().nullable().optional(), operatingHours: z.array(z.object({ dayOfWeek: z.number().int().min(0).max(6), openTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(), closeTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).nullable().optional(), isClosed: z.boolean().default(false) })).max(7).optional() }).superRefine((value, context) => { if (value.deliveryEnabled === true && value.pickupEnabled === true) context.addIssue({ code: 'custom', path: ['pickupEnabled'], message: 'Choose Delivery or Takeaway, not both.' }); if (value.deliveryEnabled === false && value.pickupEnabled === false) context.addIssue({ code: 'custom', path: ['deliveryEnabled'], message: 'Choose Delivery or Takeaway.' }); }).parse(request.body);
     const updated = await prisma.$transaction(async tx => {
-      const sellerUpdate = await tx.sellerProfile.update({ where: { id: seller.id }, data: { businessName: input.businessName, description: input.description, address: input.address, logoUrl: input.logoUrl, bannerUrl: input.bannerUrl, isOpen: input.isOpen, deliveryEnabled: input.deliveryEnabled, pickupEnabled: input.pickupEnabled, minimumOrder: input.minimumOrder, deliveryCharge: input.deliveryCharge } });
+      const sellerUpdate = await tx.sellerProfile.update({ where: { id: seller.id }, data: { businessName: input.businessName, description: input.description, address: input.address, logoUrl: input.logoUrl, bannerUrl: input.bannerUrl, isOpen: input.isOpen, deliveryEnabled: input.deliveryEnabled, pickupEnabled: input.pickupEnabled, showRatings: input.showRatings, minimumOrder: input.minimumOrder, deliveryCharge: input.deliveryCharge } });
       if (input.operatingHours) { const shared = input.operatingHours.find(hour => !hour.isClosed && hour.openTime && hour.closeTime); for (const hour of input.operatingHours) { const normalized = { ...hour, openTime: shared?.openTime ?? hour.openTime, closeTime: shared?.closeTime ?? hour.closeTime }; await tx.sellerOperatingHour.upsert({ where: { sellerId_dayOfWeek: { sellerId: seller.id, dayOfWeek: hour.dayOfWeek } }, update: normalized, create: { sellerId: seller.id, ...normalized } }); } }
       return sellerUpdate;
     });

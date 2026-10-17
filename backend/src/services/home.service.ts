@@ -11,7 +11,7 @@ export async function getHomeData(userId: string) {
   const mode = association?.apartment.sellerDisplayMode ?? 'BOTH';
   if (!association) return { mode, apartment: null, localSellers: [], outsideSellers: [], advertisements: [], homePromotions: [], communityServices: [] };
 
-  const sellerSelect = { id: true, sellerName: true, businessName: true, description: true, logoUrl: true, bannerUrl: true, sellerType: true, isOpen: true, deliveryEnabled: true, pickupEnabled: true, operatingHours: { select: { dayOfWeek: true, openTime: true, closeTime: true, isClosed: true } } } as const;
+  const sellerSelect = { id: true, sellerName: true, businessName: true, description: true, logoUrl: true, bannerUrl: true, sellerType: true, isOpen: true, deliveryEnabled: true, pickupEnabled: true, showRatings: true, reviews: { where: { productId: null }, select: { rating: true } }, operatingHours: { select: { dayOfWeek: true, openTime: true, closeTime: true, isClosed: true } } } as const;
   const [localSellers, outsideSellers, advertisements, homePromotions, globalCategories, communityServices] = await Promise.all([
     mode === 'OUTSIDE_ONLY' ? [] : prisma.sellerProfile.findMany({ where: { sellerType: 'APARTMENT', status: 'APPROVED', apartmentId: association.apartmentId }, select: sellerSelect, orderBy: { createdAt: 'asc' } }),
     mode === 'LOCAL_ONLY' ? [] : prisma.sellerProfile.findMany({ where: { sellerType: 'OUTSIDE', status: 'APPROVED', deliveryAreas: { some: { apartmentId: association.apartmentId, isApproved: true, isEnabled: true } } }, select: sellerSelect, orderBy: { createdAt: 'asc' } }),
@@ -22,5 +22,6 @@ export async function getHomeData(userId: string) {
   ]);
 
   const available = (sellers: typeof localSellers) => sellers.filter(seller => getSellerAvailability(seller).isOpen);
-  return { mode, apartment: association, localSellers: available(localSellers), outsideSellers: available(outsideSellers), advertisements, homePromotions, globalCategories, communityServices: communityServices.map(service => ({ ...service, providerCount: service.providers.length, providers: undefined })) };
+  const presentSeller = (seller: any) => { const ratings = seller.reviews || []; const showRatings = seller.showRatings === true; const rating = showRatings && ratings.length ? Number((ratings.reduce((sum: number, item: { rating: number }) => sum + item.rating, 0) / ratings.length).toFixed(1)) : null; const { reviews, ...visibleSeller } = seller; return { ...visibleSeller, rating, reviewCount: showRatings ? ratings.length : 0 }; };
+  return { mode, apartment: association, localSellers: available(localSellers).map(presentSeller), outsideSellers: available(outsideSellers).map(presentSeller), advertisements, homePromotions, globalCategories, communityServices: communityServices.map(service => ({ ...service, providerCount: service.providers.length, providers: undefined })) };
 }

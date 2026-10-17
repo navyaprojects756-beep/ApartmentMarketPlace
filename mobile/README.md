@@ -109,3 +109,10 @@ Install the fresh preview APK, allow notifications, log in, and verify that the 
 - The shared WebView uses Firebase phone authentication only; dummy OTP login is no longer available.
 - The native APK does not need rebuilding for the web authentication change when it already loads the hosted web URL. Rebuild only when native code, package configuration, or notification configuration changes.
 - Verify Firebase phone login in the hosted WebView after deployment before distributing the APK.
+
+## Shared ratings, availability, and notifications - 2026-10-18
+
+- The shared WebView includes optional 1–5 seller/product ratings after completed or delivered orders. Ratings below 2 require a comment, and community service providers can also receive ratings. Comments and reviewer identity are not shown publicly.
+- Seller and product rating aggregates are displayed only when the seller enables `Display customer ratings publicly` in Seller Settings. Provider aggregates are shown only when reviews exist.
+- Seller availability uses the configured active flag, weekday, operating hours, and `APP_TIME_ZONE` (default `Asia/Kolkata`) consistently in Home, category browsing, storefronts, and the seller workspace.
+- Browser notification prompts are part of the shared web app, not a separate native screen. The browser prompt is shown in-app only for signed-in users with active orders, at most once per day. Native push permission and Expo token registration continue to use the native shell flow.

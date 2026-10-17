@@ -221,3 +221,21 @@ Orders created before this migration may still use their existing relational add
 - Before deployment, configure Firebase Admin credentials, strong JWT access/refresh secrets, the production frontend URL, and persistent image storage in Render.
 - Rotate both JWT secrets once after deployment to invalidate sessions created by the removed dummy-login flow.
 - No Prisma migration is required for this authentication change. Run the frontend build, backend typecheck, and a real Firebase login smoke test before announcing the live release.
+
+## Ratings and reviews - 2026-10-17
+
+- Customers can optionally rate a completed or delivered order's seller and each product from Order tracking. Ratings are integers from 1 to 5; ratings below 2 require a comment.
+- Review comments are stored for administration and support but are not returned with public seller/provider summaries and reviewer identity is not displayed.
+- Seller ratings and product rating values are only included in public marketplace responses after the seller enables `Display customer ratings publicly` in Seller Settings. If there are no reviews, no rating value is shown.
+- Community service providers accept one rating per authenticated user through `POST /api/v1/service-provider-reviews`; provider aggregates are shown when reviews exist.
+- The seller/provider rating migration is `20261017190000_ratings_and_provider_reviews`. Apply it with `npx prisma migrate deploy --schema prisma/schema.prisma` after regenerating Prisma.
+
+## Availability, browser notifications, and rating controls - 2026-10-18
+
+- Seller availability is calculated from the seller's active setting, configured operating hours, and the current `APP_TIME_ZONE` (default `Asia/Kolkata`). `isOpen` is the configured on/off setting; `isCurrentlyOpen` is the effective status at the current weekday and time.
+- When a weekly schedule exists, a missing weekday or a closed weekday makes the seller unavailable. Overnight time ranges are supported. Home, storefront, and global-category product results all exclude sellers who are not currently available.
+- Seller settings return `isCurrentlyOpen` and `availabilityReason`. The Seller workspace Store status uses the same calculated availability instead of displaying the raw configured `isOpen` value.
+- Sellers control public rating visibility in Seller workspace → Settings → `Display customer ratings publicly`. Reviews are still accepted when display is disabled, but public seller and product rating values remain hidden until enabled. Provider ratings are accepted independently.
+- Browser notification permission is requested through an in-app prompt only when the signed-in user has an active order, and the prompt is limited to once per day. The browser permission dialog is still controlled by the browser; if permission is blocked, the app explains how to enable it in site settings.
+- A granted browser subscription can receive order notifications while the tab is closed through the Firebase Messaging service worker. Logging out deactivates the browser token, so that browser session no longer receives user notifications.
+- The latest local verification includes the web production build, backend TypeScript check, Prisma migration status, and `git diff --check`.

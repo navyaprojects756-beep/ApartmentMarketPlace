@@ -142,6 +142,7 @@ model User {
   orders            Order[]                @relation("CustomerOrders")
   addresses         Address[]
   reviews           Review[]
+  serviceProviderReviews ServiceProviderReview[]
   auditLogs         AuditLog[]             @relation("AuditActor")
   createdSettings   PlatformSetting[]      @relation("SettingCreator")
   errorLogs         ErrorLog[]
@@ -341,6 +342,7 @@ model SellerProfile {
   isOpen             Boolean                @default(false) @map("is_open")
   deliveryEnabled    Boolean                @default(true) @map("delivery_enabled")
   pickupEnabled      Boolean                @default(false) @map("pickup_enabled")
+  showRatings        Boolean                @default(false) @map("show_ratings")
   minimumOrder       Decimal?               @map("minimum_order") @db.Decimal(12, 2)
   deliveryCharge     Decimal?               @map("delivery_charge") @db.Decimal(12, 2)
   createdAt          DateTime               @default(now()) @map("created_at")
@@ -437,6 +439,7 @@ model CommunityServiceProvider {
   updatedAt   DateTime                     @updatedAt @map("updated_at")
   service     CommunityService             @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   apartments  CommunityServiceApartment[]
+  reviews     ServiceProviderReview[]
 
   @@index([serviceId, isActive])
   @@map("community_service_providers")
@@ -903,6 +906,22 @@ model Review {
   @@unique([userId, orderId, productId])
   @@index([sellerId, createdAt])
   @@map("reviews")
+}
+
+model ServiceProviderReview {
+  id         String                   @id @default(uuid()) @db.Uuid
+  providerId String                   @map("provider_id") @db.Uuid
+  userId     String                   @map("user_id") @db.Uuid
+  rating     Int
+  text       String?                  @db.Text
+  createdAt  DateTime                 @default(now()) @map("created_at")
+  updatedAt  DateTime                 @updatedAt @map("updated_at")
+  provider   CommunityServiceProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  user       User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([providerId, userId])
+  @@index([providerId, createdAt])
+  @@map("service_provider_reviews")
 }
 
 model AuditLog {

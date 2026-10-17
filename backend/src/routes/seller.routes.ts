@@ -21,10 +21,10 @@ sellerRouter.get('/', requireAuth, async (request, response, next) => {
         ...(type ? { sellerType: type } : {}),
         ...(context.apartment.sellerDisplayMode === 'LOCAL_ONLY' ? { sellerType: 'APARTMENT', apartmentId: context.apartmentId } : context.apartment.sellerDisplayMode === 'OUTSIDE_ONLY' ? { sellerType: 'OUTSIDE', deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true, isEnabled: true } } } : { OR: [{ sellerType: 'APARTMENT', apartmentId: context.apartmentId }, { sellerType: 'OUTSIDE', deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true, isEnabled: true } } }] }),
       },
-      include: { operatingHours: true, categories: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
+      include: { operatingHours: true, categories: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } }, reviews: { where: { productId: null }, select: { rating: true } } },
       orderBy: { createdAt: 'asc' },
     });
-    response.json(sellers.filter(seller => getSellerAvailability(seller).isOpen));
+    response.json(sellers.filter(seller => getSellerAvailability(seller).isOpen).map(seller => { const reviews = seller.reviews || []; const showRatings = (seller as any).showRatings === true; const { reviews: _reviews, ...visibleSeller } = seller; return { ...visibleSeller, rating: showRatings && reviews.length ? Number((reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length).toFixed(1)) : null, reviewCount: showRatings ? reviews.length : 0 }; }));
   } catch (error) {
     next(error);
   }
@@ -43,7 +43,7 @@ sellerRouter.get('/:sellerId', requireAuth, async (request, response, next) => {
       : context.apartment.sellerDisplayMode === 'OUTSIDE_ONLY'
         ? { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true, isEnabled: true } } }
         : { OR: [{ sellerType: 'APARTMENT' as const, apartmentId: context.apartmentId }, { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true, isEnabled: true } } }] };
-    const seller = await prisma.sellerProfile.findFirst({ where: { id: sellerId, status: 'APPROVED', ...visibility }, include: { operatingHours: { orderBy: { dayOfWeek: 'asc' } }, categories: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } }, advertisements: { where: { status: 'APPROVED', OR: [{ startAt: null }, { startAt: { lte: new Date() } }], AND: [{ OR: [{ endAt: null }, { endAt: { gte: new Date() } }] }] }, orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }], take: 3 }, advertisementReqs: { where: { status: 'PENDING', type: 'SELLER_ADVERTISEMENT' }, orderBy: { createdAt: 'desc' }, take: 3 }, products: { where: { availability: true }, include: { images: { orderBy: { sortOrder: 'asc' } }, category: true, globalCategory: true, inventory: true }, orderBy: { createdAt: 'asc' } } } });
+    const seller = await prisma.sellerProfile.findFirst({ where: { id: sellerId, status: 'APPROVED', ...visibility }, include: { reviews: { where: { productId: null }, select: { rating: true } }, operatingHours: { orderBy: { dayOfWeek: 'asc' } }, categories: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } }, advertisements: { where: { status: 'APPROVED', OR: [{ startAt: null }, { startAt: { lte: new Date() } }], AND: [{ OR: [{ endAt: null }, { endAt: { gte: new Date() } }] }] }, orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }], take: 3 }, advertisementReqs: { where: { status: 'PENDING', type: 'SELLER_ADVERTISEMENT' }, orderBy: { createdAt: 'desc' }, take: 3 }, products: { where: { availability: true }, include: { reviews: { select: { rating: true } }, images: { orderBy: { sortOrder: 'asc' } }, category: true, globalCategory: true, inventory: true }, orderBy: { createdAt: 'asc' } } } });
     if (!seller) {
       response.status(404).json({ error: { code: 'SELLER_NOT_FOUND', message: 'Seller is not available in your apartment' } });
       return;
@@ -53,7 +53,10 @@ sellerRouter.get('/:sellerId', requireAuth, async (request, response, next) => {
       return;
     }
     const sellerUser = await prisma.user.findUnique({ where: { id: seller.userId }, select: { phone: true, apartments: { where: { isPrimary: true }, include: { apartment: true, block: true, flat: true } } } });
-    response.json({ ...seller, user: sellerUser });
+    const sellerRatings = seller.reviews || [];
+    const showRatings = (seller as any).showRatings === true;
+    const { reviews: _sellerReviews, ...sellerWithoutReviews } = seller;
+    response.json({ ...sellerWithoutReviews, rating: showRatings && sellerRatings.length ? Number((sellerRatings.reduce((sum, item) => sum + item.rating, 0) / sellerRatings.length).toFixed(1)) : null, reviewCount: showRatings ? sellerRatings.length : 0, products: seller.products.map(product => { const { reviews, ...visibleProduct } = product; return { ...visibleProduct, rating: showRatings && reviews.length ? Number((reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length).toFixed(1)) : null, reviewCount: showRatings ? reviews.length : 0 }; }), user: sellerUser });
   } catch (error) {
     next(error);
   }
@@ -66,8 +69,8 @@ sellerRouter.get('/:sellerId/reviews', requireAuth, async (request, response, ne
     const seller = context ? await prisma.sellerProfile.findFirst({ where: { id: sellerId, status: 'APPROVED', OR: [{ sellerType: 'APARTMENT', apartmentId: context.apartmentId }, { sellerType: 'OUTSIDE', deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true, isEnabled: true } } }] }, select: { id: true } }) : null;
     if (!seller) { response.status(404).json({ error: { code: 'SELLER_NOT_FOUND', message: 'Seller is not available in your apartment' } }); return; }
     const [reviews, aggregate] = await Promise.all([
-      prisma.review.findMany({ where: { sellerId }, include: { user: { select: { name: true } } }, orderBy: { createdAt: 'desc' }, take: 20 }),
-      prisma.review.aggregate({ where: { sellerId }, _avg: { rating: true }, _count: { _all: true } }),
+      prisma.review.findMany({ where: { sellerId, productId: null }, select: { id: true, rating: true, text: true, productId: true, createdAt: true }, orderBy: { createdAt: 'desc' }, take: 20 }),
+      prisma.review.aggregate({ where: { sellerId, productId: null }, _avg: { rating: true }, _count: { _all: true } }),
     ]);
     response.json({ averageRating: aggregate._avg.rating ?? 0, reviewCount: aggregate._count._all, reviews });
   } catch (error) { next(error); }
