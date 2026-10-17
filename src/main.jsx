@@ -2098,7 +2098,19 @@ function usePullToRefresh(currentPage) {
 
 function App() {
   const initialSellerRegistrationIntent = (() => { const params = new URLSearchParams(window.location.search); return params.get('seller-registration') === 'outside' || params.get('isSellorReg') === 'true'; })();
-  const [screen, setScreen] = useState(() => window.sessionStorage.getItem('gatedcart_refresh_screen') || 'home');
+  const initialScreen = window.sessionStorage.getItem('gatedcart_refresh_screen') || 'home';
+  const [screen, setScreenState] = useState(initialScreen);
+  const screenRef = useRef(initialScreen);
+  const setScreen = nextScreen => {
+    const resolvedScreen = typeof nextScreen === 'function' ? nextScreen(screenRef.current) : nextScreen;
+    if (!resolvedScreen || resolvedScreen === screenRef.current) return;
+    const isBackToHome = resolvedScreen === 'home';
+    const nextHistoryState = { ...(window.history.state || {}), gatedcartHistory: true, gatedcartScreen: resolvedScreen };
+    if (isBackToHome) window.history.replaceState(nextHistoryState, '', window.location.href);
+    else window.history.pushState(nextHistoryState, '', window.location.href);
+    screenRef.current = resolvedScreen;
+    setScreenState(resolvedScreen);
+  };
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedCommunityService, setSelectedCommunityService] = useState(null);
@@ -2118,6 +2130,16 @@ function App() {
   const [sellerApplicationLoading, setSellerApplicationLoading] = useState(true);
   usePullToRefresh(screen);
   useEffect(() => { window.sessionStorage.removeItem('gatedcart_refresh_screen'); }, []);
+  useEffect(() => {
+    window.history.replaceState({ ...(window.history.state || {}), gatedcartHistory: true, gatedcartScreen: screenRef.current }, '', window.location.href);
+    const handlePopState = event => {
+      const nextScreen = event.state?.gatedcartHistory ? event.state.gatedcartScreen : 'home';
+      screenRef.current = nextScreen || 'home';
+      setScreenState(screenRef.current);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   useEffect(() => {
     fetch(`${API_BASE}/maintenance`)
       .then(response => response.ok ? response.json() : null)
