@@ -6,7 +6,7 @@ import { prisma } from '../lib/prisma.js';
 
 export const pushRouter = Router();
 
-const deviceSchema = z.object({ token: z.string().min(10).max(255), platform: z.enum(['android', 'ios']), deviceId: z.string().max(255).optional() });
+const deviceSchema = z.object({ token: z.string().min(10).max(255), platform: z.enum(['android', 'ios', 'web']), deviceId: z.string().max(255).optional() });
 
 pushRouter.post('/push-devices', (request, _response, next) => {
   console.log('[push] registration HTTP request received', {

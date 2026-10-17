@@ -209,6 +209,7 @@ Orders created before this migration may still use their existing relational add
 - Mobile pull-to-refresh preserves the current page, including Orders, instead of returning to Home after reload.
 - Outside sellers provide a required business address during registration and can update it from Seller Settings. Community sellers do not use an outside-business address field; their apartment context is used in seller/order details.
 - Native push registration now re-registers tokens when Expo/FCM rotates them. Android and iOS use package identifier `com.cheritech.gatedcart`.
+- Browser push notifications use Firebase Cloud Messaging Web. Set `VITE_FIREBASE_VAPID_KEY` from Firebase Console > Project settings > Cloud Messaging > Web Push certificates before deploying. The browser asks for permission after login, registers a `web` push token, and deactivates it on logout. A registered browser can receive order and campaign notifications even when the tab is closed; browser support and user permission still apply.
 
 ## Mobile browser theme update - 2026-10-14
 

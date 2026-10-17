@@ -828,3 +828,5 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .profile-screen main.profile-content > .seller-application-card .seller-application-card-heading p { margin: 0; font-size: 13px; }
 .profile-screen main.profile-content > .seller-application-card .application-status-badge { position: absolute; top: 45px; right: 18px; }
 .profile-screen main.profile-content > .seller-application-card > small { display: block; max-width: 100%; margin-top: 18px; line-height: 1.5; }
+.browser-notification-prompt { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 1200px; margin: 12px auto 0; padding: 10px 14px; border: 1px solid #ffd6b8; border-radius: 10px; background: #fff8f2; color: var(--ink); font-size: 12px; }
+.browser-notification-prompt .secondary-button { flex: 0 0 auto; }

@@ -2,6 +2,7 @@ import { Component, StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
 import './styles.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000/api/v1` : 'http://localhost:5000/api/v1');
@@ -84,6 +85,39 @@ const unregisterNativePushDevice = (token, accessToken) => {
   if (typeof window === 'undefined' || !token || !accessToken) return;
   void fetch(`${API_BASE}/push-devices/${encodeURIComponent(token)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => {});
   window.__gatedcartWebPushRegistrationToken = '';
+};
+
+async function registerWebPushDevice(accessToken) {
+  if (typeof window === 'undefined' || window.ReactNativeWebView || !accessToken || !('Notification' in window) || !('serviceWorker' in navigator)) return;
+  if (window.__gatedcartWebPushRegistrationPromise) return window.__gatedcartWebPushRegistrationPromise;
+  window.__gatedcartWebPushRegistrationPromise = (async () => {
+    if (!(await isSupported().catch(() => false))) return;
+    const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+    if (permission !== 'granted') return;
+    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+    if (!vapidKey) { console.warn('[push] VITE_FIREBASE_VAPID_KEY is not configured; browser notifications are disabled.'); return; }
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const messaging = getMessaging(getApps().length ? getApp() : initializeApp(firebaseConfig));
+    const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
+    if (!token) return;
+    if (window.localStorage.getItem(ACCESS_TOKEN_KEY) !== accessToken) return;
+    const response = await fetch(`${API_BASE}/push-devices`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ token, platform: 'web', deviceId: `web:${location.origin}` }) });
+    if (!response.ok) throw new Error(`Browser push registration failed: ${response.status}`);
+    window.__gatedcartWebPushToken = token;
+    window.__gatedcartWebPushAccessToken = accessToken;
+    if (!window.__gatedcartWebPushMessageBound) {
+      window.__gatedcartWebPushMessageBound = true;
+      onMessage(messaging, payload => { if (Notification.permission === 'granted') new Notification(payload.notification?.title || 'GatedCart update', { body: payload.notification?.body || '', data: payload.data || {} }); });
+    }
+  })().catch(error => console.error('[push] browser registration failed', error?.message || error)).finally(() => { window.__gatedcartWebPushRegistrationPromise = null; });
+  return window.__gatedcartWebPushRegistrationPromise;
+}
+
+const unregisterWebPushDevice = accessToken => {
+  if (typeof window === 'undefined' || !window.__gatedcartWebPushToken || !accessToken) return;
+  void fetch(`${API_BASE}/push-devices/${encodeURIComponent(window.__gatedcartWebPushToken)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => {});
+  window.__gatedcartWebPushToken = '';
+  window.__gatedcartWebPushAccessToken = '';
 };
 
 if (typeof window !== 'undefined' && !window.__gatedcartPushRegistrationBound) {
@@ -892,8 +926,10 @@ function HomeScreen({ onOpenSeller, onOpenCategory, onOpenCommunityService, acce
   const lists = mode === 'local' ? [[`Community sellers near ${communityName || 'your community'}`, sellerData.localSellers]] : mode === 'outside' ? [[`Outside sellers serving ${communityName || 'your community'}`, sellerData.outsideSellers]] : [[`Community sellers near ${communityName || 'your community'}`, sellerData.localSellers], [`Outside sellers serving ${communityName || 'your community'}`, sellerData.outsideSellers]];
   const orderedCommunityServices = [...communityServices].sort((a, b) => Number(Boolean(b.providerCount)) - Number(Boolean(a.providerCount)));
   if (communityRequired) return <CommunitySelectorV3 accessToken={accessToken} onSelected={() => { setCommunityRequired(false); }} onLogout={onLogout} />;
+  const browserNotificationsAvailable = !window.ReactNativeWebView && import.meta.env.VITE_FIREBASE_VAPID_KEY && 'Notification' in window;
   return <div className="app-shell"><CartConflictToast item={cartConflictItem} onConfirm={onConfirmCartConflict} onCancel={onCancelCartConflict} />
     <Topbar user={profileUser} cartCount={cartCount} onCart={onCart} onNavigate={onProfile} onLogout={onLogout} />
+    {browserNotificationsAvailable && Notification.permission === 'default' && <div className="browser-notification-prompt"><span>Get order updates even when GatedCart is closed.</span><button type="button" className="secondary-button" onClick={() => void registerWebPushDevice(accessToken)}>Enable notifications</button></div>}
     <main className="home-content page-width">
       <label className="search-box"><Icon name="search" size={20} /><input value={searchTerm} onChange={event => setSearchTerm(event.target.value)} placeholder="Search sellers, products or categories" /><kbd>⌘ K</kbd></label>
       {searchResults && <section className="search-results"><div className="search-results-heading"><span className="eyebrow">SEARCH RESULTS</span><button onClick={() => { setSearchTerm(''); setSearchResults(null); }}>Clear</button></div>{searchResults.sellers?.map(seller => <button className="search-result-row" key={`seller-${seller.id}`} onClick={() => { onOpenSeller(sellerPresentation(seller)); setSearchResults(null); }}><strong>{seller.businessName || seller.sellerName}</strong><small>Seller · {seller.sellerType === 'APARTMENT' ? 'Local' : 'Outside'}</small></button>)}{searchResults.products?.map(product => <button className="search-result-row" key={`product-${product.id}`} onClick={() => { onOpenSeller(sellerPresentation(product.seller)); setSearchResults(null); }}><strong>{product.name}</strong><small>{product.seller?.businessName || 'Seller'} · ₹{Number(product.finalPrice ?? product.price).toFixed(2)}</small></button>)}{searchResults.categories?.map(category => <button className="search-result-row" key={`category-${category.id}`} onClick={() => { onOpenSeller(sellerPresentation(category.seller)); setSearchResults(null); }}><strong>{category.name}</strong><small>Category · {category.seller?.businessName || 'Seller'}</small></button>)}{!searchResults.sellers?.length && !searchResults.products?.length && !searchResults.categories?.length && <p className="empty-panel-copy">No items found.</p>}</section>}
@@ -2182,6 +2218,7 @@ function App() {
   useEffect(() => {
     if (!accessToken) return undefined;
     registerNativePushDevice(window.__gatedcartNativePushToken, window.__gatedcartNativePushPlatform || 'android', window.__gatedcartNativePushDeviceId);
+    void registerWebPushDevice(accessToken);
     window.__gatedcartNativeNotification = data => {
       if (data?.orderId) setNotificationOrderId(data.orderId);
       if (data?.route === 'seller-orders') setScreen('seller');
@@ -2199,7 +2236,7 @@ function App() {
   if (!sessionReady) return <main className="auth-screen"><div className="auth-card session-loading"><Logo /><p className="auth-copy">Checking your GatedCart session…</p></div></main>;
   if (!accessToken) return <LoginScreen sellerRegistrationIntent={sellerRegistrationIntent} onAuthenticated={session => { setSellerRegistrationExisting(Boolean(session.sellerRegistrationExisting)); persistSession(session); setAccessToken(session.accessToken); fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${session.accessToken}` } }).then(response => response.json()).then(setSessionUser).catch(() => {}); }} />;
   const roleCodes = (sessionUser?.roles || []).map(role => typeof role === 'string' ? role : role?.code || role?.role?.code).filter(Boolean);
-  const logout = () => { unregisterNativePushDevice(window.__gatedcartNativePushToken, accessToken); void fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => {}); window.localStorage.removeItem(ACCESS_TOKEN_KEY); window.localStorage.removeItem(REFRESH_TOKEN_KEY); setAccessToken(null); setSessionUser(null); };
+  const logout = () => { unregisterNativePushDevice(window.__gatedcartNativePushToken, accessToken); unregisterWebPushDevice(accessToken); void fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => {}); window.localStorage.removeItem(ACCESS_TOKEN_KEY); window.localStorage.removeItem(REFRESH_TOKEN_KEY); setAccessToken(null); setSessionUser(null); };
   const continueFromSellerEntry = () => { window.location.replace('/'); };
   if (roleCodes.includes('GLOBAL_ADMIN')) return <AdminWorkspace token={accessToken} onLogout={logout} />;
   if (isDeleteAccountPath) return <DeleteAccountPage accessToken={accessToken} onBack={() => { window.location.href = '/'; }} onLogout={logout} />;

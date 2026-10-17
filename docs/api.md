@@ -125,10 +125,10 @@ Seller-category endpoints remain available only for backward compatibility with 
 
 ### Push notifications
 
-- `POST /push-devices` — authenticated mobile clients register an Expo push token with `token`, `platform` (`android` or `ios`), and optional `deviceId`.
+- `POST /push-devices` — authenticated mobile/native clients register an Expo push token with `token`, `platform` (`android` or `ios`), and optional `deviceId`; authenticated browser clients register an FCM Web token with `platform: "web"`.
 - `DELETE /push-devices/:token` — authenticated clients deactivate their push token during logout or uninstall cleanup.
 
-The API stores device tokens in `push_devices`. New orders notify the customer and seller; order status changes notify the customer. Push payloads use the default notification sound and include `route` and `orderId` data for mobile tap navigation.
+The API stores device tokens in `push_devices`. New orders notify the customer and seller; order status changes notify the customer. Expo tokens are delivered through Expo Push Service, while browser tokens are delivered through Firebase Cloud Messaging Web. The browser service worker can display notifications while the tab is closed. Push payloads include `route` and `orderId` data for navigation clients.
 
 ### Order references and seller order workflow
 
