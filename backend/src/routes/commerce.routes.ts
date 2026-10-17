@@ -196,8 +196,13 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
       });
     }
     const notificationType = ({ ACCEPTED: 'ORDER_ACCEPTED', REJECTED: 'ORDER_REJECTED', PREPARING: 'ORDER_PREPARING', READY_FOR_PICKUP: 'ORDER_READY', ASSIGNED_TO_DELIVERY_BOY: 'DELIVERY_ASSIGNED', PICKED_UP: 'ORDER_PICKED_UP', OUT_FOR_DELIVERY: 'ORDER_OUT_FOR_DELIVERY', DELIVERED: 'ORDER_DELIVERED' } as Record<string, string>)[status] || 'SYSTEM';
-    await prisma.notification.create({ data: { userId: order.customerId, type: notificationType as never, title: 'Order update', message: orderStatusMessage(status), data: { route: 'orders', orderId: order.id, status } } });
-    void sendPushNotifications([{ userId: order.customerId, title: 'Order update', body: orderStatusMessage(status), channelId: 'customer_updates', data: { route: 'orders', orderId: order.id, status } }]);
+    const customerNotification = { userId: order.customerId, type: notificationType as never, title: 'Order update', message: orderStatusMessage(status), data: { route: 'orders', orderId: order.id, status } };
+    const sellerCancelledByCustomer = status === 'CANCELLED' && order.customerId === request.auth!.userId;
+    const sellerNotification = sellerCancelledByCustomer ? { userId: order.seller.userId, type: 'SYSTEM' as never, title: 'Order cancelled', message: `Order ${order.orderNumber} was cancelled by the customer.`, data: { route: 'seller-orders', orderId: order.id, status } } : null;
+    await prisma.notification.createMany({ data: sellerNotification ? [customerNotification, sellerNotification] : [customerNotification] });
+    const pushMessages: Array<{ userId: string; title: string; body: string; channelId: 'customer_updates' | 'seller_orders'; data: Record<string, string> }> = [{ userId: order.customerId, title: 'Order update', body: orderStatusMessage(status), channelId: 'customer_updates', data: { route: 'orders', orderId: order.id, status } }];
+    if (sellerCancelledByCustomer && order.seller.userId !== order.customerId) pushMessages.push({ userId: order.seller.userId, title: 'Order cancelled', body: `Order ${order.orderNumber} was cancelled by the customer.`, channelId: 'seller_orders', data: { route: 'seller-orders', orderId: order.id, status } });
+    void sendPushNotifications(pushMessages);
     response.json(updated);
   } catch (error) {
     next(error);
