@@ -2168,7 +2168,6 @@ function App() {
   }
   if (sellerApplication?.sellerType === 'OUTSIDE' && sellerApplication.status === 'PENDING') return <SellerApplicationPendingScreen application={sellerApplication} onLogout={logout} />;
   const isApprovedSeller = sellerStatus === 'APPROVED';
-  if (isApprovedSeller && roleCodes.some(role => ['OUTSIDE_SELLER', 'APARTMENT_SELLER'].includes(role))) return <SellerArea accessToken={accessToken} onBack={() => { window.location.href = '/'; }} onLogout={logout} onNavigate={() => {}} />;
   const appendToCart = item => setCart(current => {
     const productId = item.productId || item.id;
     const sellerId = item.sellerId || item.seller?.id;
