@@ -142,7 +142,7 @@ Push registration diagnostics log request receipt, authorization presence, authe
 
 The native client also listens for Expo/FCM token rotation and re-registers the new token against `POST /push-devices`.
 
-Browser registration is initiated by the signed-in web client after its in-app notification prompt. The prompt is shown only when the customer has an active order and is throttled to once per day. Browser permission remains a browser-controlled setting; if it is blocked, the app can explain that the user must enable notifications in the site's browser settings. The Firebase Messaging service worker can display a received notification when the browser tab is closed. Logout deactivates the current browser token.
+Browser registration is initiated by the signed-in web client after its in-app notification prompt. The prompt is shown once on a user's first browser login even without an order; later reminders are shown only for active-order users and are throttled to once per day. Browser permission remains a browser-controlled setting; if it is blocked, the app can explain that the user must enable notifications in the site's browser settings. The Firebase Messaging service worker can display a received notification when the browser tab is closed. Logout deactivates the current browser token.
 
 ### Seller availability and ratings
 

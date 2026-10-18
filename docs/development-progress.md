@@ -403,5 +403,6 @@ Historical note: orders created before the snapshot migration may not have immut
 - [x] Category navigation now excludes products from sellers who are currently unavailable. A configured schedule with no record for the current weekday treats that seller as closed.
 - [x] Seller settings expose `isCurrentlyOpen` and `availabilityReason`; the Seller workspace status card uses calculated availability rather than raw `isOpen`.
 - [x] Added browser FCM registration through the service worker, in-app permission prompt throttled to once per day for users with active orders, closed-tab delivery support, and logout token deactivation.
+- [x] Added a first-browser-login notification prompt, shown once per user even before the first order; subsequent reminders remain active-order-only.
 - [x] Updated README, API reference, and architecture documentation for these changes.
 - [x] Verified the web build, backend TypeScript check, Prisma migration status, and `git diff --check` locally.
