@@ -266,3 +266,8 @@ Before deploying today, configure production Firebase Admin credentials, JWT sec
 - The web header uses the provided exact GatedCart logo asset at `public/assets/gatedcart-logo-exact.svg`, avoiding hand-drawn logo geometry and preventing mark overlap.
 - Seller application descriptions are center-aligned in the “What do you sell?” textarea.
 - Seller workspace tabs add browser-history entries. Browser Back from Seller Orders returns to the Seller workspace Overview instead of resetting to the application start screen.
+
+## Customer products viewport
+
+- The customer seller-products page keeps the banner, search, and category tabs fixed while the product list scrolls inside its own viewport.
+- Mobile pull-down refresh must not reset the seller products page or hide its loaded data.

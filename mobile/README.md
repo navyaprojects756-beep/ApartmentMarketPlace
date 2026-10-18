@@ -128,3 +128,7 @@ Install the fresh preview APK, allow notifications, log in, and verify that the 
 
 - The shared web client uses the exact GatedCart logo asset and keeps the logo mark clear at mobile header sizes.
 - Seller workspace tab navigation preserves browser history, so Back from Orders returns to the seller Overview screen.
+
+## Customer products viewport
+
+- The customer seller-products screen uses an internal product-list scroll area; mobile pull-down gestures must not refresh or reset storefront data.

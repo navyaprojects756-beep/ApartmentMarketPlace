@@ -413,6 +413,14 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .storefront-screen .product-card .product-art { height: 142px; min-height: 142px; overflow: hidden; }
 .storefront-screen .product-card .product-art.has-product-image img { display: block; width: 100%; height: 100%; min-height: 0; object-fit: cover; }
 @media(max-width: 560px) { .storefront-screen .product-card .product-art { height: 120px; min-height: 120px; } }
+.customer-storefront-with-controls { height: 100dvh; overflow: hidden; }
+html:has(.customer-storefront-with-controls), body:has(.customer-storefront-with-controls) { overflow: hidden; overscroll-behavior-y: none; }
+.customer-storefront-with-controls { position: fixed; inset: 0; z-index: 50; background: #fbfaff; touch-action: pan-y; }
+.customer-storefront-with-controls > .storefront-screen { height: calc(100dvh - 70px); min-height: 0; padding: 0; overflow: hidden; }
+.customer-storefront-with-controls > .storefront-screen > main.store-content { display: flex; height: 100%; min-height: 0; flex-direction: column; overflow: hidden; padding-top: 18px; padding-bottom: 0; }
+.customer-storefront-with-controls .product-search { flex: 0 0 auto; margin: 12px 0 8px; }
+.customer-storefront-with-controls .category-row { flex: 0 0 auto; padding: 12px 4px 10px; }
+.customer-storefront-with-controls .menu-section { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 16px 0 140px; }
 .delivery-script { display: none !important; }
 .delivery-illustration:before { content: ''; position: absolute; z-index: 1; right: 30%; bottom: 52px; width: 42%; height: 88px; background: linear-gradient(90deg, #dce9e8 0 18%, transparent 18% 23%, #dce9e8 23% 47%, transparent 47% 52%, #dce9e8 52% 78%, transparent 78% 83%, #dce9e8 83%); clip-path: polygon(0 25%, 18% 25%, 18% 0, 38% 0, 38% 25%, 58% 25%, 58% 8%, 76% 8%, 76% 25%, 100% 25%, 100% 100%, 0 100%); opacity: .82; }
 .delivery-illustration:after { content: ''; position: absolute; z-index: 2; left: 8%; bottom: 70px; width: 70px; height: 70px; border-radius: 50%; background: #b8db8b; box-shadow: 30px 12px 0 10px #cbe7a5; }

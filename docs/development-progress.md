@@ -437,6 +437,11 @@ Historical note: orders created before the snapshot migration may not have immut
 - [x] Center-aligned seller application “What do you sell?” textarea content.
 - [x] Added seller workspace tab history so browser Back from Orders returns to Seller Overview.
 
+## 2026-10-18 customer products viewport follow-up
+
+- [x] Keep the customer seller-products page fixed to the viewport while allowing only the products list to scroll.
+- [x] Prevent mobile pull-down refresh from hiding or resetting the seller banner, search, category tabs, and product data.
+
 ### Local verification limitations
 
 In the current restricted environment, `prisma migrate status` could not download Prisma's schema engine because outbound access was refused, and `npm test` was blocked by Windows `spawn EPERM` while starting the test workers. These are environment limitations and must be rerun in the deployment/CI environment.
