@@ -91,11 +91,11 @@ async function registerWebPushDevice(accessToken) {
   if (typeof window === 'undefined' || window.ReactNativeWebView || !accessToken || !('Notification' in window) || !('serviceWorker' in navigator)) return;
   if (window.__gatedcartWebPushRegistrationPromise) return window.__gatedcartWebPushRegistrationPromise;
   window.__gatedcartWebPushRegistrationPromise = (async () => {
-    if (!(await isSupported().catch(() => false))) return;
     const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
     if (permission !== 'granted') return;
     const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
     if (!vapidKey) { console.warn('[push] VITE_FIREBASE_VAPID_KEY is not configured; browser notifications are disabled.'); return; }
+    if (!(await isSupported().catch(() => false))) { console.warn('[push] This browser does not support Firebase Web Push.'); return; }
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     const messaging = getMessaging(getApps().length ? getApp() : initializeApp(firebaseConfig));
     const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
@@ -917,7 +917,8 @@ function CommunityServiceProvidersScreen({ service, accessToken, onBack, showSel
 const activeOrderStatuses = new Set(['PENDING', 'ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP', 'ASSIGNED_TO_DELIVERY_BOY', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED']);
 
 function BrowserNotificationPrompt({ accessToken, activeOrders = [], userKey, forceFirstLogin = false }) {
-  const browserNotificationsAvailable = !window.ReactNativeWebView && import.meta.env.VITE_FIREBASE_VAPID_KEY && 'Notification' in window;
+  const browserNotificationsAvailable = !window.ReactNativeWebView && 'Notification' in window && 'serviceWorker' in navigator;
+  const vapidConfigured = Boolean(import.meta.env.VITE_FIREBASE_VAPID_KEY);
   const promptKey = `gatedcart_browser_notification_prompt_${userKey || 'current-user'}`;
   const firstLoginKey = `gatedcart_browser_notification_first_login_${userKey || 'current-user'}`;
   const today = new Date().toISOString().slice(0, 10);
@@ -935,7 +936,7 @@ function BrowserNotificationPrompt({ accessToken, activeOrders = [], userKey, fo
     if (isFirstLogin) window.localStorage.setItem(firstLoginKey, today);
   }, [firstLoginKey, isFirstLogin, promptKey, today, visible]);
   if (!browserNotificationsAvailable || !visible || permission === 'granted') return null;
-  return <div className="browser-notification-dialog-backdrop" role="presentation"><section className="browser-notification-dialog" role="dialog" aria-modal="true" aria-labelledby="browser-notification-title"><span className="eyebrow">GATEDCART UPDATES</span><h2 id="browser-notification-title">Enable notifications</h2><p>{isFirstLogin ? 'Allow GatedCart notifications so you receive important order and account updates in this browser.' : 'Allow GatedCart notifications to receive status updates for your active order, even when this browser tab is closed.'}</p>{permission === 'denied' && <p className="browser-notification-blocked-copy">Notifications are currently blocked. Use this site's browser permissions and set Notifications to Allow, then reload GatedCart.</p>}<div className="browser-notification-dialog-actions"><button type="button" className="secondary-button" onClick={() => setVisible(false)}>Not now</button>{permission === 'default' && <button type="button" className="primary-button" onClick={() => { setVisible(false); void registerWebPushDevice(accessToken); }}>Enable notifications</button>}</div></section></div>;
+  return <div className="browser-notification-dialog-backdrop" role="presentation"><section className="browser-notification-dialog" role="dialog" aria-modal="true" aria-labelledby="browser-notification-title"><span className="eyebrow">GATEDCART UPDATES</span><h2 id="browser-notification-title">Enable notifications</h2><p>{isFirstLogin ? 'Allow GatedCart notifications so you receive important order and account updates in this browser.' : 'Allow GatedCart notifications to receive status updates for your active order, even when this browser tab is closed.'}</p>{!vapidConfigured && <p className="browser-notification-blocked-copy">Browser notifications are not configured for this website yet. Please contact the administrator.</p>}{permission === 'denied' && <p className="browser-notification-blocked-copy">Notifications are currently blocked. Use this site's browser permissions and set Notifications to Allow, then reload GatedCart.</p>}<div className="browser-notification-dialog-actions"><button type="button" className="secondary-button" onClick={() => setVisible(false)}>Not now</button>{permission === 'default' && vapidConfigured && <button type="button" className="primary-button" onClick={() => { setVisible(false); void registerWebPushDevice(accessToken); }}>Enable notifications</button>}</div></section></div>;
 }
 
 function HomeScreen({ onOpenSeller, onOpenCategory, onOpenCommunityService, accessToken, user, onLogout, onOrders, onProfile, onSeller, showSeller, cartCount, onCart, cartConflictItem, onConfirmCartConflict, onCancelCartConflict, notificationPromptOnLogin = false }) {
