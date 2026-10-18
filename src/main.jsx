@@ -598,7 +598,7 @@ function LoginScreenV2({ onAuthenticated }) {
 }
 
 function GatedCartLogo({ light = false }) {
-  return <div className={`gatedcart-logo ${light ? 'light' : ''}`}><span className="gatedcart-logo-mark"><svg viewBox="0 0 112 82" aria-hidden="true"><path className="logo-g" d="M77 17C67 8 53 5 40 8 20 12 8 28 10 47c2 20 17 32 36 32 12 0 22-4 29-12V49H51" /><path className="logo-cart-handle" d="M54 35h17" /><path className="logo-cart" d="M66 35h34l-7 28H74l-8-28Z" /><path className="logo-cart-line" d="M77 47h14M79 56h12" /><circle className="logo-wheel" cx="78" cy="72" r="5" /><circle className="logo-wheel" cx="94" cy="72" r="5" /></svg></span><span className="gatedcart-logo-word"><b>Gated</b><strong>Cart</strong><small>Your Community Marketplace</small></span></div>;
+  return <div className={`gatedcart-logo ${light ? 'light' : ''}`}><span className="gatedcart-logo-mark"><img src="/assets/gatedcart-logo-exact.svg" alt="" /></span><span className="gatedcart-logo-word"><b>Gated</b><strong>Cart</strong><small>Your Community Marketplace</small></span></div>;
 }
 
 function OriginalGatedCartSplashScreen({ onContinue }) {
@@ -2087,7 +2087,7 @@ function SellerCouponsPanel({ accessToken }) {
 }
 
 function SellerCrudPortal({ accessToken, onLogout }) {
-  const [tab, setTab] = useState('overview');
+  const [tab, setTabState] = useState('overview');
   const [settings, setSettings] = useState(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -2104,6 +2104,17 @@ function SellerCrudPortal({ accessToken, onLogout }) {
   const [staffForm, setStaffForm] = useState({ name: '', phone: '', apartmentId: '' });
   const [adForm, setAdForm] = useState({ title: '', description: '', imageUrls: [] });
   const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+  const setTab = nextTab => {
+    if (!nextTab || nextTab === tab) return;
+    window.history.pushState({ ...(window.history.state || {}), gatedcartHistory: true, gatedcartScreen: 'seller', gatedcartSellerTab: nextTab }, '', window.location.href);
+    setTabState(nextTab);
+  };
+  useEffect(() => {
+    window.history.replaceState({ ...(window.history.state || {}), gatedcartHistory: true, gatedcartScreen: 'seller', gatedcartSellerTab: tab }, '', window.location.href);
+    const handleSellerTabBack = event => setTabState(event.state?.gatedcartSellerTab || 'overview');
+    window.addEventListener('popstate', handleSellerTabBack);
+    return () => window.removeEventListener('popstate', handleSellerTabBack);
+  }, []);
   const request = async (path, options = {}) => { const response = await fetch(`${API_BASE}${path}`, { ...options, headers: { ...headers, ...(options.headers || {}) } }); let data = null; try { data = await response.json(); } catch {} if (!response.ok) throw new Error(data?.error?.message || 'Request failed.'); return data; };
   async function load() { try { const [settingsData, productData, categoryData, orderData, staffData, apartmentData, areaData, adData] = await Promise.all([request('/seller/settings'), request('/seller/catalog'), request('/seller/categories'), request('/seller/orders'), request('/seller/delivery-boys'), request('/apartments'), request('/seller/delivery-areas'), request('/seller/advertisements')]); window.__gatedcartSellerType = settingsData?.sellerType; setSettings(settingsData); setProducts(Array.isArray(productData) ? productData : []); setCategories(Array.isArray(categoryData) ? categoryData : []); setOrders(Array.isArray(orderData) ? orderData : []); setStaff(Array.isArray(staffData) ? staffData : []); setApartments(Array.isArray(apartmentData) ? apartmentData : []); setAreas(Array.isArray(areaData) ? areaData : []); setAds(Array.isArray(adData) ? adData : []); setStaffForm(current => ({ ...current, apartmentId: current.apartmentId || apartmentData?.[0]?.id || '' })); } catch (error) { setMessage(error.message || 'Seller workspace is unavailable.'); } }
   useEffect(() => { void load(); }, [accessToken]);
