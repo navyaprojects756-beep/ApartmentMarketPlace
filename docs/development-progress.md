@@ -414,4 +414,22 @@ Historical note: orders created before the snapshot migration may not have immut
 - [x] Added backend coupon validation and transactional redemption during checkout.
 - [x] Added per-seller cart coupon entry, minimum-value unlock suggestions, and coupon-aware order totals.
 - [x] Added coupon fields to CSV and printable seller invoice calculations.
-- [ ] Apply migration `20261018120000_coupons` locally and verify seller/customer coupon smoke tests when Prisma migration tooling is available.
+- [x] Committed coupon migrations `20261018120000_coupons` and `20261018130000_allow_unlimited_coupon_usage`.
+- [ ] Verify both coupon migrations and seller/customer coupon smoke tests against the release database.
+
+## 2026-10-18 seller lifecycle and live release checkpoint
+
+- [x] Replaced seller order action buttons with a clickable lifecycle bar.
+- [x] Added direct operational status selection for sellers while preventing changes after terminal states.
+- [x] Added seller cancellation as a lifecycle action with an in-app confirmation dialog.
+- [x] Added seller Delivered PIN verification using `targetStatus: "DELIVERED"`; incorrect or cancelled PIN entry leaves the order unchanged.
+- [x] Hid the lifecycle after Delivered, Cancelled, or Completed.
+- [x] Changed customer reviews to one manually navigated rating target at a time with left/right arrows.
+- [x] Updated order totals and invoice/order displays for product subtotal, coupon discount, delivery charge, and final total.
+- [x] Frontend production build and backend TypeScript check pass locally.
+- [ ] Run migrations and hosted smoke tests in the production environment before announcing release.
+- [ ] Configure and verify Firebase Admin credentials, `VITE_FIREBASE_VAPID_KEY`, JWT secrets, durable uploads, browser push, Firebase login, checkout, seller status updates, PIN delivery confirmation, cancellation, and ratings on the live domain.
+
+### Local verification limitations
+
+In the current restricted environment, `prisma migrate status` could not download Prisma's schema engine because outbound access was refused, and `npm test` was blocked by Windows `spawn EPERM` while starting the test workers. These are environment limitations and must be rerun in the deployment/CI environment.

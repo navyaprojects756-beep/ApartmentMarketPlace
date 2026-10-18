@@ -2520,3 +2520,12 @@ Orders created before the snapshot migration can only display the address data s
 - Seller availability uses `APP_TIME_ZONE`, defaulting to `Asia/Kolkata`, for the current weekday and time, and requires the seller's `is_open` setting.
 - Outside seller applications require non-empty seller name, business name, description, and business address. The client and API both enforce these requirements.
 - Product description, instructions, SKU, unit, category, and inventory fields are optional where supported. Product name and price remain required.
+
+# Current implementation additions - 2026-10-18 live release
+
+- Seller order controls use one clickable lifecycle bar. Sellers can select direct operational statuses, cancel through an in-app confirmation dialog, and must enter the customer OrderPin before changing an order to `DELIVERED`.
+- Delivered, cancelled, and completed orders do not expose an active seller lifecycle.
+- Customer seller/product ratings are optional, comments are required below two stars, and the UI shows one rating target at a time with manual left/right navigation.
+- Fixed-amount seller coupons support validity dates, minimum product subtotal, seller-specific first-order rules, per-customer one-time/two-time/unlimited usage, apartment targeting, immutable activation rules, and transactional redemption.
+- Coupon discounts apply only to product subtotal and must be shown separately from delivery charges and final totals throughout cart, orders, invoices, and exports.
+- The live release requires all committed Prisma migrations, Firebase Admin configuration, JWT secrets, the web VAPID key, durable uploads, and hosted smoke tests before production announcement.

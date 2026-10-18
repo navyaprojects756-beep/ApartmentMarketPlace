@@ -110,6 +110,13 @@ Install the fresh preview APK, allow notifications, log in, and verify that the 
 - The native APK does not need rebuilding for the web authentication change when it already loads the hosted web URL. Rebuild only when native code, package configuration, or notification configuration changes.
 - Verify Firebase phone login in the hosted WebView after deployment before distributing the APK.
 
+## Shared WebView release behavior - 2026-10-18
+
+- Seller order status changes use a clickable lifecycle bar. Delivered requires the customer OrderPin; seller cancellation requires confirmation.
+- Customer ratings use a manual one-at-a-time carousel with left/right arrows. The same web implementation is loaded by Android, iOS, and browser clients.
+- Browser notification behavior is controlled by the hosted web app and Firebase Web Push. Native notification behavior remains controlled by Expo and the installed mobile build.
+- A native rebuild is not required for web-only lifecycle, coupon, rating, or browser notification UI changes when the APK already loads the hosted web URL. Deploy the web/API and run hosted smoke tests before release.
+
 ## Shared ratings, availability, and notifications - 2026-10-18
 
 - The shared WebView includes optional 1–5 seller/product ratings after completed or delivered orders. Ratings below 2 require a comment, and community service providers can also receive ratings. Comments and reviewer identity are not shown publicly.

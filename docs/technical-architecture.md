@@ -304,3 +304,11 @@ The root `index.html` sets the browser theme metadata to `#ff6b00`, matching the
 - The legacy dummy OTP request and verification endpoints are removed.
 - The backend verifies Firebase Admin ID tokens before creating the GatedCart JWT session.
 - Production must use Firebase Admin credentials and strong non-default JWT secrets.
+
+## Seller lifecycle and rating UI - 2026-10-18
+
+Seller order cards render one clickable lifecycle bar. Sellers may select operational statuses directly while an order is non-terminal. Cancellation is a separate lifecycle step protected by an in-app confirmation dialog. Delivered requires PIN verification through `POST /orders/:orderId/verify-items` with `targetStatus: "DELIVERED"`; successful verification changes the order to `DELIVERED`. Delivered, cancelled, and completed cards do not show an active lifecycle.
+
+Customer review forms use a manual carousel with one seller/product target visible at a time and left/right controls. There is no automatic scrolling. Comments remain private and public aggregates remain controlled by seller visibility settings.
+
+Production must apply `20261018120000_coupons` and `20261018130000_allow_unlimited_coupon_usage` in addition to the earlier committed migrations. Configure Firebase Admin credentials, strong JWT secrets, the web Firebase VAPID key, and durable uploaded-file storage before release.

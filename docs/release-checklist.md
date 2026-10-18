@@ -195,3 +195,20 @@ npx eas build --platform android --profile preview
 - [x] Confirm browser notification prompt is in-app, active-order-only, once per day, and explains blocked browser permission.
 - [x] Confirm logout deactivates the browser push token and the service worker can display notifications while the tab is closed.
 - [ ] Deploy the latest frontend/API and verify ratings, availability, browser permission, logout, and closed-tab notification delivery on the hosted domain.
+
+## 2026-10-18 seller lifecycle, coupons, and final release gate
+
+- [x] Seller order lifecycle bar replaces multiple status buttons.
+- [x] Direct seller operational status updates are supported for non-terminal orders.
+- [x] Seller cancellation uses an in-app confirmation dialog and terminal orders hide the lifecycle.
+- [x] Delivered requires the correct six-digit OrderPin and changes the order to `DELIVERED` only after verification.
+- [x] Customer rating carousel shows one seller/product target at a time with manual left/right arrows.
+- [x] Coupon totals are displayed consistently as product subtotal, coupon discount, delivery charge, and final total.
+- [ ] Apply `20261018120000_coupons` and `20261018130000_allow_unlimited_coupon_usage` in production.
+- [ ] Set Firebase Admin credentials, JWT secrets, `VITE_FIREBASE_VAPID_KEY`, and durable image storage.
+- [ ] Deploy frontend/API and run hosted smoke tests for Firebase login, browser push while closed, coupon checkout, seller status lifecycle, Delivered PIN verification, cancellation, order totals, invoices, and ratings.
+- [ ] Do not announce release until production migrations and smoke tests pass.
+
+### Local verification note
+
+The web build and backend type-check pass locally. Prisma migration status was unable to reach Prisma's binary host in the restricted environment, and the test runner was blocked by Windows `spawn EPERM`; rerun both in CI or the deployment environment.

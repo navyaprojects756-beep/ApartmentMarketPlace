@@ -214,3 +214,10 @@ The browser theme color is configured in the root web document as GatedCart oran
 ## Authentication release contract - 2026-10-14
 
 `POST /auth/firebase/exchange` is the only login exchange endpoint. The client sends a verified Firebase phone ID token; the API validates it with Firebase Admin and returns the GatedCart access and refresh tokens. The removed dummy OTP endpoints must not be used by clients or deployment smoke tests.
+
+## Current order lifecycle and review behavior - 2026-10-18
+
+- `PATCH /orders/:orderId/status` accepts direct seller operational status updates for non-terminal orders. Seller cancellation requires explicit in-app confirmation in the web client.
+- `POST /orders/:orderId/verify-items` accepts `{ code, targetStatus: "DELIVERED" }` for seller delivery confirmation. The order remains unchanged when the PIN is missing or incorrect. Existing completion verification continues to use the default completion target.
+- Customer order tracking shows one rating form at a time with manual left/right navigation for seller and product review targets.
+- Coupon checkout fields preserve product subtotal, optional coupon code/discount, delivery charge, and final total. Coupon discounts never apply to delivery charges and are revalidated transactionally by the API.

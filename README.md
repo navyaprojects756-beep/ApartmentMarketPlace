@@ -239,7 +239,7 @@ Orders created before this migration may still use their existing relational add
 - Browser notification permission is requested through an in-app prompt only when the signed-in user has an active order, and the prompt is limited to once per day. The browser permission dialog is still controlled by the browser; if permission is blocked, the app explains how to enable it in site settings.
 - On a user's first browser login, the in-app notification prompt is shown once even when there are no orders. Later prompts remain active-order-only and limited to once per day.
 - A granted browser subscription can receive order notifications while the tab is closed through the Firebase Messaging service worker. Logging out deactivates the browser token, so that browser session no longer receives user notifications.
-- The latest local verification includes the web production build, backend TypeScript check, Prisma migration status, and `git diff --check`.
+- Release verification must include the web production build, backend TypeScript check, Prisma migration status, and `git diff --check`. Prisma status requires network access to the Prisma engine in some environments.
 
 ## Seller coupons - 2026-10-18
 
@@ -248,3 +248,15 @@ Orders created before this migration may still use their existing relational add
 - Customers apply coupons separately for each seller group in the cart. Discounts are calculated only against the product subtotal, never delivery charges. The backend validates the coupon again during checkout and records each redemption.
 - When a cart is below the minimum subtotal, the cart suggests exactly how much more the customer needs to add to unlock the offer.
 - Orders and seller invoices preserve subtotal, coupon code, coupon discount, delivery charge, and final total separately.
+
+## Seller order lifecycle and live release notes - 2026-10-18
+
+- Seller Orders uses a compact clickable lifecycle bar instead of multiple status buttons. Sellers can select an operational status directly; the API records the status history and sends the normal customer notification.
+- Seller cancellation is shown as a lifecycle action and requires an in-app confirmation dialog. Terminal orders cannot be cancelled.
+- Selecting Delivered opens the shared six-digit OrderPin dialog. The order changes to `DELIVERED` only after the seller enters the correct PIN; it is not completed automatically by this seller action.
+- Customer and seller order totals display product subtotal, coupon discount, delivery charge, and final total separately where applicable.
+- Customer ratings show one seller/product form at a time with manual left/right navigation. Ratings are optional, and comments are required for ratings below two stars.
+
+### Release gate
+
+Before deploying today, configure production Firebase Admin credentials, JWT secrets, `VITE_FIREBASE_VAPID_KEY`, persistent image storage, and the production database. Run committed Prisma migrations with `npx prisma migrate deploy --schema prisma/schema.prisma`, then run `npm run build`, `npm run api:build`, and the hosted Firebase/order/push smoke tests. Do not seed the production database.
