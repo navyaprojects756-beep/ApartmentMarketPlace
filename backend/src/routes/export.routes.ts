@@ -13,7 +13,7 @@ exportRouter.get('/seller/orders.csv', requireAuth, async (request, response, ne
     const seller = await prisma.sellerProfile.findUnique({ where: { userId: request.auth!.userId } });
     if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
     const orders = await prisma.order.findMany({ where: { sellerId: seller.id }, include: { customer: true, apartment: true }, orderBy: { createdAt: 'desc' }, take: 5000 });
-    const lines = [['Order number', 'Date', 'Customer', 'Apartment', 'Amount', 'Status'], ...orders.map(order => [order.orderNumber, order.createdAt.toISOString(), order.customer.name ?? order.customer.phone, order.apartment.name, order.total, order.status])].map(row => row.map(csvCell).join(','));
+    const lines = [['Order number', 'Date', 'Customer', 'Apartment', 'Subtotal', 'Coupon code', 'Coupon discount', 'Delivery charge', 'Total', 'Status'], ...orders.map(order => [order.orderNumber, order.createdAt.toISOString(), order.customer.name ?? order.customer.phone, order.apartment.name, order.subtotal, (order as any).couponCode, order.discount, order.deliveryCharge, order.total, order.status])].map(row => row.map(csvCell).join(','));
     response.type('text/csv').setHeader('Content-Disposition', 'attachment; filename="seller-orders.csv"').send(lines.join('\n'));
   } catch (error) { next(error); }
 });
@@ -63,7 +63,7 @@ exportRouter.get('/seller/orders/:orderId/print.pdf', requireAuth, async (reques
     document.fontSize(10).fillColor('#777').text('ITEM', 55, document.y).text('QTY', 360, document.y).text('AMOUNT', 450, document.y); document.moveDown(0.5);
     document.moveTo(55, document.y).lineTo(540, document.y).strokeColor('#ddd6ec').stroke();
     for (const item of order.items) { document.moveDown(0.5).fillColor('#222').text(item.productName, 55, document.y).text(String(item.quantity), 360, document.y).text(`₹${Number(item.totalPrice).toFixed(2)}`, 450, document.y); }
-    document.moveDown().moveTo(350, document.y).lineTo(540, document.y).strokeColor('#ddd6ec').stroke(); document.moveDown().fontSize(14).fillColor('#4b2eb4').text(`Total: ₹${Number(order.total).toFixed(2)}`, 360, document.y).fontSize(10).fillColor('#555').text(`Notes: ${order.customerNotes || '—'}`, 55, document.y + 20);
+    document.moveDown().moveTo(350, document.y).lineTo(540, document.y).strokeColor('#ddd6ec').stroke(); document.moveDown().fontSize(10).fillColor('#555').text(`Subtotal: ₹${Number(order.subtotal).toFixed(2)}`, 360, document.y).text(`Coupon${(order as any).couponCode ? ` (${(order as any).couponCode})` : ''}: -₹${Number(order.discount).toFixed(2)}`, 360, document.y + 16).text(`Delivery: ₹${Number(order.deliveryCharge).toFixed(2)}`, 360, document.y + 32).fontSize(14).fillColor('#4b2eb4').text(`Total: ₹${Number(order.total).toFixed(2)}`, 360, document.y + 52).fontSize(10).fillColor('#555').text(`Notes: ${order.customerNotes || '—'}`, 55, document.y + 72);
     document.end();
   } catch (error) { next(error); }
 });

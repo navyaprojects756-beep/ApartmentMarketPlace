@@ -33,6 +33,7 @@ Authorization: Bearer <accessToken>
 - `GET /important-alerts`
 - `POST /notifications/:notificationId/dismiss`
 - `POST /reviews`
+- `POST /coupons/validate` — validates a seller coupon for the authenticated customer's apartment and product subtotal; returns an `addMoreAmount` suggestion when the minimum is not met.
 - `GET /reviews/order/:orderId` — returns the authenticated customer's existing seller/product review IDs for a completed or delivered order.
 - `POST /service-provider-reviews` — submits one optional 1–5 rating per authenticated customer and community service provider; ratings below 2 require a comment.
 - `POST /uploads/image` — authenticated local JPEG/PNG/WebP image upload from a data URL
@@ -80,6 +81,8 @@ The request body is `{ "code": "123456" }`. The API checks the single order PIN 
 - `GET /reports/seller/summary` with date, apartment, block, flat, delivery-boy, product, category, status, and fulfillment filters
 - `GET /reports/seller/summary.pdf` with the same filters for a server-generated PDF summary
 - `GET /seller/dashboard`
+- `GET/POST /seller/coupons` — seller coupon list and creation.
+- `PATCH /seller/coupons/:couponId` — deactivate an active coupon; coupon rules cannot be edited or reactivated.
 - `GET /seller/orders` with status, date, apartment, fulfillment, and search filters
 - `POST/PATCH /seller/categories`
 - `POST/PATCH /seller/products`
@@ -154,6 +157,8 @@ Browser registration is initiated by the signed-in web client after its in-app n
 Availability is evaluated using `APP_TIME_ZONE` (default `Asia/Kolkata`). A seller must be configured active, have a matching open schedule for the current weekday, and be inside the configured time range. Category product queries apply the same availability filter as Home and storefront queries, so unavailable sellers do not contribute products.
 
 The implementation uses backend scope checks for apartment sellers, outside seller delivery areas, delivery-boy seller/apartment links, order ownership, and admin roles.
+
+Checkout accepts optional `couponCode` on `POST /orders`. Coupons are seller-scoped and are redeemed inside the checkout transaction. Seller usage can be one redemption, two redemptions, or unlimited redemptions per customer; unlimited usage is represented by a null usage limit. The fixed discount is capped at the product subtotal, while delivery charges are added afterward. Order exports include subtotal, coupon code, coupon discount, delivery charge, and final total.
 
 ## Current client and deployment checkpoint — 2026-09-24
 

@@ -51,6 +51,7 @@ This document records implementation decisions, technical structure, database co
 - `POST /api/v1/reviews` — completed-order review creation.
 - `GET /api/v1/reviews/order/:orderId` — authenticated customer's existing review IDs for the order.
 - `POST /api/v1/service-provider-reviews` — one customer rating per community service provider.
+- `POST /api/v1/coupons/validate` — validate a seller coupon against the customer's apartment and product subtotal.
 - `GET /api/v1/seller/dashboard` — seller KPI and low-stock summary.
 - `GET /api/v1/seller/orders` — seller-scoped order queue with status, date, apartment, fulfillment, and customer search filters.
 - `POST/PATCH /api/v1/seller/categories` — seller category management.
@@ -183,6 +184,7 @@ Customer discovery uses `GET /api/v1/search?q=...`; the backend applies the resi
 Completed customer orders can be reviewed once per seller and product through `POST /api/v1/reviews`; ratings are integers from 1 to 5 and ratings below 2 require a comment. Seller-level reviews use a null product relation, while product reviews are calculated separately. `GET /api/v1/reviews/order/:orderId` prevents duplicate customer UI submissions, and `GET /api/v1/sellers/:sellerId/reviews` returns the scoped average, count, and recent review summaries.
 Community service providers use `POST /api/v1/service-provider-reviews` with one review per authenticated customer/provider pair. Review comments and reviewer identity remain private; public responses expose only aggregates when display rules allow them.
 Seller settings are managed through `GET/PATCH /api/v1/seller/settings`, including store profile, open state, delivery/pickup availability, charges, minimum order, operating-hour records, and `showRatings`. Public seller/product rating values are included only when the seller enables rating display, and no rating is rendered when no reviews exist. Global Admin user updates are audited, protect the final active admin, and order monitoring supports status, seller, apartment, and text filters.
+Seller coupon management uses `GET/POST /api/v1/seller/coupons` and deactivation-only `PATCH /api/v1/seller/coupons/:couponId`. Coupon rules are seller-scoped, apartment-targeted, immutable after activation, and redeemed inside the order transaction. Per-customer usage can be one time, two times, or unlimited; unlimited usage is stored as a null limit. Coupon discounts apply only to product subtotal and are stored separately from delivery charge.
 Order status changes are transactional and audited; cancelling a previously stocked order restores each tracked product quantity and records a `CANCELLED_ORDER` inventory movement.
 Checkout supports both `DELIVERY` and `PICKUP`; the backend enforces seller capabilities and authoritative product/seller scope for either fulfillment path.
 Delivery queue reads support optional apartment, seller, status, and grouping parameters while preserving seller/apartment assignment scope.

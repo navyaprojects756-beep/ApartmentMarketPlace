@@ -33,6 +33,7 @@ import { recordErrorLog } from './services/error-log.service.js';
 import { clientErrorsRouter } from './routes/client-errors.routes.js';
 import { appUpdateRouter } from './routes/app-update.routes.js';
 import { maintenanceRouter } from './routes/maintenance.routes.js';
+import { couponRouter } from './routes/coupon.routes.js';
 
 export const app = express();
 
@@ -88,6 +89,8 @@ app.use('/api/v1/advertisements', advertisementRouter);
 app.use('/api/v1/reports', reportRouter);
 app.use('/api/v1', customerRouter);
 app.use('/api/v1/seller', sellerManagementRouter);
+app.use('/api/v1/seller', couponRouter);
+app.use('/api/v1', couponRouter);
 app.use('/api/v1/admin', adminMonitoringRouter);
 app.use('/api/v1/admin', adminResourcesRouter);
 app.use('/api/v1/admin', adminNotificationsRouter);
@@ -127,6 +130,14 @@ const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
       MAXIMUM_QUANTITY_EXCEEDED: 'The requested quantity is above the product limit.',
       MINIMUM_QUANTITY_NOT_MET: 'The requested quantity is below the product minimum.',
       STORE_CLOSED: 'This seller is currently closed.',
+      COUPON_DATE_RANGE_INVALID: 'Coupon end date must be after its start date.',
+      COUPON_APARTMENT_INVALID: 'Select only apartments served by this seller.',
+      COUPON_CANNOT_BE_REACTIVATED: 'A deactivated coupon cannot be reactivated.',
+      COUPON_EXPIRED: 'This coupon is expired or not active.',
+      COUPON_MINIMUM_NOT_MET: 'The cart subtotal does not meet this coupon minimum.',
+      COUPON_FIRST_ORDER_ONLY: 'This coupon is only valid on your first order from this seller.',
+      COUPON_USAGE_LIMIT: 'You have reached this coupon usage limit.',
+      COUPON_INVALID: 'This coupon is not valid for this order.',
     };
     if (businessMessages[error.message]) {
       response.status(409).json({ error: { code: error.message, message: businessMessages[error.message] } });

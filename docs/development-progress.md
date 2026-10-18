@@ -406,3 +406,12 @@ Historical note: orders created before the snapshot migration may not have immut
 - [x] Added a first-browser-login notification prompt, shown once per user even before the first order; subsequent reminders remain active-order-only.
 - [x] Updated README, API reference, and architecture documentation for these changes.
 - [x] Verified the web build, backend TypeScript check, Prisma migration status, and `git diff --check` locally.
+
+## 2026-10-18 coupon checkpoint
+
+- [x] Added seller coupons with globally unique codes, fixed amount discounts, valid dates, minimum product subtotal, first-order-with-seller restriction, per-customer one-time, two-time, or unlimited usage, and apartment targeting.
+- [x] Added immutable coupon rules after activation; sellers can only deactivate coupons.
+- [x] Added backend coupon validation and transactional redemption during checkout.
+- [x] Added per-seller cart coupon entry, minimum-value unlock suggestions, and coupon-aware order totals.
+- [x] Added coupon fields to CSV and printable seller invoice calculations.
+- [ ] Apply migration `20261018120000_coupons` locally and verify seller/customer coupon smoke tests when Prisma migration tooling is available.

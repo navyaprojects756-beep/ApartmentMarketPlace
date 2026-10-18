@@ -1061,6 +1061,7 @@ function MultiSellerCartScreen({ cart, accessToken, onBack, onComplete, onNaviga
     return result;
   }, {}));
   const groupKey = groups.map(group => group.sellerId).join('|');
+  const cartSignature = cart.map(item => `${item.productId}:${item.quantity}`).join('|');
   const [sellerInfo, setSellerInfo] = useState({}); const [communityAddress, setCommunityAddress] = useState('Your apartment'); const [message, setMessage] = useState(''); const [success, setSuccess] = useState(false); const [submitting, setSubmitting] = useState(false); const [selectedProduct, setSelectedProduct] = useState(null);
   const total = cart.reduce((sum, item) => sum + (Number(item.numericPrice || String(item.price).replace(/[^0-9.]/g, '')) * item.quantity), 0);
   useEffect(() => {
@@ -1078,7 +1079,7 @@ function MultiSellerCartScreen({ cart, accessToken, onBack, onComplete, onNaviga
       if (address) setCommunityAddress([address.apartment?.name, address.block?.name, address.flat?.number ? `Flat ${address.flat.number}` : address.manualFlatNumber ? `Flat ${address.manualFlatNumber}` : ''].filter(Boolean).join(' · ') || 'Your apartment');
     });
     return () => { active = false; };
-  }, [accessToken, groupKey]);
+  }, [accessToken, cartSignature]);
   async function checkout() {
     if (submitting) return;
     setSubmitting(true); setMessage('');
@@ -1118,7 +1119,13 @@ function InteractiveMultiSellerCartScreenContent({ cart, accessToken, onBack, on
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [couponCodes, setCouponCodes] = useState({});
+  const [couponResults, setCouponResults] = useState({});
+  const [couponOffers, setCouponOffers] = useState({});
+  const [couponLoading, setCouponLoading] = useState({});
+  const [couponSuccess, setCouponSuccess] = useState(null);
   const groupKey = groups.map(group => group.sellerId).join('|');
+  const cartSignature = cart.map(item => `${item.productId || item.name}:${item.quantity}:${item.numericPrice || item.price}`).join('|');
   const total = cart.reduce((sum, item) => sum + Number(item.numericPrice || String(item.price).replace(/[^0-9.]/g, '')) * item.quantity, 0);
   useEffect(() => {
     let active = true;
@@ -1129,7 +1136,7 @@ function InteractiveMultiSellerCartScreenContent({ cart, accessToken, onBack, on
       setSellerInfo(next);
     });
     return () => { active = false; };
-  }, [accessToken, groupKey]);
+  }, [accessToken, groupKey, cartSignature]);
   useEffect(() => {
     fetch(`${API_BASE}/home`, { headers: { Authorization: `Bearer ${accessToken}` } })
       .then(response => response.json())
@@ -1148,6 +1155,31 @@ function InteractiveMultiSellerCartScreenContent({ cart, accessToken, onBack, on
       })
       .catch(() => {});
   }, [accessToken]);
+  useEffect(() => {
+    let active = true;
+    Promise.all(groups.map(async group => {
+      try {
+        const response = await fetch(`${API_BASE}/coupons/available?sellerId=${encodeURIComponent(group.sellerId)}&subtotal=${encodeURIComponent(groupSubtotal(group))}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const data = await response.json();
+        return [group.sellerId, response.ok ? data : { eligible: [], suggestions: [] }];
+      } catch { return [group.sellerId, { eligible: [], suggestions: [] }]; }
+    })).then(entries => { if (active) setCouponOffers(Object.fromEntries(entries)); });
+    return () => { active = false; };
+  }, [accessToken, cartSignature]);
+  useEffect(() => {
+    const appliedGroups = groups.filter(group => couponResults[group.sellerId]?.valid && couponCodes[group.sellerId]);
+    if (!appliedGroups.length) return undefined;
+    let active = true;
+    Promise.all(appliedGroups.map(async group => {
+      const code = String(couponCodes[group.sellerId]).trim();
+      try {
+        const response = await fetch(`${API_BASE}/coupons/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ sellerId: group.sellerId, code, subtotal: groupSubtotal(group) }) });
+        const data = await response.json();
+        return [group.sellerId, response.ok ? data : { valid: false, message: data.error?.message || 'This coupon is no longer valid for this cart.' }];
+      } catch { return [group.sellerId, { valid: false, message: 'Unable to revalidate this coupon.' }]; }
+    })).then(entries => { if (active) setCouponResults(current => ({ ...current, ...Object.fromEntries(entries) })); });
+    return () => { active = false; };
+  }, [accessToken, cartSignature]);
   useEffect(() => {
     const modes = document.querySelectorAll('.cart-content .checkout-mode');
     groups.forEach((group, index) => {
@@ -1174,6 +1206,63 @@ function InteractiveMultiSellerCartScreenContent({ cart, accessToken, onBack, on
   }, [sellerInfo, communityAddress, groupKey]);
   const sellerName = seller => seller.businessName || seller.sellerName || seller.name || 'Seller';
   const openProduct = item => { const seller = sellerInfo[item.sellerId] || groups.find(group => group.sellerId === item.sellerId)?.seller || {}; setSelectedProduct({ product: item, seller: { ...seller, name: sellerName(seller) } }); };
+  const groupSubtotal = group => group.items.reduce((sum, item) => sum + Number(item.numericPrice || String(item.price).replace(/[^0-9.]/g, '')) * item.quantity, 0);
+  async function applyCoupon(group, requestedCode) {
+    const sellerId = group.sellerId;
+    const code = String(requestedCode || couponCodes[sellerId] || '').trim();
+    if (!code) return;
+    if (requestedCode) setCouponCodes(current => ({ ...current, [sellerId]: requestedCode }));
+    setCouponLoading(current => ({ ...current, [sellerId]: true }));
+    try {
+      const response = await fetch(`${API_BASE}/coupons/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ sellerId, code, subtotal: groupSubtotal(group) }) });
+      const data = await response.json();
+      const result = response.ok ? data : { valid: false, message: data.error?.message || 'Unable to validate coupon.' };
+      setCouponResults(current => ({ ...current, [sellerId]: result }));
+      if (result.valid) setCouponSuccess({ code, discount: Number(result.discount || 0) });
+    } catch { setCouponResults(current => ({ ...current, [sellerId]: { valid: false, message: 'Unable to validate coupon.' } })); }
+    finally { setCouponLoading(current => ({ ...current, [sellerId]: false })); }
+  }
+  useEffect(() => {
+    const boxes = document.querySelectorAll('.cart-content .coupon-box');
+    groups.forEach((group, index) => {
+      const box = boxes[index];
+      const result = couponResults[group.sellerId];
+      if (!box) return;
+      const entry = box.querySelector('.coupon-entry');
+      const offer = box.querySelector('.coupon-offer-alert');
+      const suggestion = box.querySelector('.coupon-suggestion');
+      const existing = box.querySelector('.coupon-applied-row');
+      if (result?.valid) {
+        if (entry) entry.style.display = 'none';
+        if (offer) offer.style.display = 'none';
+        if (suggestion) suggestion.style.display = 'none';
+        if (!existing) {
+          const row = document.createElement('div'); row.className = 'coupon-applied-row';
+          const details = document.createElement('span'); const code = document.createElement('strong'); code.textContent = result.code || couponCodes[group.sellerId]; const amount = document.createElement('small'); amount.textContent = `₹${Number(result.discount || 0).toFixed(2)} off applied`; details.append(code, amount);
+          const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'coupon-remove-button'; remove.setAttribute('aria-label', 'Remove coupon'); remove.textContent = '×'; remove.onclick = () => { setCouponCodes(current => ({ ...current, [group.sellerId]: '' })); setCouponResults(current => ({ ...current, [group.sellerId]: null })); };
+          row.append(details, remove); box.prepend(row);
+        }
+      } else {
+        if (entry) entry.style.display = '';
+        if (offer) offer.style.display = '';
+        if (suggestion) suggestion.style.display = '';
+        existing?.remove();
+      }
+    });
+  }, [couponResults, couponCodes, groupKey]);
+  useEffect(() => {
+    if (!couponSuccess) return undefined;
+    const backdrop = document.createElement('div'); backdrop.className = 'coupon-success-backdrop';
+    const dialog = document.createElement('div'); dialog.className = 'coupon-success-dialog';
+    const confetti = document.createElement('div'); confetti.className = 'coupon-confetti'; confetti.textContent = '✦  ✧  ✦';
+    const eyebrow = document.createElement('p'); eyebrow.className = 'eyebrow'; eyebrow.textContent = 'OFFER APPLIED';
+    const title = document.createElement('h2'); title.textContent = 'Congratulations!';
+    const copy = document.createElement('p'); copy.textContent = `Coupon ${couponSuccess.code} applied successfully.`;
+    const amount = document.createElement('strong'); amount.className = 'coupon-success-amount'; amount.textContent = `₹${couponSuccess.discount.toFixed(2)} off`;
+    const close = document.createElement('button'); close.className = 'primary-button'; close.type = 'button'; close.textContent = 'Continue'; close.onclick = () => setCouponSuccess(null);
+    dialog.append(confetti, eyebrow, title, copy, amount, close); backdrop.append(dialog); document.body.append(backdrop);
+    return () => backdrop.remove();
+  }, [couponSuccess]);
   async function checkout() {
     if (submitting) return;
     setSubmitting(true); setMessage('');
@@ -1181,7 +1270,7 @@ function InteractiveMultiSellerCartScreenContent({ cart, accessToken, onBack, on
       const placedOrders = [];
       for (const group of groups) {
         const seller = sellerInfo[group.sellerId] || group.seller || {};
-        const response = await fetch(`${API_BASE}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ sellerId: group.sellerId, items: group.items.map(item => ({ productId: item.productId, quantity: item.quantity })), fulfillmentType: seller.deliveryEnabled === true ? 'DELIVERY' : 'PICKUP', paymentMethod: 'CASH_ON_DELIVERY' }) });
+        const response = await fetch(`${API_BASE}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ sellerId: group.sellerId, items: group.items.map(item => ({ productId: item.productId, quantity: item.quantity })), fulfillmentType: seller.deliveryEnabled === true ? 'DELIVERY' : 'PICKUP', paymentMethod: 'CASH_ON_DELIVERY', couponCode: couponResults[group.sellerId]?.valid ? couponCodes[group.sellerId].trim() : undefined }) });
         const data = await response.json();
         if (!response.ok) throw new Error(`${sellerName(seller)}: ${data.error?.message || 'Checkout failed.'}`);
         placedOrders.push(data);
@@ -1190,7 +1279,25 @@ function InteractiveMultiSellerCartScreenContent({ cart, accessToken, onBack, on
     } catch (error) { setMessage(error.message); setSubmitting(false); }
   }
   if (selectedProduct) return <ProductDetailView product={selectedProduct.product} seller={selectedProduct.seller} products={cart} cart={cart} onAdd={onAdd} onRemove={onRemove} onBack={() => setSelectedProduct(null)} onCart={() => setSelectedProduct(null)} onSelectProduct={openProduct} showSeller={showSeller} onNavigate={onNavigate} />;
-  return <div className="app-shell storefront-screen"><header className="store-header"><button className="back-button" onClick={onBack}><Icon name="back" size={21} /></button><Logo /></header><main className="cart-content page-width"><p className="eyebrow">YOUR BAG</p><h1>Your order</h1><p className="cart-seller">Items are grouped by seller and placed as separate orders.</p>{groups.map(group => { const seller = sellerInfo[group.sellerId] || group.seller || {}; const isDelivery = seller.deliveryEnabled === true; const groupTotal = group.items.reduce((sum, item) => sum + Number(item.numericPrice || String(item.price).replace(/[^0-9.]/g, '')) * item.quantity, 0); return <section className="multi-cart-group" key={group.sellerId}><div className="multi-cart-group-heading"><div><p className="eyebrow">SELLER</p><h2>{sellerName(seller)}</h2></div><span>{isDelivery ? 'Delivery' : 'Takeaway'}</span></div><section className="checkout-mode"><p className="eyebrow">{isDelivery ? 'DELIVERY' : 'TAKEAWAY'}</p><strong>{isDelivery ? 'Delivery order' : `Takeaway from ${sellerName(seller)}`}</strong></section><div className="cart-list">{group.items.map(item => <div className="cart-item cart-item-clickable" role="button" tabIndex="0" key={item.productId || item.name} onClick={() => openProduct(item)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') openProduct(item); }}>{item.images?.[0]?.imageUrl ? <img className="cart-thumb cart-thumb-image" src={assetUrl(item.images[0].imageUrl)} alt={`${item.name} image`} /> : <div className={`cart-thumb ${item.color}`}>{item.icon}</div>}<div><strong>{item.name}</strong><small>{item.price}</small></div><ProductQuantityControl product={item} sellerId={item.sellerId} quantity={item.quantity} onAdd={onAdd} onRemove={onRemove} /></div>)}</div><div className="cart-total"><span>Seller total</span><strong>₹{groupTotal.toFixed(2)}</strong></div></section>; })}<div className="cart-total multi-cart-total"><span>Overall total</span><strong>₹{total.toFixed(2)}</strong></div>{message && <p className="cart-message">{message}</p>}<button className="auth-button" onClick={checkout} disabled={submitting || success}>{success ? 'Orders placed' : submitting ? 'Placing orders…' : `Place ${groups.length} order${groups.length === 1 ? '' : 's'}`} {!success && <Icon name="arrow" size={16} />}</button></main><BottomNav active="bag" showSeller={showSeller} onNavigate={onNavigate || (() => {})} /></div>;
+  useEffect(() => {
+    const makeRow = (label, amount, className = '') => { const row = document.createElement('div'); row.className = `cart-financial-row ${className}`; const name = document.createElement('span'); name.textContent = label; const value = document.createElement('strong'); value.textContent = `${amount < 0 ? '-' : ''}₹${Math.abs(amount).toFixed(2)}`; row.append(name, value); return row; };
+    document.querySelectorAll('.multi-cart-group .cart-total').forEach((totalElement, index) => {
+      const group = groups[index]; const seller = sellerInfo[group?.sellerId] || group?.seller || {}; const result = couponResults[group?.sellerId];
+      if (!group) return;
+      const subtotal = groupSubtotal(group); const discount = result?.valid ? Number(result.discount || 0) : 0; const delivery = seller.deliveryEnabled === true ? Number(seller.deliveryCharge || 0) : 0; const total = subtotal - discount + delivery;
+      const breakdown = document.createElement('div'); breakdown.className = 'cart-financial-breakdown'; breakdown.append(makeRow('Product subtotal', subtotal));
+      if (discount > 0) breakdown.append(makeRow(result.code ? `Coupon ${result.code}` : 'Coupon discount', -discount, 'discount'));
+      if (delivery > 0) breakdown.append(makeRow('Delivery charge', delivery));
+      breakdown.append(makeRow('Seller total', total, 'total')); totalElement.replaceChildren(breakdown);
+    });
+    const overallElement = document.querySelector('.multi-cart-total');
+    if (overallElement) {
+      const subtotal = groups.reduce((sum, group) => sum + groupSubtotal(group), 0); const discount = groups.reduce((sum, group) => sum + (couponResults[group.sellerId]?.valid ? Number(couponResults[group.sellerId].discount || 0) : 0), 0); const delivery = groups.reduce((sum, group) => { const seller = sellerInfo[group.sellerId] || group.seller || {}; return sum + (seller.deliveryEnabled === true ? Number(seller.deliveryCharge || 0) : 0); }, 0);
+      const breakdown = document.createElement('div'); breakdown.className = 'cart-financial-breakdown overall'; breakdown.append(makeRow('Overall total', subtotal - discount + delivery, 'total')); overallElement.replaceChildren(breakdown);
+    }
+  }, [cartSignature, sellerInfo, couponResults, groupKey]);
+  const overallDiscount = Object.values(couponResults).reduce((sum, result) => sum + (result?.valid ? Number(result.discount || 0) : 0), 0);
+  return <div className="app-shell storefront-screen"><header className="store-header"><button className="back-button" onClick={onBack}><Icon name="back" size={21} /></button><Logo /></header><main className="cart-content page-width"><p className="eyebrow">YOUR BAG</p><h1>Your order</h1><p className="cart-seller">Items are grouped by seller and placed as separate orders.</p>{groups.map(group => { const seller = sellerInfo[group.sellerId] || group.seller || {}; const isDelivery = seller.deliveryEnabled === true; const groupTotal = groupSubtotal(group); const coupon = couponResults[group.sellerId]; const offers = couponOffers[group.sellerId] || {}; return <section className="multi-cart-group" key={group.sellerId}><div className="multi-cart-group-heading"><div><p className="eyebrow">SELLER</p><h2>{sellerName(seller)}</h2></div><span>{isDelivery ? 'Delivery' : 'Takeaway'}</span></div><section className="checkout-mode"><p className="eyebrow">{isDelivery ? 'DELIVERY' : 'TAKEAWAY'}</p><strong>{isDelivery ? 'Delivery order' : `Takeaway from ${sellerName(seller)}`}</strong></section><div className="cart-list">{group.items.map(item => <div className="cart-item cart-item-clickable" role="button" tabIndex="0" key={item.productId || item.name} onClick={() => openProduct(item)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') openProduct(item); }}>{item.images?.[0]?.imageUrl ? <img className="cart-thumb cart-thumb-image" src={assetUrl(item.images[0].imageUrl)} alt={`${item.name} image`} /> : <div className={`cart-thumb ${item.color}`}>{item.icon}</div>}<div><strong>{item.name}</strong><small>{item.price}</small></div><ProductQuantityControl product={item} sellerId={item.sellerId} quantity={item.quantity} onAdd={onAdd} onRemove={onRemove} /></div>)}</div><div className="coupon-box"><p className="eyebrow">SELLER OFFER</p>{offers.eligible?.length > 0 && <div className="coupon-offer-alert"><strong>Available coupon{offers.eligible.length > 1 ? 's' : ''}</strong>{offers.eligible.map(offer => <button type="button" key={offer.code} disabled={couponLoading[group.sellerId]} onClick={() => void applyCoupon(group, offer.code)}><span>{offer.code}</span><small>Apply · Save ₹{Number(offer.discount).toFixed(2)}</small></button>)}</div>}{offers.suggestions?.length > 0 && <div className="coupon-suggestion">Add ₹{Number(offers.suggestions[0].addMoreAmount).toFixed(2)} more in products to unlock coupon <strong>{offers.suggestions[0].code}</strong>.</div>}<div className="coupon-entry"><input value={couponCodes[group.sellerId] || ''} onChange={event => { setCouponCodes(current => ({ ...current, [group.sellerId]: event.target.value.toUpperCase() })); setCouponResults(current => ({ ...current, [group.sellerId]: null })); }} placeholder="Enter another coupon code" /><button type="button" className="secondary-button" disabled={couponLoading[group.sellerId]} onClick={() => void applyCoupon(group)}>{couponLoading[group.sellerId] ? 'Checking…' : 'Apply code'}</button></div>{coupon && <p className={coupon.valid ? 'coupon-success' : 'coupon-error'}>{coupon.valid ? `Coupon applied: ₹${Number(coupon.discount).toFixed(2)} off` : coupon.message}{coupon.addMoreAmount ? ` Add ₹${Number(coupon.addMoreAmount).toFixed(2)} more to unlock it.` : ''}</p>}</div><div className="cart-total"><span>Seller total</span><strong>₹{(groupTotal - (coupon?.valid ? Number(coupon.discount || 0) : 0)).toFixed(2)}</strong></div></section>; })}<div className="cart-total multi-cart-total"><span>Overall total</span><strong>₹{(total - overallDiscount).toFixed(2)}</strong></div>{message && <p className="cart-message">{message}</p>}<button className="auth-button" onClick={checkout} disabled={submitting || success}>{success ? 'Orders placed' : submitting ? 'Placing orders…' : `Place ${groups.length} order${groups.length === 1 ? '' : 's'}`} {!success && <Icon name="arrow" size={16} />}</button></main><BottomNav active="bag" showSeller={showSeller} onNavigate={onNavigate || (() => {})} /></div>;
 }
 
 function AddressAwareCartScreen({ cart, seller, accessToken, onBack, onComplete, onNavigate, showSeller, onSeller }) {
@@ -1242,6 +1349,18 @@ function ReviewEditor({ accessToken, orderId, sellerId, productId, label, onSave
   return <form className="order-review-form" onSubmit={submit}><strong>{label}</strong><div className="review-stars" role="radiogroup" aria-label={`${label} rating`}>{[1, 2, 3, 4, 5].map(value => <button type="button" key={value} className={value <= rating ? 'selected' : ''} onClick={() => setRating(value)} aria-label={`${value} star${value === 1 ? '' : 's'}`}>★</button>)}</div><textarea value={text} onChange={event => setText(event.target.value)} placeholder={rating > 0 && rating < 2 ? 'Comment required for ratings below 2 stars' : 'Optional comment'} maxLength={2000} />{message && <small className="review-error">{message}</small>}<button className="secondary-button" disabled={saving}>{saving ? 'Saving…' : 'Submit rating'}</button></form>;
 }
 
+function OrderReviewCarousel({ accessToken, order, reviewed, onSaved }) {
+  const reviewTargets = [
+    { key: `${order.id}:seller`, label: `Rate ${order.seller?.businessName || order.seller?.sellerName || 'seller'}` },
+    ...(order.items || []).map(item => ({ key: `${order.id}:${item.productId}`, productId: item.productId, label: `Rate ${item.productName}` })),
+  ].filter(target => !reviewed.has(target.key));
+  const [currentIndex, setCurrentIndex] = useState(0);
+  useEffect(() => { setCurrentIndex(0); }, [order.id, reviewed.size]);
+  if (!reviewTargets.length) return <small className="review-saved">All ratings submitted. Thank you.</small>;
+  const target = reviewTargets[Math.min(currentIndex, reviewTargets.length - 1)];
+  return <div className="review-carousel"><ReviewEditor accessToken={accessToken} orderId={order.id} sellerId={order.sellerId} productId={target.productId} label={target.label} onSaved={data => { onSaved(target.key, data); setCurrentIndex(0); }} />{reviewTargets.length > 1 && <button type="button" className="review-carousel-next" onClick={() => setCurrentIndex(index => (index + 1) % reviewTargets.length)} aria-label="Show next rating">← Next</button>}<small className="review-carousel-count">{currentIndex + 1} of {reviewTargets.length}</small></div>;
+}
+
 function DetailedOrdersScreen({ accessToken, onBack, onProfile, showSeller, initialOrderId, userKey }) {
   const [orders, setOrders] = useState([]); const [buyerAssociation, setBuyerAssociation] = useState(null); const [expanded, setExpanded] = useState(null); const [message, setMessage] = useState(''); const [reviewed, setReviewed] = useState(new Set());
   useEffect(() => {
@@ -1256,6 +1375,10 @@ function DetailedOrdersScreen({ accessToken, onBack, onProfile, showSeller, init
         date.className = 'order-date-time';
         date.textContent = `Order date: ${new Date(order.createdAt).toLocaleString()}`;
         headerInfo.appendChild(date);
+      }
+      const foot = card.querySelector('.order-card-foot');
+      if (order && foot && Number(order.discount || 0) > 0 && !foot.querySelector('.order-card-discount-note')) {
+        const note = document.createElement('small'); note.className = 'order-card-discount-note'; note.textContent = `${order.couponCode ? `Coupon ${order.couponCode}` : 'Coupon'} -₹${Number(order.discount).toFixed(2)}`; foot.insertBefore(note, foot.querySelector('strong'));
       }
     });
   }, [orders, expanded]);
@@ -1303,6 +1426,64 @@ function DetailedOrdersScreen({ accessToken, onBack, onProfile, showSeller, init
       container.appendChild(sections);
     });
   }, [orders, buyerAssociation, expanded]);
+  useEffect(() => {
+    document.querySelectorAll('.detailed-order-card.expanded').forEach(card => {
+      if (card.querySelector('.order-financial-summary')) return;
+      const order = orders.find(item => card.textContent?.includes(item.orderNumber));
+      const detail = card.querySelector('.order-detail');
+      if (!order || !detail) return;
+      const summary = document.createElement('div'); summary.className = 'order-financial-summary';
+      const addRow = (label, value, className = '') => { const row = document.createElement('div'); row.className = `order-financial-row ${className}`; const name = document.createElement('span'); name.textContent = label; const amount = document.createElement('strong'); amount.textContent = `₹${Number(value || 0).toFixed(2)}`; row.append(name, amount); summary.appendChild(row); };
+      addRow('Product subtotal', order.subtotal);
+      if (Number(order.discount || 0) > 0) addRow(order.couponCode ? `Coupon discount (${order.couponCode})` : 'Coupon discount', -Number(order.discount), 'discount');
+      if (Number(order.deliveryCharge || 0) > 0) addRow('Delivery charge', order.deliveryCharge);
+      addRow('Total', order.total, 'total');
+      const actions = detail.querySelector('.order-detail-actions');
+      if (actions) detail.insertBefore(summary, actions); else detail.appendChild(summary);
+    });
+  }, [orders, expanded]);
+  useEffect(() => {
+    document.querySelectorAll('.detailed-order-card.expanded .order-reviews').forEach(reviews => {
+      const forms = [...reviews.querySelectorAll(':scope > .order-review-form')];
+      if (forms.length <= 1) return;
+      const oldNav = reviews.querySelector('.review-carousel-nav');
+      oldNav?.remove();
+      const index = Number(reviews.dataset.reviewIndex || 0) % forms.length;
+      forms.forEach((form, formIndex) => { form.style.display = formIndex === index ? 'grid' : 'none'; });
+      const nav = document.createElement('div');
+      nav.className = 'review-carousel-nav';
+      const previous = document.createElement('button');
+      previous.type = 'button';
+      previous.className = 'review-carousel-arrow';
+      previous.textContent = '←';
+      previous.setAttribute('aria-label', 'Previous rating');
+      previous.onclick = event => {
+        event.stopPropagation();
+        const currentIndex = Number(reviews.dataset.reviewIndex || 0);
+        const nextIndex = (currentIndex - 1 + forms.length) % forms.length;
+        reviews.dataset.reviewIndex = String(nextIndex);
+        forms.forEach((form, formIndex) => { form.style.display = formIndex === nextIndex ? 'grid' : 'none'; });
+        nav.querySelector('small').textContent = `${nextIndex + 1} of ${forms.length}`;
+      };
+      const next = document.createElement('button');
+      next.type = 'button';
+      next.className = 'review-carousel-arrow';
+      next.textContent = '→';
+      next.setAttribute('aria-label', 'Next rating');
+      next.onclick = event => {
+        event.stopPropagation();
+        const currentIndex = Number(reviews.dataset.reviewIndex || 0);
+        const nextIndex = (currentIndex + 1) % forms.length;
+        reviews.dataset.reviewIndex = String(nextIndex);
+        forms.forEach((form, formIndex) => { form.style.display = formIndex === nextIndex ? 'grid' : 'none'; });
+        nav.querySelector('small').textContent = `${nextIndex + 1} of ${forms.length}`;
+      };
+      const count = document.createElement('small');
+      count.textContent = `${index + 1} of ${forms.length}`;
+      nav.append(previous, count, next);
+      reviews.insertBefore(nav, forms[0]);
+    });
+  }, [orders, expanded, reviewed]);
   return <div className="app-shell storefront-screen"><header className="store-header"><button className="back-button" onClick={onBack}><Icon name="back" size={21} /></button><Logo /></header><main className="orders-content page-width"><p className="eyebrow">YOUR COMMUNITY ORDERS</p><h1>Order tracking</h1><p className="orders-copy">Every step is visible from order placed to verified handover.</p>{message && <p className="cart-message">{message}</p>}<div className="orders-list">{orders.length === 0 ? <div className="orders-empty">No orders yet. Your next favourite is probably nearby.</div> : orders.map(order => <article className={`order-card detailed-order-card ${expanded === order.id ? 'expanded' : ''}`} key={order.id}><button className="order-card-toggle" onClick={() => setExpanded(expanded === order.id ? null : order.id)}><div className="order-card-head"><div><strong>{order.orderNumber}</strong><small>{order.seller?.businessName || order.seller?.sellerName} · {new Date(order.createdAt).toLocaleDateString()} <OrderVerificationCodes order={order} /></small></div><span className={`order-status status-${order.status.toLowerCase().replaceAll('_', '-')}`}>{order.status.replaceAll('_', ' ')}</span></div><div className="order-card-foot"><span>{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0} items · {order.fulfillmentType === 'PICKUP' ? 'Takeaway' : 'Delivery'}</span><strong>₹{Number(order.total).toFixed(2)}</strong><span>{expanded === order.id ? 'Close' : 'View details'}</span></div></button>{expanded === order.id && <div className="order-detail"><OrderProgress order={order} /><div className="order-detail-grid"><div><small className="detail-label">{order.fulfillmentType === 'PICKUP' ? 'TAKEAWAY' : 'DELIVERY'} ADDRESS</small><p className="order-address">{addressFor(order)}</p></div><div><small className="detail-label">PAYMENT</small><p>{order.paymentMethod?.replaceAll('_', ' ')} · {order.paymentStatus}</p></div></div><div className="order-items-list">{(order.items || []).map(item => <div className="order-item-line" key={item.id}><span>{item.productName} <small>× {item.quantity}</small></span><strong>₹{Number(item.totalPrice).toFixed(2)}</strong></div>)}</div>{['DELIVERED', 'COMPLETED'].includes(order.status) && <div className="order-reviews"><p className="eyebrow">RATE YOUR ORDER</p>{!reviewed.has(`${order.id}:seller`) && <ReviewEditor accessToken={accessToken} orderId={order.id} sellerId={order.sellerId} label={`Rate ${order.seller?.businessName || order.seller?.sellerName || 'seller'}`} onSaved={() => setReviewed(current => new Set(current).add(`${order.id}:seller`))} />}{(order.items || []).map(item => !reviewed.has(`${order.id}:${item.productId}`) && <ReviewEditor key={item.id} accessToken={accessToken} orderId={order.id} sellerId={order.sellerId} productId={item.productId} label={`Rate ${item.productName}`} onSaved={() => setReviewed(current => new Set(current).add(`${order.id}:${item.productId}`))} />)}</div>}{order.deliveryAssignment?.deliveryBoy?.user && <p className="order-assignee">Delivery by {order.deliveryAssignment.deliveryBoy.user.name || order.deliveryAssignment.deliveryBoy.user.phone}</p>}{order.status === 'PENDING' && <div className="order-detail-actions"><button className="cancel-order-button" onClick={() => cancel(order)}>Cancel order</button></div>}</div>}</article>)}</div></main><BottomNav active="bag" onNavigate={target => target === 'home' ? onBack() : target === 'profile' ? onProfile() : undefined} /></div>;
 }
 
@@ -1722,7 +1903,7 @@ function SellerRatingVisibilityControl() {
 }
 
 function SellerWorkspaceSidebar({ active, onNavigate, sellerType = typeof window !== 'undefined' ? window.__gatedcartSellerType : undefined }) {
-  const items = [['overview', 'Overview'], ['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory'], ['areas', 'Delivery areas'], ['ads', 'Seller ads'], ['media', 'Store media'], ['settings', 'Store settings']];
+  const items = [['overview', 'Overview'], ['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory'], ['areas', 'Delivery areas'], ['coupons', 'Coupons'], ['ads', 'Seller ads'], ['media', 'Store media'], ['settings', 'Store settings']];
   const visibleItems = sellerType === 'APARTMENT' ? items.filter(([key]) => !['delivery', 'areas'].includes(key)) : items;
   return <aside className="dashboard-side"><div className="side-label">SELLER WORKSPACE</div>{visibleItems.map(([key, label]) => <button key={key} className={active === key ? 'selected' : ''} onClick={() => onNavigate(key)}>{label}</button>)}{active === 'settings' && <SellerRatingVisibilityControl />}</aside>;
 }
@@ -1828,6 +2009,82 @@ function openHandoverCodeDialog(order, submit) {
   });
 }
 
+function LegacySellerCouponsPanel({ accessToken }) {
+  const [coupons, setCoupons] = useState([]);
+  const [settings, setSettings] = useState(null);
+  const [apartments, setApartments] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [message, setMessage] = useState('');
+  const [form, setForm] = useState({ code: '', amount: '', firstOrderOnly: false, validFrom: '', validTo: '', minimumSubtotal: '', maxUsesPerCustomer: '1', apartmentIds: [] });
+  const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+  async function load() { const [couponResponse, apartmentResponse, areaResponse, settingsResponse] = await Promise.all([fetch(`${API_BASE}/seller/coupons`, { headers }), fetch(`${API_BASE}/apartments`, { headers }), fetch(`${API_BASE}/seller/delivery-areas`, { headers }), fetch(`${API_BASE}/seller/settings`, { headers })]); setCoupons(await couponResponse.json()); setApartments(await apartmentResponse.json()); setAreas(await areaResponse.json()); setSettings(await settingsResponse.json()); }
+  useEffect(() => { void load().catch(() => setMessage('Unable to load coupons.')); }, [accessToken]);
+  const eligibleApartments = settings?.sellerType === 'APARTMENT' ? apartments.filter(apartment => apartment.id === settings.apartmentId) : areas.filter(area => area.isAllowed).map(area => area.apartment);
+  async function create(event) { event.preventDefault(); setMessage(''); const response = await fetch(`${API_BASE}/seller/coupons`, { method: 'POST', headers, body: JSON.stringify({ ...form, code: form.code.trim().toUpperCase(), amount: Number(form.amount), minimumSubtotal: Number(form.minimumSubtotal || 0), maxUsesPerCustomer: form.maxUsesPerCustomer === 'unlimited' ? null : Number(form.maxUsesPerCustomer), validFrom: new Date(form.validFrom).toISOString(), validTo: new Date(form.validTo).toISOString(), apartmentIds: form.apartmentIds }) }); const data = await response.json(); if (!response.ok) { setMessage(data.error?.message || 'Unable to create coupon.'); return; } setMessage('Coupon activated. Rules cannot be edited; you can only deactivate it.'); setForm({ code: '', amount: '', firstOrderOnly: false, validFrom: '', validTo: '', minimumSubtotal: '', maxUsesPerCustomer: '1', apartmentIds: [] }); await load(); }
+  async function deactivate(coupon) { const response = await fetch(`${API_BASE}/seller/coupons/${coupon.id}`, { method: 'PATCH', headers, body: JSON.stringify({ isActive: false }) }); setMessage(response.ok ? 'Coupon deactivated.' : 'Unable to deactivate coupon.'); if (response.ok) await load(); }
+  const toggleApartment = id => setForm(current => ({ ...current, apartmentIds: current.apartmentIds.includes(id) ? current.apartmentIds.filter(item => item !== id) : [...current.apartmentIds, id] }));
+  return <section className="seller-coupons-panel"><section className="dashboard-panel"><h2>Create coupon</h2><p className="orders-copy">Fixed amount discounts apply to product subtotal only. Once activated, a coupon cannot be edited.</p><form className="seller-settings-form" onSubmit={create}><div className="settings-number-row"><label>Coupon code<input value={form.code} onChange={event => setForm(current => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="e.g. MILK50" required /></label><label>Discount amount<input type="number" min="0.01" step="0.01" value={form.amount} onChange={event => setForm(current => ({ ...current, amount: event.target.value }))} required /></label></div><div className="settings-number-row"><label>Valid from<input type="datetime-local" value={form.validFrom} onChange={event => setForm(current => ({ ...current, validFrom: event.target.value }))} required /></label><label>Valid to<input type="datetime-local" value={form.validTo} onChange={event => setForm(current => ({ ...current, validTo: event.target.value }))} required /></label></div><div className="settings-number-row"><label>Minimum product subtotal<input type="number" min="0" step="0.01" value={form.minimumSubtotal} onChange={event => setForm(current => ({ ...current, minimumSubtotal: event.target.value }))} placeholder="0" /></label><label>Uses per customer<select value={form.maxUsesPerCustomer} onChange={event => setForm(current => ({ ...current, maxUsesPerCustomer: event.target.value }))}><option value="1">One time</option><option value="2">Two times</option><option value="unlimited">No limit</option></select></label></div><label className="checkbox-row"><input type="checkbox" checked={form.firstOrderOnly} onChange={event => setForm(current => ({ ...current, firstOrderOnly: event.target.checked }))} /> First order with this seller only</label><p className="media-upload-title">Eligible apartments</p><div className="apartment-checkboxes">{eligibleApartments.map(apartment => <label className="checkbox-row" key={apartment.id}><input type="checkbox" checked={form.apartmentIds.includes(apartment.id)} onChange={() => toggleApartment(apartment.id)} />{apartment.name}</label>)}</div><button className="primary-button" disabled={!form.apartmentIds.length}>Activate coupon</button></form></section>{message && <p className="dashboard-message">{message}</p>}<section className="dashboard-panel"><div className="panel-heading"><h2>Your coupons</h2><span className="menu-count">{coupons.length}</span></div><div className="product-availability-list">{coupons.map(coupon => <div className="availability-row coupon-management-row" key={coupon.id}><span><strong>{coupon.code}</strong><small>₹{Number(coupon.amount).toFixed(2)} off · Minimum ₹{Number(coupon.minimumSubtotal).toFixed(2)} · {coupon.maxUsesPerCustomer == null ? 'No limit' : `${coupon.maxUsesPerCustomer} use${coupon.maxUsesPerCustomer === 1 ? '' : 's'} per customer`} · {coupon._count?.redemptions || 0} claims · {coupon.isActive ? 'Active' : 'Inactive'}</small></span>{coupon.isActive && <button type="button" onClick={() => void deactivate(coupon)}>Deactivate</button>}</div>)}{!coupons.length && <p className="empty-panel-copy">No coupons created yet.</p>}</div></section></section>;
+}
+
+function SellerCouponsPanel({ accessToken }) {
+  const [coupons, setCoupons] = useState([]);
+  const [settings, setSettings] = useState(null);
+  const [apartments, setApartments] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [message, setMessage] = useState('');
+  const initialForm = { code: '', amount: '', firstOrderOnly: false, validFrom: '', validTo: '', minimumSubtotal: '', maxUsesPerCustomer: '1', apartmentIds: [] };
+  const [form, setForm] = useState(initialForm);
+  const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+  async function load() {
+    const [couponResponse, apartmentResponse, areaResponse, settingsResponse] = await Promise.all([
+      fetch(`${API_BASE}/seller/coupons`, { headers }),
+      fetch(`${API_BASE}/apartments`, { headers }),
+      fetch(`${API_BASE}/seller/delivery-areas`, { headers }),
+      fetch(`${API_BASE}/seller/settings`, { headers }),
+    ]);
+    setCoupons(await couponResponse.json());
+    setApartments(await apartmentResponse.json());
+    setAreas(await areaResponse.json());
+    setSettings(await settingsResponse.json());
+  }
+  useEffect(() => { void load().catch(() => setMessage('Unable to load coupons.')); }, [accessToken]);
+  const eligibleApartments = settings?.sellerType === 'APARTMENT'
+    ? apartments.filter(apartment => apartment.id === settings.apartmentId)
+    : areas.filter(area => area.isAllowed).map(area => area.apartment);
+  const toggleApartment = id => setForm(current => ({ ...current, apartmentIds: current.apartmentIds.includes(id) ? current.apartmentIds.filter(item => item !== id) : [...current.apartmentIds, id] }));
+  async function create(event) {
+    event.preventDefault();
+    setMessage('');
+    const firstOrderOnly = event.currentTarget.elements.firstOrderOnly.checked;
+    const response = await fetch(`${API_BASE}/seller/coupons`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        ...form,
+        firstOrderOnly,
+        code: form.code.trim().toUpperCase(),
+        amount: Number(form.amount),
+        minimumSubtotal: Number(form.minimumSubtotal || 0),
+        maxUsesPerCustomer: form.maxUsesPerCustomer === 'unlimited' ? null : Number(form.maxUsesPerCustomer),
+        validFrom: new Date(form.validFrom).toISOString(),
+        validTo: new Date(form.validTo).toISOString(),
+        apartmentIds: form.apartmentIds,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) { setMessage(data.error?.message || 'Unable to create coupon.'); return; }
+    setMessage(`Coupon activated${firstOrderOnly ? ' for first orders with this seller only' : ''}. Rules cannot be edited; you can only deactivate it.`);
+    setForm(initialForm);
+    await load();
+  }
+  async function deactivate(coupon) {
+    const response = await fetch(`${API_BASE}/seller/coupons/${coupon.id}`, { method: 'PATCH', headers, body: JSON.stringify({ isActive: false }) });
+    setMessage(response.ok ? 'Coupon deactivated.' : 'Unable to deactivate coupon.');
+    if (response.ok) await load();
+  }
+  return <section className="seller-coupons-panel"><section className="dashboard-panel"><p className="eyebrow">SELLER OFFERS</p><h2>Create coupon</h2><p className="orders-copy">Create a fixed amount offer. Choose whether it is limited to the customer’s first order with this seller.</p><form className="seller-settings-form" onSubmit={create}><div className="settings-number-row"><label>Coupon code<input value={form.code} onChange={event => setForm(current => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="e.g. GA120" required /></label><label>Discount amount<input type="number" min="0.01" step="0.01" value={form.amount} onChange={event => setForm(current => ({ ...current, amount: event.target.value }))} placeholder="e.g. 50" required /></label></div><div className="settings-number-row"><label>Valid from<input type="datetime-local" value={form.validFrom} onChange={event => setForm(current => ({ ...current, validFrom: event.target.value }))} required /></label><label>Valid to<input type="datetime-local" value={form.validTo} onChange={event => setForm(current => ({ ...current, validTo: event.target.value }))} required /></label></div><div className="settings-number-row"><label>Minimum product subtotal<input type="number" min="0" step="0.01" value={form.minimumSubtotal} onChange={event => setForm(current => ({ ...current, minimumSubtotal: event.target.value }))} placeholder="0" /></label><label>Uses per customer<select value={form.maxUsesPerCustomer} onChange={event => setForm(current => ({ ...current, maxUsesPerCustomer: event.target.value }))}><option value="1">One time</option><option value="2">Two times</option><option value="unlimited">No limit</option></select></label></div><label className="checkbox-row"><span>First order with this seller only</span><input name="firstOrderOnly" type="checkbox" checked={form.firstOrderOnly} onChange={event => setForm(current => ({ ...current, firstOrderOnly: event.currentTarget.checked }))} /></label><p className="media-upload-title">Eligible apartments</p><div className="apartment-checkboxes">{eligibleApartments.map(apartment => <label className="checkbox-row" key={apartment.id}><span>{apartment.name}</span><input type="checkbox" checked={form.apartmentIds.includes(apartment.id)} onChange={() => toggleApartment(apartment.id)} /></label>)}</div><button className="primary-button" disabled={!form.apartmentIds.length}>Activate coupon</button></form></section>{message && <p className="dashboard-message">{message}</p>}<section className="dashboard-panel"><div className="panel-heading"><h2>Your coupons</h2><span className="menu-count">{coupons.length}</span></div><div className="product-availability-list">{coupons.map(coupon => <div className="availability-row coupon-management-row" key={coupon.id}><span><strong>{coupon.code}</strong><small>₹{Number(coupon.amount).toFixed(2)} off · Minimum ₹{Number(coupon.minimumSubtotal).toFixed(2)} · {coupon.firstOrderOnly ? 'First order only · ' : ''}{coupon.maxUsesPerCustomer == null ? 'No limit' : `${coupon.maxUsesPerCustomer} use${coupon.maxUsesPerCustomer === 1 ? '' : 's'} per customer`} · {coupon._count?.redemptions || 0} claims · {coupon.isActive ? 'Active' : 'Inactive'}</small></span>{coupon.isActive && <button type="button" onClick={() => void deactivate(coupon)}>Deactivate</button>}</div>)}{!coupons.length && <p className="empty-panel-copy">No coupons created yet.</p>}</div></section></section>;
+}
+
 function SellerCrudPortal({ accessToken, onLogout }) {
   const [tab, setTab] = useState('overview');
   const [settings, setSettings] = useState(null);
@@ -1849,6 +2106,19 @@ function SellerCrudPortal({ accessToken, onLogout }) {
   const request = async (path, options = {}) => { const response = await fetch(`${API_BASE}${path}`, { ...options, headers: { ...headers, ...(options.headers || {}) } }); let data = null; try { data = await response.json(); } catch {} if (!response.ok) throw new Error(data?.error?.message || 'Request failed.'); return data; };
   async function load() { try { const [settingsData, productData, categoryData, orderData, staffData, apartmentData, areaData, adData] = await Promise.all([request('/seller/settings'), request('/seller/catalog'), request('/seller/categories'), request('/seller/orders'), request('/seller/delivery-boys'), request('/apartments'), request('/seller/delivery-areas'), request('/seller/advertisements')]); window.__gatedcartSellerType = settingsData?.sellerType; setSettings(settingsData); setProducts(Array.isArray(productData) ? productData : []); setCategories(Array.isArray(categoryData) ? categoryData : []); setOrders(Array.isArray(orderData) ? orderData : []); setStaff(Array.isArray(staffData) ? staffData : []); setApartments(Array.isArray(apartmentData) ? apartmentData : []); setAreas(Array.isArray(areaData) ? areaData : []); setAds(Array.isArray(adData) ? adData : []); setStaffForm(current => ({ ...current, apartmentId: current.apartmentId || apartmentData?.[0]?.id || '' })); } catch (error) { setMessage(error.message || 'Seller workspace is unavailable.'); } }
   useEffect(() => { void load(); }, [accessToken]);
+  useEffect(() => {
+    if (tab !== 'coupons') return undefined;
+    const host = document.createElement('div');
+    host.className = 'seller-coupon-tab-host';
+    const dashboard = document.querySelector('.dashboard-main');
+    if (!dashboard) return undefined;
+    dashboard.prepend(host);
+    const hidden = Array.from(dashboard.children).filter(child => child !== host);
+    hidden.forEach(child => { child.dataset.couponHidden = 'true'; child.style.display = 'none'; });
+    const root = createRoot(host);
+    root.render(<SellerCouponsPanel accessToken={accessToken} />);
+    return () => { root.unmount(); host.remove(); hidden.forEach(child => { if (child.dataset.couponHidden) { child.style.display = ''; delete child.dataset.couponHidden; } }); };
+  }, [accessToken, tab]);
   useEffect(() => { if (!settings) return; const currentAvailability = sellerIsCurrentlyOpen(settings); setSettings(current => current && current.isOpen !== currentAvailability ? { ...current, isOpen: currentAvailability } : current); }, [settings?.id, settings?.operatingHours, settings?.isCurrentlyOpen]);
   useEffect(() => { if (tab === 'delivery') setTab('overview'); }, [tab]);
   useEffect(() => {
@@ -1945,9 +2215,52 @@ function SellerCrudPortal({ accessToken, onLogout }) {
         address.textContent = [order.address?.addressLine, order.apartment?.name || customerApartment?.apartment?.name, order.block?.name || customerApartment?.block?.name, flatNumber ? `Flat ${flatNumber}` : 'Flat number not provided', order.customer?.phone ? `Phone ${order.customer.phone}` : 'Phone number not provided'].filter(Boolean).join(' · ') || 'Customer address not provided';
         card.appendChild(address);
       }
+      card.querySelector('.seller-order-progress')?.remove();
+      if (order && !['DELIVERED', 'CANCELLED', 'REJECTED', 'COMPLETED'].includes(order.status)) {
+        // The order card is re-used by React after a status update. Rebuild the
+        // progress bar so its completed/current steps and clickability match
+        // the freshly loaded order status.
+        const isDelivery = order.fulfillmentType === 'DELIVERY';
+        const steps = isDelivery
+          ? [['PENDING', 'Placed', '◉'], ['ACCEPTED', 'Accepted', '✓'], ['PREPARING', 'Processing', '◇'], ['OUT_FOR_DELIVERY', 'On the way', '→'], ['DELIVERED', 'Delivered', '⌂']]
+          : [['PENDING', 'Placed', '◉'], ['ACCEPTED', 'Accepted', '✓'], ['PREPARING', 'Processing', '◇'], ['READY_FOR_PICKUP', 'Ready', '□'], ['PICKED_UP', 'Picked up', '✓']];
+        steps.push(['CANCELLED', 'Cancel', 'X']);
+        const currentIndex = Math.max(0, steps.findIndex(([status]) => status === order.status));
+        const progress = document.createElement('div'); progress.className = 'seller-order-progress'; progress.setAttribute('aria-label', 'Update order status');
+        steps.forEach(([status, label, icon], index) => {
+          const button = document.createElement('button'); button.type = 'button'; button.className = `seller-progress-step ${index <= currentIndex ? 'done' : ''} ${status === order.status ? 'current' : ''}`; button.disabled = status === order.status || ['CANCELLED', 'REJECTED', 'COMPLETED'].includes(order.status); button.title = status === 'CANCELLED' ? 'Cancel order' : `Set status to ${label}`;
+          const iconNode = document.createElement('span'); iconNode.className = 'seller-progress-icon'; iconNode.textContent = icon; const labelNode = document.createElement('small'); labelNode.textContent = label; button.append(iconNode, labelNode); button.onclick = event => { event.stopPropagation(); void (status === 'CANCELLED' ? confirmSellerCancellation(order) : updateOrder(order, status)); }; progress.appendChild(button);
+        });
+        // Keep the lifecycle directly below the order header on every refresh.
+        // Using the items/footer as an anchor caused it to move after React
+        // re-rendered the card following a status update.
+        const target = card.querySelector('.seller-order-address') || card.querySelector('.seller-order-items') || card.querySelector('.seller-order-foot');
+        if (target) card.insertBefore(progress, target); else card.appendChild(progress);
+        const cancelButton = document.createElement('button');
+        cancelButton.type = 'button';
+        cancelButton.className = 'seller-progress-cancel';
+        cancelButton.textContent = '× Cancel';
+        cancelButton.title = 'Cancel order';
+        cancelButton.onclick = event => { event.stopPropagation(); void confirmSellerCancellation(order); };
+        progress.appendChild(cancelButton);
+        cancelButton.remove();
+      }
       const footer = card.querySelector('.seller-order-foot');
+      if (order && !card.querySelector('.seller-order-financial-summary')) {
+        const summary = document.createElement('div'); summary.className = 'seller-order-financial-summary';
+        const addSummaryRow = (label, value, className = '') => { const row = document.createElement('div'); row.className = `seller-financial-row ${className}`; const name = document.createElement('span'); name.textContent = label; const amount = document.createElement('strong'); const numeric = Number(value || 0); amount.textContent = `${numeric < 0 ? '-' : ''}₹${Math.abs(numeric).toFixed(2)}`; row.append(name, amount); summary.appendChild(row); };
+        addSummaryRow('Product subtotal', order.subtotal);
+        if (Number(order.discount || 0) > 0) addSummaryRow(order.couponCode ? `Coupon ${order.couponCode}` : 'Coupon discount', -Number(order.discount), 'discount');
+        if (Number(order.deliveryCharge || 0) > 0) addSummaryRow('Delivery charge', order.deliveryCharge);
+        addSummaryRow('Total', order.total, 'total');
+        const target = footer || card.querySelector('.seller-order-actions');
+        if (target) card.insertBefore(summary, target); else card.appendChild(summary);
+      }
       if (footer) {
         const actions = footer.querySelector('.seller-order-actions');
+        let pricing = footer.querySelector('.seller-order-pricing');
+        if (!pricing) { pricing = document.createElement('small'); pricing.className = 'seller-order-pricing'; footer.insertBefore(pricing, actions || null); }
+        pricing.textContent = `Subtotal ₹${Number(order.subtotal || 0).toFixed(2)} · ${order.couponCode ? `Coupon ${order.couponCode} -₹${Number(order.discount || 0).toFixed(2)} · ` : ''}Delivery ₹${Number(order.deliveryCharge || 0).toFixed(2)} · Total ₹${Number(order.total || 0).toFixed(2)}`;
         if (actions) {
           actions.replaceChildren();
           sellerTransitions(order).forEach(([nextStatus, label]) => {
@@ -2010,8 +2323,21 @@ function SellerCrudPortal({ accessToken, onLogout }) {
   async function addStaff(event) { event.preventDefault(); await run(() => request('/seller/delivery-boys', { method: 'POST', body: JSON.stringify({ name: staffForm.name.trim(), phone: staffForm.phone.trim(), apartmentIds: staffForm.apartmentId ? [staffForm.apartmentId] : [] }) }), 'Delivery boy linked.'); setStaffForm({ name: '', phone: '', apartmentId: staffForm.apartmentId }); }
   async function toggleStaff(member) { await run(() => request(`/seller/delivery-boys/${member.id}`, { method: 'PATCH', body: JSON.stringify({ isActive: !member.isActive }) }), member.isActive ? 'Delivery boy deactivated.' : 'Delivery boy activated.'); }
   async function removeStaff(member) { await run(() => request(`/seller/delivery-boys/${member.id}`, { method: 'DELETE' }), 'Delivery boy removed from this seller.'); }
-  async function verifyHandover(order) { return openHandoverCodeDialog(order, codes => request(`/orders/${order.id}/verify-items`, { method: 'POST', body: JSON.stringify({ code: Object.values(codes)[0] }) })); }
-  async function updateOrder(order, status) { if (order.status === status) return; if (status === 'PICKED_UP' && order.fulfillmentType === 'PICKUP') { if (await verifyHandover(order)) await load(); return; } if (status === 'DELIVERED' && order.fulfillmentType === 'DELIVERY') { if (await verifyHandover(order)) await load(); return; } await run(() => request(`/orders/${order.id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }), 'Order status updated.'); }
+  async function confirmSellerCancellation(order) {
+    const confirmed = await new Promise(resolve => {
+      const backdrop = document.createElement('div');
+      backdrop.className = 'confirm-dialog-backdrop';
+      backdrop.innerHTML = `<section class="confirm-dialog" role="alertdialog" aria-modal="true"><h2>Cancel this order?</h2><p>Are you sure you want to cancel ${order.orderNumber}? This action cannot be undone.</p><div class="confirm-dialog-actions"><button type="button" data-cancel>Keep order</button><button type="button" class="danger-button" data-confirm>Confirm cancellation</button></div></section>`;
+      document.body.appendChild(backdrop);
+      const finish = value => { backdrop.remove(); resolve(value); };
+      backdrop.querySelector('[data-cancel]').addEventListener('click', () => finish(false));
+      backdrop.querySelector('[data-confirm]').addEventListener('click', () => finish(true));
+    });
+    if (!confirmed) return;
+    await run(() => request(`/orders/${order.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'CANCELLED', note: 'Cancelled by seller' }) }), 'Order cancelled.');
+  }
+  async function verifyHandover(order, targetStatus) { return openHandoverCodeDialog(order, codes => request(`/orders/${order.id}/verify-items`, { method: 'POST', body: JSON.stringify({ code: Object.values(codes)[0], targetStatus }) })); }
+  async function updateOrder(order, status) { if (order.status === status) return; if (status === 'DELIVERED') { if (await verifyHandover(order, 'DELIVERED')) await load(); return; } await run(() => request(`/orders/${order.id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }), 'Order status updated.'); }
   async function printOrder(order) {
     try {
       const response = await fetch(`${API_BASE}/exports/seller/orders/${order.id}/print.pdf`, { headers });
@@ -2030,23 +2356,13 @@ function SellerCrudPortal({ accessToken, onLogout }) {
   async function saveAreas(event) { event.preventDefault(); const apartmentIds = [...event.currentTarget.querySelectorAll('input:checked:not(:disabled)')].map(input => input.value); await run(() => request('/seller/delivery-areas', { method: 'PUT', body: JSON.stringify({ apartmentIds }) }), 'Delivery areas updated.'); }
   async function saveProductImages(product, urls) { await run(async () => { for (const [index, imageUrl] of urls.entries()) await request(`/seller/products/${product.id}/images`, { method: 'POST', body: JSON.stringify({ imageUrl, sortOrder: (product.images?.length || 0) + index }) }); }, 'Product images uploaded.'); }
   async function submitAd(event) { event.preventDefault(); if (!adForm.imageUrls.length) { setMessage('Upload at least one advertisement image.'); return; } await run(() => request('/seller/advertisements', { method: 'POST', body: JSON.stringify({ ...adForm, title: 'Seller advertisement', description: undefined }) }), 'Advertisement submitted for admin approval.'); setAdForm({ title: '', description: '', imageUrls: [] }); }
-  const nav = [['overview', 'Overview'], ['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory'], ['areas', 'Delivery areas'], ['ads', 'Seller ads'], ['media', 'Store media'], ['settings', 'Store settings']];
+  const nav = [['overview', 'Overview'], ['orders', 'Orders'], ['products', 'Products'], ['inventory', 'Inventory'], ['areas', 'Delivery areas'], ['coupons', 'Coupons'], ['ads', 'Seller ads'], ['media', 'Store media'], ['settings', 'Store settings']];
   const sellerTransitions = order => {
-    const deliveryFlow = {
-      PENDING: [['ACCEPTED', 'Accept']],
-      ACCEPTED: [['PREPARING', 'Packing']],
-      PREPARING: [['OUT_FOR_DELIVERY', 'Out for delivery']],
-      READY_FOR_PICKUP: [['OUT_FOR_DELIVERY', 'Out for delivery']],
-      ASSIGNED_TO_DELIVERY_BOY: [['OUT_FOR_DELIVERY', 'Out for delivery']],
-      OUT_FOR_DELIVERY: [['DELIVERED', 'Delivered']]
-    };
-    const takeawayFlow = {
-      PENDING: [['ACCEPTED', 'Accept']],
-      ACCEPTED: [['PREPARING', 'Packing']],
-      PREPARING: [['READY_FOR_PICKUP', 'Ready']],
-      READY_FOR_PICKUP: [['PICKED_UP', 'Handed over']]
-    };
-    return (order.fulfillmentType === 'DELIVERY' ? deliveryFlow : takeawayFlow)[order.status] || [];
+    if (['REJECTED', 'CANCELLED', 'COMPLETED'].includes(order.status)) return [];
+    const statuses = order.fulfillmentType === 'DELIVERY'
+      ? [['ACCEPTED', 'Accepted'], ['PREPARING', 'Processing'], ['OUT_FOR_DELIVERY', 'Out for delivery'], ['DELIVERED', 'Delivered']]
+      : [['ACCEPTED', 'Accepted'], ['PREPARING', 'Processing'], ['READY_FOR_PICKUP', 'Ready for pickup'], ['PICKED_UP', 'Picked up'], ['COMPLETED', 'Completed']];
+    return statuses.filter(([status]) => status !== order.status);
   };
   if (tab === 'products') return <SellerProductManagerV3 accessToken={accessToken} onBack={() => setTab('overview')} onLogout={onLogout} onNavigate={setTab} />;
   if (tab === 'settings') return <SellerSettingsWorkspace accessToken={accessToken} onBack={() => setTab('overview')} onNavigate={setTab} onLogout={onLogout} />;

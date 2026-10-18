@@ -7,11 +7,12 @@ import { prisma } from '../lib/prisma.js';
 import { getPrimaryApartment } from '../services/home.service.js';
 import { getSellerAvailability } from '../utils/seller-hours.js';
 import { orderStatusMessage, sendPushNotifications } from '../services/push.service.js';
+import { validateCouponForCheckout } from './coupon.routes.js';
 
 export const commerceRouter = Router();
 
 const cartItemSchema = z.object({ productId: z.string().uuid(), quantity: z.number().int().positive() });
-const checkoutSchema = z.object({ sellerId: z.string().uuid(), items: z.array(cartItemSchema).min(1), fulfillmentType: z.enum(['DELIVERY', 'PICKUP']), paymentMethod: z.enum(['CASH_ON_DELIVERY', 'DUMMY_PAYMENT']), addressId: z.string().uuid().optional(), customerNotes: z.string().max(2000).optional() });
+const checkoutSchema = z.object({ sellerId: z.string().uuid(), items: z.array(cartItemSchema).min(1), fulfillmentType: z.enum(['DELIVERY', 'PICKUP']), paymentMethod: z.enum(['CASH_ON_DELIVERY', 'DUMMY_PAYMENT']), addressId: z.string().uuid().optional(), customerNotes: z.string().max(2000).optional(), couponCode: z.string().trim().min(3).max(80).optional() });
 const orderReferenceAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 function createOrderReference(date = new Date()) {
@@ -102,9 +103,12 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
         subtotal = subtotal.add(totalPrice);
         orderItems.push({ productId: product.id, productName: product.name, quantity: item.quantity, unitPrice: product.finalPrice, discount: product.discount, totalPrice });
       }
+      const couponResult = input.couponCode ? await validateCouponForCheckout(tx, { code: input.couponCode, sellerId: seller.id, userId: request.auth!.userId, apartmentId: context.apartmentId, subtotal }) : null;
+      const couponDiscount = couponResult?.discount ?? new Prisma.Decimal(0);
       const deliveryCharge = input.fulfillmentType === 'DELIVERY' ? (seller.deliveryCharge ?? new Prisma.Decimal(0)) : new Prisma.Decimal(0);
-      const total = subtotal.add(deliveryCharge);
-      const created = await tx.order.create({ data: { orderNumber: createOrderReference(), customerId: request.auth!.userId, sellerId: seller.id, apartmentId: context.apartmentId, blockId: context.blockId, flatId: context.flatId, addressId: input.addressId, subtotal, discount: 0, deliveryCharge, total, paymentMethod: input.paymentMethod, paymentStatus: input.paymentMethod === 'DUMMY_PAYMENT' ? 'PAID' : 'PENDING', fulfillmentType: input.fulfillmentType, fulfillmentAddress, fulfillmentPhone, verificationCode: String(Math.floor(100000 + Math.random() * 900000)), customerNotes: input.customerNotes, items: { create: orderItems }, statusHistory: { create: { toStatus: 'PENDING' } } } });
+      const total = subtotal.sub(couponDiscount).add(deliveryCharge);
+      const created = await tx.order.create({ data: { orderNumber: createOrderReference(), customerId: request.auth!.userId, sellerId: seller.id, apartmentId: context.apartmentId, blockId: context.blockId, flatId: context.flatId, addressId: input.addressId, subtotal, discount: couponDiscount, couponId: couponResult?.coupon?.id, couponCode: couponResult?.coupon?.code, deliveryCharge, total, paymentMethod: input.paymentMethod, paymentStatus: input.paymentMethod === 'DUMMY_PAYMENT' ? 'PAID' : 'PENDING', fulfillmentType: input.fulfillmentType, fulfillmentAddress, fulfillmentPhone, verificationCode: String(Math.floor(100000 + Math.random() * 900000)), customerNotes: input.customerNotes, items: { create: orderItems }, statusHistory: { create: { toStatus: 'PENDING' } } } });
+      if (couponResult?.coupon) await (tx as any).couponRedemption.create({ data: { couponId: couponResult.coupon.id, userId: request.auth!.userId, orderId: created.id, amount: couponDiscount } });
       for (const item of orderItems) {
         const product = products.find(record => record.id === item.productId)!;
         if (product.inventoryTracking) await tx.inventoryMovement.create({ data: { productId: product.id, type: 'SALE', quantity: -item.quantity, orderId: created.id, reason: `Order ${created.orderNumber}` } });
@@ -180,7 +184,11 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
       response.json(order);
       return;
     }
-    if (!isAdmin && !transitions[order.status].includes(status)) {
+    const isSeller = order.seller.userId === request.auth!.userId;
+    const sellerDirectStatuses: OrderStatus[] = ['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP', 'ASSIGNED_TO_DELIVERY_BOY', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'COMPLETED'];
+    const sellerMayJumpToStatus = isSeller && sellerDirectStatuses.includes(status) && !['REJECTED', 'CANCELLED', 'COMPLETED'].includes(order.status);
+    const sellerMayCancelOrder = isSeller && status === 'CANCELLED' && !['REJECTED', 'CANCELLED', 'DELIVERED', 'COMPLETED'].includes(order.status);
+    if (!isAdmin && !sellerMayJumpToStatus && !sellerMayCancelOrder && !transitions[order.status].includes(status)) {
       response.status(400).json({ error: { code: 'INVALID_STATUS_TRANSITION', message: `Cannot move order from ${order.status} to ${status}` } });
       return;
     }
@@ -212,7 +220,7 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
 commerceRouter.post('/orders/:orderId/verify-items', requireAuth, async (request, response, next) => {
   try {
     const orderId = z.string().uuid().parse(request.params.orderId);
-    const { code: submittedCode } = z.object({ code: z.string().trim().regex(/^\d{6}$/) }).parse(request.body);
+    const { code: submittedCode, targetStatus } = z.object({ code: z.string().trim().regex(/^\d{6}$/), targetStatus: z.enum(['DELIVERED', 'COMPLETED']).optional().default('COMPLETED') }).parse(request.body);
     const order = await prisma.order.findUnique({ where: { id: orderId }, include: { seller: { select: { userId: true } }, items: true, deliveryAssignment: { include: { deliveryBoy: { select: { userId: true } } } } } });
     const isAdmin = request.auth!.roles.includes('GLOBAL_ADMIN');
     const isSeller = order?.seller.userId === request.auth!.userId;
@@ -221,7 +229,9 @@ commerceRouter.post('/orders/:orderId/verify-items', requireAuth, async (request
       response.status(404).json({ error: { code: 'ORDER_NOT_FOUND', message: 'Order not found' } });
       return;
     }
-    const validWindow = order.fulfillmentType === 'PICKUP'
+    const validWindow = targetStatus === 'DELIVERED' && isSeller
+      ? !['CANCELLED', 'COMPLETED', 'DELIVERED'].includes(order.status)
+      : order.fulfillmentType === 'PICKUP'
       ? ['READY_FOR_PICKUP', 'PICKED_UP'].includes(order.status)
       : ['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status);
     if (!validWindow) {
@@ -237,11 +247,11 @@ commerceRouter.post('/orders/:orderId/verify-items', requireAuth, async (request
       return;
     }
     const updated = await prisma.$transaction(async tx => {
-      const result = await tx.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', verifiedAt: new Date() } });
-      await tx.orderStatusHistory.create({ data: { orderId: order.id, fromStatus: order.status, toStatus: 'COMPLETED', changedById: request.auth!.userId, note: `${order.fulfillmentType === 'PICKUP' ? 'Takeaway' : 'Delivery'} verification completed` } });
+      const result = await tx.order.update({ where: { id: order.id }, data: { status: targetStatus, ...(targetStatus === 'DELIVERED' ? { deliveredAt: new Date() } : {}), ...(targetStatus === 'COMPLETED' ? { verifiedAt: new Date() } : {}) } });
+      await tx.orderStatusHistory.create({ data: { orderId: order.id, fromStatus: order.status, toStatus: targetStatus, changedById: request.auth!.userId, note: `${order.fulfillmentType === 'PICKUP' ? 'Takeaway' : 'Delivery'} verification completed` } });
       return result;
     });
-    await prisma.notification.create({ data: { userId: order.customerId, type: 'ORDER_DELIVERED' as never, title: 'Order completed', message: `Verification completed for order ${order.orderNumber}.`, data: { route: 'orders', orderId: order.id, status: 'COMPLETED' } } });
+    await prisma.notification.create({ data: { userId: order.customerId, type: 'ORDER_DELIVERED' as never, title: 'Order update', message: `Verification completed for order ${order.orderNumber}.`, data: { route: 'orders', orderId: order.id, status: targetStatus } } });
     response.json(updated);
   } catch (error) {
     next(error);

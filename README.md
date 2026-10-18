@@ -240,3 +240,11 @@ Orders created before this migration may still use their existing relational add
 - On a user's first browser login, the in-app notification prompt is shown once even when there are no orders. Later prompts remain active-order-only and limited to once per day.
 - A granted browser subscription can receive order notifications while the tab is closed through the Firebase Messaging service worker. Logging out deactivates the browser token, so that browser session no longer receives user notifications.
 - The latest local verification includes the web production build, backend TypeScript check, Prisma migration status, and `git diff --check`.
+
+## Seller coupons - 2026-10-18
+
+- Sellers can create globally unique fixed-amount coupon codes with a valid date range, minimum product subtotal, first-order-with-this-seller restriction, one-time, two-time, or unlimited use per customer, and eligible apartment targets.
+- Coupon rules are immutable after activation. Sellers can deactivate a coupon, but cannot edit or reactivate it.
+- Customers apply coupons separately for each seller group in the cart. Discounts are calculated only against the product subtotal, never delivery charges. The backend validates the coupon again during checkout and records each redemption.
+- When a cart is below the minimum subtotal, the cart suggests exactly how much more the customer needs to add to unlock the offer.
+- Orders and seller invoices preserve subtotal, coupon code, coupon discount, delivery charge, and final total separately.
