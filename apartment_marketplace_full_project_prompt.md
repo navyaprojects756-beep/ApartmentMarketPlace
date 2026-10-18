@@ -2529,3 +2529,9 @@ Orders created before the snapshot migration can only display the address data s
 - Fixed-amount seller coupons support validity dates, minimum product subtotal, seller-specific first-order rules, per-customer one-time/two-time/unlimited usage, apartment targeting, immutable activation rules, and transactional redemption.
 - Coupon discounts apply only to product subtotal and must be shown separately from delivery charges and final totals throughout cart, orders, invoices, and exports.
 - The live release requires all committed Prisma migrations, Firebase Admin configuration, JWT secrets, the web VAPID key, durable uploads, and hosted smoke tests before production announcement.
+
+# Current implementation additions - 2026-10-18 UI polish
+
+- The web header uses the supplied exact GatedCart SVG asset from `public/assets/gatedcart-logo-exact.svg`.
+- Seller application “What do you sell?” text is center-aligned.
+- Seller workspace tab changes are represented in browser history; browser Back from Orders returns to Seller Overview.

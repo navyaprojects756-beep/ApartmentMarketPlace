@@ -260,3 +260,9 @@ Orders created before this migration may still use their existing relational add
 ### Release gate
 
 Before deploying today, configure production Firebase Admin credentials, JWT secrets, `VITE_FIREBASE_VAPID_KEY`, persistent image storage, and the production database. Run committed Prisma migrations with `npx prisma migrate deploy --schema prisma/schema.prisma`, then run `npm run build`, `npm run api:build`, and the hosted Firebase/order/push smoke tests. Do not seed the production database.
+
+## UI polish and seller navigation - 2026-10-18
+
+- The web header uses the provided exact GatedCart logo asset at `public/assets/gatedcart-logo-exact.svg`, avoiding hand-drawn logo geometry and preventing mark overlap.
+- Seller application descriptions are center-aligned in the “What do you sell?” textarea.
+- Seller workspace tabs add browser-history entries. Browser Back from Seller Orders returns to the Seller workspace Overview instead of resetting to the application start screen.

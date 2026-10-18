@@ -123,3 +123,8 @@ Install the fresh preview APK, allow notifications, log in, and verify that the 
 - Seller and product rating aggregates are displayed only when the seller enables `Display customer ratings publicly` in Seller Settings. Provider aggregates are shown only when reviews exist.
 - Seller availability uses the configured active flag, weekday, operating hours, and `APP_TIME_ZONE` (default `Asia/Kolkata`) consistently in Home, category browsing, storefronts, and the seller workspace.
 - Browser notification prompts are part of the shared web app, not a separate native screen. The browser prompt is shown in-app only for signed-in users with active orders, at most once per day. Native push permission and Expo token registration continue to use the native shell flow.
+
+## Shared web UI polish - 2026-10-18
+
+- The shared web client uses the exact GatedCart logo asset and keeps the logo mark clear at mobile header sizes.
+- Seller workspace tab navigation preserves browser history, so Back from Orders returns to the seller Overview screen.

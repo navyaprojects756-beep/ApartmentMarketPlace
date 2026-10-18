@@ -212,3 +212,11 @@ npx eas build --platform android --profile preview
 ### Local verification note
 
 The web build and backend type-check pass locally. Prisma migration status was unable to reach Prisma's binary host in the restricted environment, and the test runner was blocked by Windows `spawn EPERM`; rerun both in CI or the deployment environment.
+
+## 2026-10-18 UI polish checks
+
+- [x] Confirm the exact supplied GatedCart logo renders without G/cart overlap in the web header.
+- [x] Confirm the logo/text gap remains compact on mobile viewport sizes.
+- [x] Confirm seller application description text is centered.
+- [x] Confirm browser Back from Seller Orders returns to Seller Overview.
+- [ ] Repeat these checks on the hosted production domain after deployment.

@@ -430,6 +430,13 @@ Historical note: orders created before the snapshot migration may not have immut
 - [ ] Run migrations and hosted smoke tests in the production environment before announcing release.
 - [ ] Configure and verify Firebase Admin credentials, `VITE_FIREBASE_VAPID_KEY`, JWT secrets, durable uploads, browser push, Firebase login, checkout, seller status updates, PIN delivery confirmation, cancellation, and ratings on the live domain.
 
+## 2026-10-18 UI polish checkpoint
+
+- [x] Replaced the hand-drawn web logo mark with the supplied exact GatedCart SVG asset.
+- [x] Reduced the header logo/text spacing and constrained the mark for mobile headers.
+- [x] Center-aligned seller application “What do you sell?” textarea content.
+- [x] Added seller workspace tab history so browser Back from Orders returns to Seller Overview.
+
 ### Local verification limitations
 
 In the current restricted environment, `prisma migrate status` could not download Prisma's schema engine because outbound access was refused, and `npm test` was blocked by Windows `spawn EPERM` while starting the test workers. These are environment limitations and must be rerun in the deployment/CI environment.

@@ -221,3 +221,11 @@ The browser theme color is configured in the root web document as GatedCart oran
 - `POST /orders/:orderId/verify-items` accepts `{ code, targetStatus: "DELIVERED" }` for seller delivery confirmation. The order remains unchanged when the PIN is missing or incorrect. Existing completion verification continues to use the default completion target.
 - Customer order tracking shows one rating form at a time with manual left/right navigation for seller and product review targets.
 - Coupon checkout fields preserve product subtotal, optional coupon code/discount, delivery charge, and final total. Coupon discounts never apply to delivery charges and are revalidated transactionally by the API.
+
+## Web client UI notes - 2026-10-18
+
+These changes do not add API endpoints:
+
+- The client loads the exact branding asset from `/assets/gatedcart-logo-exact.svg`.
+- Seller workspace browser navigation stores the active seller tab in history and restores it through `popstate`.
+- Seller application description alignment is a client-only presentation change.
