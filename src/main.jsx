@@ -8,6 +8,7 @@ import './styles.css';
 const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000/api/v1` : 'http://localhost:5000/api/v1');
 const ACCESS_TOKEN_KEY = 'gatedcart_access_token';
 const REFRESH_TOKEN_KEY = 'gatedcart_refresh_token';
+const SELECTED_SELLER_KEY = 'gatedcart_selected_seller';
 const nativeFetch = typeof window !== 'undefined' ? window.fetch.bind(window) : null;
 let refreshInFlight = null;
 
@@ -221,7 +222,7 @@ function ImageUploadControl({ accessToken, label, multiple = false, onUploaded }
       : label.toLowerCase().includes('advertisement')
         ? 'Recommended: 1200 x 628 px. Up to 3 images; JPG, PNG or WebP only; maximum 1.5 MB each.'
     : ['add images', 'upload images'].includes(label.toLowerCase())
-      ? 'Best: 1000 x 1000 px square - use the same format for every product image.'
+      ? 'Best: 1200 x 900 px (4:3 ratio) - use the same format for every product image.'
       : '';
   async function upload(event) {
     const files = [...event.target.files];
@@ -405,6 +406,7 @@ function ProductDetailView({ product, seller, products, cart, onAdd, onRemove, o
   const images = (product.images || []).map(image => image.imageUrl).filter(Boolean);
   const [activeImage, setActiveImage] = useState(0);
   const imageTrackRef = useRef(null);
+  const detailPageRef = useRef(null);
   const quantity = cart.find(item => item.productId === product.productId)?.quantity || 0;
   const price = Number(product.finalPrice ?? String(product.price).replace(/[^0-9.]/g, '')) || 0;
   const oldPrice = Number(product.price) || Number(String(product.price).replace(/[^0-9.]/g, '')) || 0;
@@ -412,6 +414,7 @@ function ProductDetailView({ product, seller, products, cart, onAdd, onRemove, o
   useEffect(() => {
     setActiveImage(0);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    detailPageRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [product.productId]);
   useEffect(() => {
     if (images.length < 2) return undefined;
@@ -436,7 +439,7 @@ function ProductDetailView({ product, seller, products, cart, onAdd, onRemove, o
     if (measure && product.unit) measure.textContent = `Pack size / measure: ${product.unit}`;
   }, [product.productId, product.unit]);
 
-  return <div className="product-detail-page">
+  return <div className="product-detail-page" ref={detailPageRef}>
     <header className="store-header product-detail-header"><button className="back-button" onClick={onBack}><Icon name="back" size={21} /></button><span className="product-detail-heading">Product details</span><div className="store-header-actions"><button className="icon-button cart-button" onClick={onCart} aria-label="Open cart"><Icon name="bag" size={20} />{cart.length > 0 && <span>{cart.reduce((sum, item) => sum + item.quantity, 0)}</span>}</button></div></header>
     <main className="product-detail-content page-width">
       <section className="product-detail-hero">
@@ -446,10 +449,10 @@ function ProductDetailView({ product, seller, products, cart, onAdd, onRemove, o
           </div>
           {images.length > 1 && <div className="product-image-dots" aria-label="Product image position">{images.map((image, index) => <button type="button" className={activeImage === index ? 'active' : ''} key={`${image}-dot`} onClick={() => setActiveImage(index)} aria-label={`Show image ${index + 1}`} />)}</div>}
         </div>
-        <div className="product-detail-copy"><span className="product-detail-category">{product.category}</span><h1>{product.name}</h1><RatingSummary rating={product.rating} reviewCount={product.reviewCount} /><div className="product-detail-price"><strong>₹{price.toFixed(2)}</strong>{oldPrice > price && <del>₹{oldPrice.toFixed(2)}</del>}</div>{product.unit && <p className="product-detail-unit">Sold by {product.unit}</p>}<section className="product-detail-info"><h3>Product details</h3><p>{product.description || 'No additional product details provided.'}</p>{product.instructions && <><h3>Instructions</h3><p>{product.instructions}</p></>}</section><div className="product-detail-actions"><ProductQuantityControl product={product} sellerId={seller.id} quantity={quantity} onAdd={onAdd} onRemove={onRemove} /><span className="product-detail-stock">{product.inventoryTracking && product.inventory?.quantity != null ? product.inventory.quantity > 0 ? 'Available' : 'Currently unavailable' : product.availability === false ? 'Currently unavailable' : 'Available today'}</span></div></div>
+        <div className="product-detail-copy"><span className="product-detail-category">{product.category}</span><h1>{product.name}</h1><RatingSummary rating={product.rating} reviewCount={product.reviewCount} /><div className="product-detail-price"><strong>₹{price.toFixed(2)}</strong>{oldPrice > price && <del>₹{oldPrice.toFixed(2)}</del>}<ProductQuantityControl product={product} sellerId={seller.id} quantity={quantity} onAdd={onAdd} onRemove={onRemove} /></div>{product.unit && <p className="product-detail-unit">Sold by {product.unit}</p>}<section className="product-detail-info"><h3>Product details</h3><p>{product.description || 'No additional product details provided.'}</p>{product.instructions && <><h3>Instructions</h3><p>{product.instructions}</p></>}</section><div className="product-detail-actions"><span className="product-detail-stock">{product.inventoryTracking && product.inventory?.quantity != null ? product.inventory.quantity > 0 ? 'Available' : 'Currently unavailable' : product.availability === false ? 'Currently unavailable' : 'Available today'}</span></div></div>
       </section>
-      {relatedProducts.length > 0 && <section className="related-products"><div className="section-heading compact"><div><p className="eyebrow">MORE FROM {seller.name.toUpperCase()}</p><h2>You may also like</h2></div></div><div className="related-products-row">{relatedProducts.map(item => <div className="related-product-card" role="button" tabIndex="0" key={item.productId} onClick={() => onSelectProduct(item)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onSelectProduct(item); }}><ProductCardImage product={item} /><span><strong>{item.name}</strong><small>₹{Number(item.finalPrice ?? String(item.price).replace(/[^0-9.]/g, '')).toFixed(2)}</small><ProductQuantityControl product={item} sellerId={seller.id} quantity={cart.find(cartItem => cartItem.productId === item.productId)?.quantity || 0} onAdd={onAdd} onRemove={onRemove} /></span></div>)}</div></section>}
-    </main><CartBottomBar cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)} onCart={onCart} /><BottomNav active="bag" showSeller={showSeller} onNavigate={onNavigate || (target => target === 'bag' ? onCart() : onBack())} />
+      {relatedProducts.length > 0 && <section className="related-products"><div className="section-heading compact"><div><p className="eyebrow">MORE FROM {seller.name.toUpperCase()}</p><h2>You may also like</h2></div></div><div className="related-products-row">{relatedProducts.map(item => <div className="related-product-card" role="button" tabIndex="0" key={item.productId} onClick={() => onSelectProduct(item)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onSelectProduct(item); }}><ProductCardImage product={item} /><span><strong>{item.name}</strong><div className="related-product-meta"><small>₹{Number(item.finalPrice ?? String(item.price).replace(/[^0-9.]/g, '')).toFixed(2)}</small><ProductQuantityControl product={item} sellerId={seller.id} quantity={cart.find(cartItem => cartItem.productId === item.productId)?.quantity || 0} onAdd={onAdd} onRemove={onRemove} /></div></span></div>)}</div></section>}
+    </main><CartBottomBar cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)} onCart={onCart} /><BottomNav active="" showSeller={showSeller} onNavigate={onNavigate || (target => target === 'bag' ? onCart() : onBack())} />
   </div>;
 }
 
@@ -2488,14 +2491,20 @@ function usePullToRefresh(currentPage) {
     let startY = 0;
     let pulling = false;
     let armed = false;
+    let activeScroller = null;
     const indicator = document.createElement('div');
     indicator.className = 'pull-refresh-indicator';
     indicator.innerHTML = '<span class="pull-refresh-glyph">↻</span>';
     document.body.appendChild(indicator);
-    const isAtTop = () => window.scrollY <= 0 && [...document.querySelectorAll('.home-content, .store-content, main')].every(element => element.scrollTop <= 0);
+    const getScroller = target => target?.closest?.('.menu-section, .home-content, .store-content, main') || document.scrollingElement;
+    const isAtTop = target => {
+      const scroller = getScroller(target);
+      return scroller === document.scrollingElement ? window.scrollY <= 0 : scroller.scrollTop <= 0;
+    };
     const onStart = event => {
-      if (event.touches.length !== 1 || !isAtTop()) return;
+      if (event.touches.length !== 1 || !isAtTop(event.target)) return;
       startY = event.touches[0].clientY;
+      activeScroller = getScroller(event.target);
       pulling = true;
       armed = false;
     };
@@ -2503,6 +2512,10 @@ function usePullToRefresh(currentPage) {
       if (!pulling || !event.touches.length) return;
       const distance = event.touches[0].clientY - startY;
       if (distance <= 0) return;
+      if (activeScroller && activeScroller !== document.scrollingElement && activeScroller.scrollTop > 0) {
+        pulling = false;
+        return;
+      }
       event.preventDefault();
       indicator.style.transform = `translate(-50%, ${Math.min(distance, 120) - 56}px)`;
       armed = distance >= 84;
@@ -2514,6 +2527,7 @@ function usePullToRefresh(currentPage) {
       const shouldRefresh = armed;
       pulling = false;
       armed = false;
+      activeScroller = null;
       indicator.classList.remove('visible');
       indicator.classList.remove('armed');
       if (shouldRefresh) {
@@ -2550,7 +2564,9 @@ function App() {
     screenRef.current = resolvedScreen;
     setScreenState(resolvedScreen);
   };
-  const [selectedSeller, setSelectedSeller] = useState(null);
+  const [selectedSeller, setSelectedSeller] = useState(() => {
+    try { return JSON.parse(window.sessionStorage.getItem(SELECTED_SELLER_KEY) || 'null'); } catch { return null; }
+  });
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedCommunityService, setSelectedCommunityService] = useState(null);
   const [cart, setCart] = useState([]);
@@ -2570,6 +2586,9 @@ function App() {
   const [sellerApplicationLoading, setSellerApplicationLoading] = useState(true);
   usePullToRefresh(screen);
   useEffect(() => { window.sessionStorage.removeItem('gatedcart_refresh_screen'); }, []);
+  useEffect(() => {
+    if (screen !== 'store') window.sessionStorage.removeItem(SELECTED_SELLER_KEY);
+  }, [screen]);
   useEffect(() => {
     window.history.replaceState({ ...(window.history.state || {}), gatedcartHistory: true, gatedcartScreen: screenRef.current }, '', window.location.href);
     const handlePopState = event => {
@@ -2639,7 +2658,7 @@ function App() {
   if (!sessionReady) return <main className="auth-screen"><div className="auth-card session-loading"><Logo /><p className="auth-copy">Checking your GatedCart session…</p></div></main>;
   if (!accessToken) return <LoginScreen sellerRegistrationIntent={sellerRegistrationIntent} onAuthenticated={session => { window.sessionStorage.removeItem('gatedcart_refresh_screen'); setScreen('home'); setSelectedSeller(null); setSelectedCategory(null); setSelectedCommunityService(null); setSellerRegistrationExisting(Boolean(session.sellerRegistrationExisting)); setNotificationPromptOnLogin(true); persistSession(session); setAccessToken(session.accessToken); fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${session.accessToken}` } }).then(response => response.json()).then(setSessionUser).catch(() => {}); }} />;
   const roleCodes = (sessionUser?.roles || []).map(role => typeof role === 'string' ? role : role?.code || role?.role?.code).filter(Boolean);
-  const logout = () => { unregisterNativePushDevice(window.__gatedcartNativePushToken, accessToken); unregisterWebPushDevice(accessToken); void fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => {}); window.localStorage.removeItem(ACCESS_TOKEN_KEY); window.localStorage.removeItem(REFRESH_TOKEN_KEY); setNotificationPromptOnLogin(false); setAccessToken(null); setSessionUser(null); };
+  const logout = () => { unregisterNativePushDevice(window.__gatedcartNativePushToken, accessToken); unregisterWebPushDevice(accessToken); void fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => {}); window.localStorage.removeItem(ACCESS_TOKEN_KEY); window.localStorage.removeItem(REFRESH_TOKEN_KEY); window.sessionStorage.removeItem(SELECTED_SELLER_KEY); setNotificationPromptOnLogin(false); setAccessToken(null); setSessionUser(null); };
   const continueFromSellerEntry = () => { window.location.replace('/'); };
   if (roleCodes.includes('GLOBAL_ADMIN')) return <AdminWorkspace token={accessToken} onLogout={logout} />;
   if (isDeleteAccountPath) return <DeleteAccountPage accessToken={accessToken} onBack={() => { window.location.href = '/'; }} onLogout={logout} />;
@@ -2679,7 +2698,7 @@ function App() {
   if (screen === 'community-service' && selectedCommunityService) return <CommunityServiceProvidersScreen service={selectedCommunityService} accessToken={accessToken} onBack={() => setScreen('home')} showSeller={isApprovedSeller} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('cart') : target === 'profile' ? setScreen('profile') : undefined} />;
   if (screen === 'profile') return <CustomerPageShell onNavigate={() => setScreen('profile')} onCart={() => setScreen('cart')} user={sessionUser}><ProfileScreen accessToken={accessToken} showSeller={isApprovedSeller} onBack={() => setScreen('home')} onOrders={() => setScreen('orders')} onSeller={() => setScreen('seller')} onSellerStatusChange={setSellerStatus} onLogout={logout} /></CustomerPageShell>;
   if (screen === 'seller') return <SellerArea accessToken={accessToken} onBack={() => setScreen('home')} onLogout={logout} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('orders') : target === 'profile' ? setScreen('profile') : undefined} />;
-  return screen === 'home' ? <HomeScreen accessToken={accessToken} showSeller={isApprovedSeller} cartCount={cartCount} notificationPromptOnLogin={notificationPromptOnLogin} onCart={() => setScreen('cart')} cartConflictItem={cartConflictItem} onConfirmCartConflict={confirmCartConflict} onCancelCartConflict={cancelCartConflict} onOrders={() => setScreen('orders')} onProfile={() => setScreen('profile')} onSeller={() => setScreen('seller')} onLogout={logout} onOpenCategory={categoryId => { setSelectedCategory(categoryId); setScreen('category'); }} onOpenCommunityService={service => { setSelectedCommunityService(service); setScreen('community-service'); }} onOpenSeller={(seller) => { setSelectedSeller(seller); setScreen('store'); }} /> : <CustomerStorefront seller={selectedSeller} accessToken={accessToken} onBack={() => setScreen('home')} onAdd={addToCart} onRemove={removeFromCart} onCart={() => setScreen('cart')} cart={cart} cartCount={cartCount} showSeller={isApprovedSeller} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('orders') : target === 'profile' ? setScreen('profile') : target === 'seller' ? setScreen('seller') : undefined} cartConflictItem={cartConflictItem} onConfirmCartConflict={confirmCartConflict} onCancelCartConflict={cancelCartConflict} stockNotice={stockNotice} onDismissStockNotice={() => setStockNotice('')} />;
+  return screen === 'home' ? <HomeScreen accessToken={accessToken} showSeller={isApprovedSeller} cartCount={cartCount} notificationPromptOnLogin={notificationPromptOnLogin} onCart={() => setScreen('cart')} cartConflictItem={cartConflictItem} onConfirmCartConflict={confirmCartConflict} onCancelCartConflict={cancelCartConflict} onOrders={() => setScreen('orders')} onProfile={() => setScreen('profile')} onSeller={() => setScreen('seller')} onLogout={logout} onOpenCategory={categoryId => { setSelectedCategory(categoryId); setScreen('category'); }} onOpenCommunityService={service => { setSelectedCommunityService(service); setScreen('community-service'); }} onOpenSeller={seller => { window.sessionStorage.setItem(SELECTED_SELLER_KEY, JSON.stringify(seller)); setSelectedSeller(seller); setScreen('store'); }} /> : <CustomerStorefront seller={selectedSeller} accessToken={accessToken} onBack={() => setScreen('home')} onAdd={addToCart} onRemove={removeFromCart} onCart={() => setScreen('cart')} cart={cart} cartCount={cartCount} showSeller={isApprovedSeller} onNavigate={target => target === 'home' ? setScreen('home') : target === 'bag' ? setScreen('orders') : target === 'profile' ? setScreen('profile') : target === 'seller' ? setScreen('seller') : undefined} cartConflictItem={cartConflictItem} onConfirmCartConflict={confirmCartConflict} onCancelCartConflict={cancelCartConflict} stockNotice={stockNotice} onDismissStockNotice={() => setStockNotice('')} />;
 }
 
 class ApplicationErrorBoundary extends Component {
