@@ -978,3 +978,5 @@ h1, h2, h3, .auth-card h1, .login-panel h2, .store-hero h1, .cart-content h1 { f
 .auth-card.session-loading .auth-copy { margin: 10px 0 0; }
 .auth-card.session-loading:after { width: 18px; height: 18px; margin-top: 4px; border: 2px solid #ffd8bc; border-top-color: #ff6b00; border-radius: 50%; content: ''; animation: session-spin .8s linear infinite; }
 @keyframes session-spin { to { transform: rotate(360deg); } }
+textarea.seller-description-input { display: block !important; width: 100% !important; height: 132px !important; min-height: 132px !important; padding: 48px 15px 14px !important; text-align: center !important; }
+.seller-application-form textarea.auth-input { display: block; width: 100%; height: 132px; min-height: 132px; padding: 14px 15px; text-align: left; resize: vertical; }
