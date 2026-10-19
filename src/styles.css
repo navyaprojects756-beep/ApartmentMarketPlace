@@ -428,6 +428,13 @@ html:has(.customer-storefront-with-controls), body:has(.customer-storefront-with
 .customer-storefront-with-controls > .product-detail-page .product-image-slide,
 .customer-storefront-with-controls > .product-detail-page .product-image-slide img { border-radius: 18px; }
 .customer-storefront-with-controls > .product-detail-page .product-image-track { overflow-y: hidden; }
+.store-content > .seller-ad-carousel .seller-media-slide { height: auto; aspect-ratio: 3 / 2; }
+.store-content > .seller-ad-carousel .seller-media-slide img { width: 100%; height: 100%; object-fit: contain; background: #f8f9fc; }
+.store-content > .seller-ad-carousel .seller-ad-track .seller-media-slide img { width: 100%; height: 100%; object-fit: contain; }
+@media (max-width: 560px) {
+  .customer-storefront-with-controls .seller-ad-carousel { flex: 0 0 auto; }
+  .customer-storefront-with-controls .seller-ad-carousel .seller-media-slide { height: calc((100vw - 32px) * .666667) !important; min-height: 0; aspect-ratio: auto; }
+}
 .customer-storefront-with-controls > .product-detail-page, .customer-storefront-with-controls .menu-section { scrollbar-width: none; -ms-overflow-style: none; }
 .customer-storefront-with-controls > .product-detail-page::-webkit-scrollbar, .customer-storefront-with-controls .menu-section::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .customer-storefront-with-controls > .product-detail-page .product-detail-content { padding-top: 0; }
