@@ -433,7 +433,8 @@ html:has(.customer-storefront-with-controls), body:has(.customer-storefront-with
 .store-content > .seller-ad-carousel .seller-ad-track .seller-media-slide img { width: 100%; height: 100%; object-fit: contain; }
 @media (max-width: 560px) {
   .customer-storefront-with-controls .seller-ad-carousel { flex: 0 0 auto; }
-  .customer-storefront-with-controls .seller-ad-carousel .seller-media-slide { height: calc((100vw - 32px) * .666667) !important; min-height: 0; aspect-ratio: auto; }
+  .customer-storefront-with-controls .seller-ad-carousel .seller-media-slide { height: 125px !important; min-height: 0; aspect-ratio: auto; }
+  .customer-storefront-with-controls .seller-ad-carousel .seller-media-slide img { height: 100% !important; object-fit: fill !important; }
 }
 .customer-storefront-with-controls > .product-detail-page, .customer-storefront-with-controls .menu-section { scrollbar-width: none; -ms-overflow-style: none; }
 .customer-storefront-with-controls > .product-detail-page::-webkit-scrollbar, .customer-storefront-with-controls .menu-section::-webkit-scrollbar { display: none; width: 0; height: 0; }
@@ -695,6 +696,10 @@ html:has(.customer-storefront-with-controls), body:has(.customer-storefront-with
 @media (max-width: 560px) { .app-shell:not(.storefront-screen) > .home-content > .search-results { top: 138px; } }
 .app-shell:not(.storefront-screen) > .home-content { scrollbar-width: none; -ms-overflow-style: none; }
 .app-shell:not(.storefront-screen) > .home-content::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.app-shell:not(.storefront-screen) > .category-products-page { height: 100%; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
+.app-shell:not(.storefront-screen) > .category-products-page::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.app-shell:not(.storefront-screen) > .product-detail-page { height: 100%; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
+.app-shell:not(.storefront-screen) > .product-detail-page::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .seller-image { height: 142px; flex-basis: 142px; }
 .seller-card-body { padding: 12px 14px 13px; }
 .seller-card-body > small { min-height: 24px; margin-bottom: 9px; }
