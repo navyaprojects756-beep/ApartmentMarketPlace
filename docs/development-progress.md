@@ -442,6 +442,17 @@ Historical note: orders created before the snapshot migration may not have immut
 - [x] Keep the customer seller-products page fixed to the viewport while allowing only the products list to scroll.
 - [x] Prevent mobile pull-down refresh from hiding or resetting the seller banner, search, category tabs, and product data.
 
+## 2026-10-19 seller and responsive UI checkpoint
+
+- [x] Added seller workflow documentation in `docs/seller-workflow.md` covering registration, approval, settings, products, inventory, orders, and availability.
+- [x] Standardized seller banner guidance to 1200 × 500 px (12:5) and product image guidance to 1200 × 900 px (4:3).
+- [x] Home and seller storefront banner containers now use the banner ratio without letterboxing gaps.
+- [x] Category availability is returned with product counts; categories without available products are disabled on Home like unavailable community services.
+- [x] Fixed category and product-details scrolling containers on mobile while keeping scrollbars hidden.
+- [x] Fixed responsive Seller Settings Store mode radio controls so Delivery and Takeaway remain readable on narrow screens.
+- [x] Removed the temporary seller configuration guide page after review.
+- [x] Verified the web production build after the UI updates.
+
 ### Local verification limitations
 
 In the current restricted environment, `prisma migrate status` could not download Prisma's schema engine because outbound access was refused, and `npm test` was blocked by Windows `spawn EPERM` while starting the test workers. These are environment limitations and must be rerun in the deployment/CI environment.

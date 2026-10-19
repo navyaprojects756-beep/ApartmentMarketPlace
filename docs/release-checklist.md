@@ -220,3 +220,13 @@ The web build and backend type-check pass locally. Prisma migration status was u
 - [x] Confirm seller application description text is centered.
 - [x] Confirm browser Back from Seller Orders returns to Seller Overview.
 - [ ] Repeat these checks on the hosted production domain after deployment.
+
+## 2026-10-19 seller workflow and responsive UI checks
+
+- [x] Seller workflow is documented in `docs/seller-workflow.md`.
+- [x] Confirm seller banner uploads use 1200 × 500 px (12:5) and display without top/bottom gaps.
+- [x] Confirm product uploads use 1200 × 900 px (4:3) and remain consistent in product cards and details.
+- [x] Confirm categories with no available products are visibly disabled on Home.
+- [x] Confirm category and product-details pages scroll correctly on mobile without visible scrollbars.
+- [x] Confirm Seller Settings Delivery and Takeaway controls remain readable on narrow screens.
+- [ ] Repeat seller registration, approval, settings, product, inventory, and responsive checks on the hosted domain.
