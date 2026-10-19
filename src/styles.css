@@ -524,6 +524,16 @@ html:has(.customer-storefront-with-controls), body:has(.customer-storefront-with
 .seller-product-management-heading strong { color: var(--ink); font-size: 13px; }.seller-product-management-heading small { margin-top: 4px; color: var(--muted); font-size: 10px; }
 .seller-product-images { margin-top: 12px; }.seller-product-image-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }.seller-product-image-item { position: relative; width: 132px; padding: 6px; border: 1px solid var(--line); border-radius: 11px; background: #fff; }.seller-product-image-item img { display: block; width: 100%; height: 92px; object-fit: cover; border-radius: 7px; }.seller-image-number { position: absolute; top: 10px; left: 10px; z-index: 1; min-width: 19px; height: 19px; padding: 2px 5px; border-radius: 10px; color: #fff; background: var(--purple); font-size: 10px; font-weight: 700; text-align: center; }.seller-product-image-item .danger-text { width: 100%; margin-top: 6px; padding: 5px; border-radius: 7px; background: #fff0f2; font-size: 10px; }
 @media (max-width: 700px) { .seller-product-management-heading { display: grid; gap: 10px; }.seller-product-management-heading .seller-row-actions { flex-wrap: wrap; }.seller-product-image-item { width: 112px; }.seller-product-image-item img { height: 80px; } }
+.product-availability-list:has(.seller-product-management-card) { display: grid; gap: 18px; padding-top: 2px; border-top: 0; }
+.product-availability-list:has(.seller-product-management-card) .seller-product-management-card { min-width: 0; padding: 18px; border: 1px solid #e8e3f1; border-radius: 16px; background: #fff; box-shadow: 0 6px 18px rgba(44, 29, 83, .06); }
+.product-availability-list:has(.seller-product-management-card) .seller-product-management-heading { padding-bottom: 14px; border-bottom: 1px solid #f0edf4; }
+.product-availability-list:has(.seller-product-management-card) .seller-product-images { margin-top: 14px; }
+.product-availability-list:has(.seller-product-management-card) .seller-image-note { margin-top: 0; }
+@media (max-width: 560px) {
+  .product-availability-list:has(.seller-product-management-card) { gap: 14px; }
+  .product-availability-list:has(.seller-product-management-card) .seller-product-management-card { padding: 14px; border-radius: 14px; }
+  .product-availability-list:has(.seller-product-management-card) .seller-product-management-heading { padding-bottom: 12px; }
+}
 .storefront-screen .bottom-nav, .app-shell:not(.storefront-screen) > .bottom-nav { justify-content: stretch; }
 .storefront-screen .bottom-nav button, .app-shell:not(.storefront-screen) > .bottom-nav button { flex: 1 1 0; min-width: 0; max-width: none; }
 .bottom-nav button.disabled { opacity: .42; cursor: not-allowed; }
