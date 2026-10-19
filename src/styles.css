@@ -477,6 +477,14 @@ html:has(.customer-storefront-with-controls), body:has(.customer-storefront-with
 .store-content > .seller-media-carousel .seller-media-slide img { height: 100%; }
 
 .product-card-clickable { cursor: pointer; transition: transform .18s ease, box-shadow .18s ease; }
+.product-card-price-control { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; min-width: 0; }
+.product-unit-inline { max-width: 120px; overflow: hidden; color: var(--muted); font-size: 9px; font-style: normal; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.product-detail-price .product-unit-inline { display: none; }
+.product-card .price-row:has(.product-unit-inline) { position: relative; padding-top: 18px; }
+.product-card .product-card-price-control { display: contents; }
+.product-card .product-unit-inline { position: absolute; top: 0; left: 0; max-width: calc(100% - 40px); color: #8d879b; font-size: 9px; }
+.product-card .product-card-price-control .add-button,
+.product-card .product-card-price-control .quantity-control { margin-left: auto; }
 .sold-out-button { width: auto; padding: 0 9px; border-color: #d9dde5; color: #8b919c; background: #eef0f3; font-size: 10px; cursor: not-allowed; }
 .product-detail-unit { display: block; margin: 10px 0 0; color: var(--purple); font-size: 13px; font-weight: 800; }
 .product-measure-badge { display: block; max-width: 100%; margin: -6px 0 12px; overflow: hidden; color: var(--purple); font: 800 10px 'Nunito Sans', sans-serif; text-overflow: ellipsis; white-space: nowrap; }

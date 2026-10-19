@@ -386,7 +386,7 @@ function ProductQuantityControl({ product, sellerId, quantity, onAdd, onRemove }
   const soldOut = available !== null && available <= 0;
   const limitReached = available !== null && quantity >= available;
   if (soldOut && !quantity) return <button className="add-button sold-out-button" disabled aria-label={`${product.name} sold out`}>Sold out</button>;
-  if (!quantity) return <button className="add-button" title={available !== null ? `${available} available` : `Add ${product.name}`} aria-label={`Add ${product.name}`} onClick={event => { event.stopPropagation(); onAdd({ ...product, sellerId }); }}><Icon name="plus" size={18} /></button>;
+  if (!quantity) return <span className="product-card-price-control">{product.unit && <em className="product-unit-inline">Pack size / measure: {product.unit}</em>}<button className="add-button" title={available !== null ? `${available} available` : `Add ${product.name}`} aria-label={`Add ${product.name}`} onClick={event => { event.stopPropagation(); onAdd({ ...product, sellerId }); }}><Icon name="plus" size={18} /></button></span>;
   return <span className="quantity-control" onClick={event => event.stopPropagation()}><button aria-label={`Decrease ${product.name}`} onClick={() => onRemove(product.productId || product.id)}>−</button><b>{quantity}</b><button aria-label={`Increase ${product.name}`} onClick={() => onAdd({ ...product, sellerId })}>+</button></span>;
 }
 
@@ -757,6 +757,34 @@ function AdminWorkspace({ token, onLogout }) {
   async function load(nextTab = tab) { setMessage(''); const endpoint = nextTab === 'overview' ? '/admin/dashboard' : nextTab === 'customers' ? '/admin/users' : nextTab === 'apartments' ? '/admin/apartments' : nextTab === 'sellers' ? '/admin/sellers' : nextTab === 'orders' ? '/admin/orders' : null; if (!endpoint) return; const response = await fetch(`${API_BASE}${endpoint}`, { headers }); const result = await response.json(); if (!response.ok) { setMessage(result.error?.message || 'Unable to load data.'); return; } if (nextTab === 'overview') setMetrics(result); else setData(Array.isArray(result) ? result : []); }
   useEffect(() => { void load(tab); }, [tab]);
   useEffect(() => {
+    if (tab !== 'apartments') return undefined;
+    const buttons = [];
+    document.querySelectorAll('.apartment-node').forEach((node, index) => {
+      const summary = node.querySelector('summary');
+      const apartment = data[index];
+      if (!summary || !apartment) return;
+      node.setAttribute('data-apartment-id', apartment.id);
+      const actions = summary.querySelector('.apartment-node-actions');
+      if (!actions || actions.querySelector('.apartment-rename-button')) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'apartment-rename-button';
+      button.textContent = 'Rename';
+      button.onclick = async event => {
+        event.preventDefault();
+        const name = window.prompt('Enter apartment name', apartment.name)?.trim();
+        if (!name || name === apartment.name) return;
+        const response = await fetch(`${API_BASE}/admin/apartments/${apartment.id}`, { method: 'PATCH', headers, body: JSON.stringify({ name }) });
+        const result = await response.json().catch(() => null);
+        if (response.ok) { setMessage('Apartment name updated.'); void load('apartments'); }
+        else setMessage(result?.error?.message || 'Unable to update apartment name.');
+      };
+      actions.prepend(button);
+      buttons.push(button);
+    });
+    return () => buttons.forEach(button => button.remove());
+  }, [tab, data]);
+  useEffect(() => {
     const goBack = () => { if (tab !== 'overview') setTab('overview'); };
     window.__gatedcartNativeBack = goBack;
     window.ReactNativeWebView?.postMessage(JSON.stringify({ canGoBack: tab !== 'overview' }));
@@ -784,7 +812,7 @@ function AdminWorkspace({ token, onLogout }) {
   async function createApartment(event) { event.preventDefault(); const response = await fetch(`${API_BASE}/admin/apartments`, { method: 'POST', headers, body: JSON.stringify({ ...apartmentForm, state: 'Telangana', hasBlocks: true, hasPredefinedFlats: false }) }); if (response.ok) { setApartmentForm({ name: '', city: '' }); setMessage('Apartment created.'); void load('apartments'); } else setMessage('Unable to create apartment.'); }
   async function createBlock(event, apartmentId) { event.preventDefault(); const response = await fetch(`${API_BASE}/admin/apartments/${apartmentId}/blocks`, { method: 'POST', headers, body: JSON.stringify({ name: blockDrafts[apartmentId] }) }); if (response.ok) { setBlockDrafts(current => ({ ...current, [apartmentId]: '' })); setMessage('Block created.'); void load('apartments'); } else setMessage('Unable to create block.'); }
   async function updateBlock(block, isActive = block.isActive, name = blockEdits[block.id] ?? block.name) { const response = await fetch(`${API_BASE}/admin/blocks/${block.id}`, { method: 'PATCH', headers, body: JSON.stringify({ name, isActive }) }); if (response.ok) { setMessage('Block updated.'); void load('apartments'); } else setMessage('Unable to update block.'); }
-  async function updateApartment(apartment) { const response = await fetch(`${API_BASE}/admin/apartments/${apartment.id}`, { method: 'PATCH', headers, body: JSON.stringify({ isActive: !apartment.isActive }) }); if (response.ok) { setMessage('Apartment status updated.'); void load('apartments'); } }
+  async function updateApartment(apartment, changes = {}) { const response = await fetch(`${API_BASE}/admin/apartments/${apartment.id}`, { method: 'PATCH', headers, body: JSON.stringify(changes) }); const result = await response.json().catch(() => null); if (response.ok) { setMessage(changes.name ? 'Apartment name updated.' : 'Apartment status updated.'); void load('apartments'); } else setMessage(result?.error?.message || 'Unable to update apartment.'); }
   async function updateUser(user, role) { const roles = role === 'CUSTOMER' ? ['CUSTOMER'] : role === 'GLOBAL_ADMIN' ? ['GLOBAL_ADMIN'] : ['CUSTOMER', role]; const response = await fetch(`${API_BASE}/admin/users/${user.id}`, { method: 'PATCH', headers, body: JSON.stringify({ roles }) }); if (response.ok) { setMessage('User role updated.'); void load('customers'); } }
   async function updateSeller(seller, status) { const response = await fetch(`${API_BASE}/sellers/${seller.id}/status`, { method: 'PATCH', headers, body: JSON.stringify({ status }) }); if (response.ok) { setMessage('Seller status updated.'); void load('sellers'); } }
   async function updateOrder(order, status) { const response = await fetch(`${API_BASE}/orders/${order.id}/status`, { method: 'PATCH', headers, body: JSON.stringify({ status, note: 'Updated by Global Admin' }) }); if (response.ok) { setMessage('Order status updated.'); void load('orders'); } }
