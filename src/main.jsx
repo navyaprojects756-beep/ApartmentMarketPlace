@@ -2485,6 +2485,8 @@ function usePullToRefresh(currentPage) {
     let pulling = false;
     let armed = false;
     let activeScroller = null;
+    const pullStartZone = 96;
+    const pullThreshold = 120;
     const indicator = document.createElement('div');
     indicator.className = 'pull-refresh-indicator';
     indicator.innerHTML = '<span class="pull-refresh-glyph">↻</span>';
@@ -2494,9 +2496,16 @@ function usePullToRefresh(currentPage) {
       const scroller = getScroller(target);
       return scroller === document.scrollingElement ? window.scrollY <= 0 : scroller.scrollTop <= 0;
     };
+    const isNearScrollerTop = (target, clientY) => {
+      const scroller = getScroller(target);
+      if (scroller === document.scrollingElement) return clientY <= pullStartZone;
+      const bounds = scroller.getBoundingClientRect();
+      return clientY <= bounds.top + pullStartZone;
+    };
     const onStart = event => {
-      if (event.touches.length !== 1 || !isAtTop(event.target)) return;
-      startY = event.touches[0].clientY;
+      const touch = event.touches[0];
+      if (event.touches.length !== 1 || !touch || !isAtTop(event.target) || !isNearScrollerTop(event.target, touch.clientY)) return;
+      startY = touch.clientY;
       activeScroller = getScroller(event.target);
       pulling = true;
       armed = false;
@@ -2509,7 +2518,7 @@ function usePullToRefresh(currentPage) {
         pulling = false;
         return;
       }
-      if (distance < 84) return;
+      if (distance < pullThreshold) return;
       event.preventDefault();
       indicator.style.transform = `translate(-50%, ${Math.min(distance, 120) - 56}px)`;
       armed = distance >= 84;
