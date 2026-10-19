@@ -1078,3 +1078,7 @@ html:has(.customer-storefront-with-controls), body:has(.customer-storefront-with
 @keyframes session-spin { to { transform: rotate(360deg); } }
 textarea.seller-description-input { display: block !important; width: 100% !important; height: 132px !important; min-height: 132px !important; padding: 48px 15px 14px !important; text-align: center !important; }
 .seller-application-form textarea.auth-input { display: block; width: 100%; height: 132px; min-height: 132px; padding: 14px 15px; text-align: left; resize: vertical; }
+.account-disabled-card { text-align: center; }
+.account-disabled-icon { display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto 18px; border-radius: 50%; color: #fff; background: #ff6b00; font-size: 28px; font-weight: 800; }
+.account-disabled-card .auth-button { margin-top: 4px; }
+.admin-user-row .status { flex: 0 0 auto; font-size: 10px; font-weight: 700; }

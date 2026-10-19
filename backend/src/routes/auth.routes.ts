@@ -30,11 +30,12 @@ async function isRegisteredMember(phone: string) {
       roles: { select: { role: { select: { code: true } } } },
     },
   });
-  return Boolean(user && (user.apartments.length || user.sellerProfile || user.deliveryBoy || user.roles.some(item => item.role.code === 'GLOBAL_ADMIN')));
+  return Boolean(user && (user.apartments.length || user.sellerProfile || user.deliveryBoy || user.roles.some(item => ['GLOBAL_ADMIN', 'TESTER'].includes(item.role.code as string))));
 }
 
 const bootstrapRoles: Array<{ code: RoleCode; name: string }> = [
   { code: 'CUSTOMER', name: 'Customer' },
+  { code: 'TESTER' as RoleCode, name: 'Tester' },
   { code: 'APARTMENT_SELLER', name: 'Apartment Seller' },
   { code: 'OUTSIDE_SELLER', name: 'Outside Seller' },
   { code: 'DELIVERY_BOY', name: 'Delivery Boy' },

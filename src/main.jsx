@@ -785,6 +785,18 @@ function AdminWorkspace({ token, onLogout }) {
     return () => buttons.forEach(button => button.remove());
   }, [tab, data]);
   useEffect(() => {
+    if (tab !== 'customers') return undefined;
+    const selects = Array.from(document.querySelectorAll('.admin-user-row select'));
+    selects.forEach(select => {
+      if (select.querySelector('option[value="TESTER"]')) return;
+      const option = document.createElement('option');
+      option.value = 'TESTER';
+      option.textContent = 'Tester';
+      select.insertBefore(option, select.querySelector('option[value="APARTMENT_SELLER"]'));
+    });
+    return undefined;
+  }, [tab, data]);
+  useEffect(() => {
     const goBack = () => { if (tab !== 'overview') setTab('overview'); };
     window.__gatedcartNativeBack = goBack;
     window.ReactNativeWebView?.postMessage(JSON.stringify({ canGoBack: tab !== 'overview' }));
@@ -813,7 +825,8 @@ function AdminWorkspace({ token, onLogout }) {
   async function createBlock(event, apartmentId) { event.preventDefault(); const response = await fetch(`${API_BASE}/admin/apartments/${apartmentId}/blocks`, { method: 'POST', headers, body: JSON.stringify({ name: blockDrafts[apartmentId] }) }); if (response.ok) { setBlockDrafts(current => ({ ...current, [apartmentId]: '' })); setMessage('Block created.'); void load('apartments'); } else setMessage('Unable to create block.'); }
   async function updateBlock(block, isActive = block.isActive, name = blockEdits[block.id] ?? block.name) { const response = await fetch(`${API_BASE}/admin/blocks/${block.id}`, { method: 'PATCH', headers, body: JSON.stringify({ name, isActive }) }); if (response.ok) { setMessage('Block updated.'); void load('apartments'); } else setMessage('Unable to update block.'); }
   async function updateApartment(apartment, changes = {}) { const response = await fetch(`${API_BASE}/admin/apartments/${apartment.id}`, { method: 'PATCH', headers, body: JSON.stringify(changes) }); const result = await response.json().catch(() => null); if (response.ok) { setMessage(changes.name ? 'Apartment name updated.' : 'Apartment status updated.'); void load('apartments'); } else setMessage(result?.error?.message || 'Unable to update apartment.'); }
-  async function updateUser(user, role) { const roles = role === 'CUSTOMER' ? ['CUSTOMER'] : role === 'GLOBAL_ADMIN' ? ['GLOBAL_ADMIN'] : ['CUSTOMER', role]; const response = await fetch(`${API_BASE}/admin/users/${user.id}`, { method: 'PATCH', headers, body: JSON.stringify({ roles }) }); if (response.ok) { setMessage('User role updated.'); void load('customers'); } }
+  async function updateUser(user, role) { const roles = role === 'CUSTOMER' ? ['CUSTOMER'] : role === 'GLOBAL_ADMIN' ? ['GLOBAL_ADMIN'] : ['CUSTOMER', role]; const response = await fetch(`${API_BASE}/admin/users/${user.id}`, { method: 'PATCH', headers, body: JSON.stringify({ roles }) }); const result = await response.json().catch(() => null); if (response.ok) { setMessage('User role updated.'); void load('customers'); } else setMessage(result?.error?.message || 'Unable to update user role.'); }
+  async function toggleUser(user) { const response = await fetch(`${API_BASE}/admin/users/${user.id}`, { method: 'PATCH', headers, body: JSON.stringify({ isActive: !user.isActive }) }); const result = await response.json().catch(() => null); if (response.ok) { setMessage(user.isActive ? 'User disabled.' : 'User enabled.'); void load('customers'); } else setMessage(result?.error?.message || 'Unable to update user status.'); }
   async function updateSeller(seller, status) { const response = await fetch(`${API_BASE}/sellers/${seller.id}/status`, { method: 'PATCH', headers, body: JSON.stringify({ status }) }); if (response.ok) { setMessage('Seller status updated.'); void load('sellers'); } }
   async function updateOrder(order, status) { const response = await fetch(`${API_BASE}/orders/${order.id}/status`, { method: 'PATCH', headers, body: JSON.stringify({ status, note: 'Updated by Global Admin' }) }); if (response.ok) { setMessage('Order status updated.'); void load('orders'); } }
   const nav = [['overview', 'Overview'], ['customers', 'Customers'], ['apartments', 'Apartments'], ['categories', 'Categories'], ['community-services', 'Community services'], ['deletion-requests', 'Deletion requests'], ['sellers', 'Sellers'], ['orders', 'Orders'], ['notifications', 'Notifications'], ['error-logs', 'Error logs'], ['settings', 'Settings']];
@@ -2582,6 +2595,10 @@ function usePullToRefresh(currentPage) {
   }, []);
 }
 
+function AccountDisabledScreen({ onLogout }) {
+  return <main className="auth-screen"><div className="auth-card account-disabled-card"><div className="account-disabled-icon">!</div><h1>Account disabled</h1><p className="auth-copy">This account has been disabled by the administrator. Please contact the administrator for assistance.</p><button type="button" className="auth-button" onClick={onLogout}>Sign out</button></div></main>;
+}
+
 function App() {
   const initialSellerRegistrationIntent = (() => { const params = new URLSearchParams(window.location.search); return params.get('seller-registration') === 'outside' || params.get('isSellorReg') === 'true'; })();
   const initialScreen = window.sessionStorage.getItem('gatedcart_refresh_screen') || 'home';
@@ -2692,6 +2709,7 @@ function App() {
   if (!accessToken) return <LoginScreen sellerRegistrationIntent={sellerRegistrationIntent} onAuthenticated={session => { window.sessionStorage.removeItem('gatedcart_refresh_screen'); setScreen('home'); setSelectedSeller(null); setSelectedCategory(null); setSelectedCommunityService(null); setSellerRegistrationExisting(Boolean(session.sellerRegistrationExisting)); setNotificationPromptOnLogin(true); persistSession(session); setAccessToken(session.accessToken); fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${session.accessToken}` } }).then(response => response.json()).then(setSessionUser).catch(() => {}); }} />;
   const roleCodes = (sessionUser?.roles || []).map(role => typeof role === 'string' ? role : role?.code || role?.role?.code).filter(Boolean);
   const logout = () => { unregisterNativePushDevice(window.__gatedcartNativePushToken, accessToken); unregisterWebPushDevice(accessToken); void fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => {}); window.localStorage.removeItem(ACCESS_TOKEN_KEY); window.localStorage.removeItem(REFRESH_TOKEN_KEY); window.sessionStorage.removeItem(SELECTED_SELLER_KEY); setNotificationPromptOnLogin(false); setAccessToken(null); setSessionUser(null); };
+  if (sessionUser?.isActive === false) return <AccountDisabledScreen onLogout={logout} />;
   const continueFromSellerEntry = () => { window.location.replace('/'); };
   if (roleCodes.includes('GLOBAL_ADMIN')) return <AdminWorkspace token={accessToken} onLogout={logout} />;
   if (isDeleteAccountPath) return <DeleteAccountPage accessToken={accessToken} onBack={() => { window.location.href = '/'; }} onLogout={logout} />;
@@ -2714,7 +2732,7 @@ function App() {
       ? current.map(entry => entry.productId === productId ? { ...entry, quantity: entry.quantity + 1 } : entry)
       : [...current, { ...item, productId, sellerId, sellerSnapshot, quantity: 1, numericPrice }];
   });
-  const addToCart = item => { const existingQuantity = cart.find(entry => entry.productId === (item.productId || item.id))?.quantity || 0; const availableUnits = Number(item.inventory?.quantity); if (item.inventoryTracking && Number.isFinite(availableUnits) && existingQuantity >= availableUnits) { setStockNotice(availableUnits > 0 ? `Only ${availableUnits} unit${availableUnits === 1 ? '' : 's'} available.` : 'This item is currently unavailable.'); return; } appendToCart(item); };
+  const addToCart = item => { if (roleCodes.includes('TESTER')) { setStockNotice('Tester accounts can browse products but cannot place orders.'); window.alert('Tester accounts can browse products but cannot place orders.'); return; } const existingQuantity = cart.find(entry => entry.productId === (item.productId || item.id))?.quantity || 0; const availableUnits = Number(item.inventory?.quantity); if (item.inventoryTracking && Number.isFinite(availableUnits) && existingQuantity >= availableUnits) { setStockNotice(availableUnits > 0 ? `Only ${availableUnits} unit${availableUnits === 1 ? '' : 's'} available.` : 'This item is currently unavailable.'); return; } appendToCart(item); };
   const confirmCartConflict = () => { if (!cartConflictItem) return; const nextItem = cartConflictItem; setCart([]); setCartConflictItem(null); appendToCart(nextItem); };
   const cancelCartConflict = () => setCartConflictItem(null);
   const removeFromCart = productId => setCart(current => current.flatMap(entry => entry.productId === productId ? (entry.quantity > 1 ? [{ ...entry, quantity: entry.quantity - 1 }] : []) : [entry]));

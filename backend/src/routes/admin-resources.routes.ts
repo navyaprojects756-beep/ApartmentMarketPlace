@@ -155,7 +155,7 @@ adminResourcesRouter.patch('/account-deletion-requests/:requestId', ...adminOnly
 adminResourcesRouter.patch('/users/:userId', ...adminOnly, async (request, response, next) => {
   try {
     const userId = z.string().uuid().parse(request.params.userId);
-    const input = z.object({ name: z.string().trim().max(120).nullable().optional(), isActive: z.boolean().optional(), roles: z.array(z.enum(['CUSTOMER', 'APARTMENT_SELLER', 'OUTSIDE_SELLER', 'DELIVERY_BOY', 'GLOBAL_ADMIN'])).min(1).optional() }).parse(request.body);
+    const input = z.object({ name: z.string().trim().max(120).nullable().optional(), isActive: z.boolean().optional(), roles: z.array(z.enum(['CUSTOMER', 'TESTER', 'APARTMENT_SELLER', 'OUTSIDE_SELLER', 'DELIVERY_BOY', 'GLOBAL_ADMIN'])).min(1).optional() }).parse(request.body);
     const existing = await prisma.user.findUnique({ where: { id: userId }, include: { roles: { include: { role: true } } } });
     if (!existing) { response.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } }); return; }
     if (input.isActive === false && existing.roles.some(item => item.role.code === 'GLOBAL_ADMIN')) {
@@ -165,7 +165,7 @@ adminResourcesRouter.patch('/users/:userId', ...adminOnly, async (request, respo
     const updated = await prisma.$transaction(async tx => {
       const user = await tx.user.update({ where: { id: userId }, data: { name: input.name, isActive: input.isActive } });
       if (input.roles) {
-        const roleRecords = await tx.role.findMany({ where: { code: { in: input.roles } } });
+        const roleRecords = await tx.role.findMany({ where: { code: { in: input.roles as any } } });
         await tx.userRole.deleteMany({ where: { userId } });
         await tx.userRole.createMany({ data: roleRecords.map(role => ({ userId, roleId: role.id })) });
         const sellerType = input.roles.includes('OUTSIDE_SELLER') ? 'OUTSIDE' : input.roles.includes('APARTMENT_SELLER') ? 'APARTMENT' : null;

@@ -45,6 +45,11 @@ commerceRouter.get('/carts/:sellerId', requireAuth, async (request, response, ne
 
 commerceRouter.post('/carts/:sellerId/items', requireAuth, async (request, response, next) => {
   try {
+    const tester = await prisma.userRole.findFirst({ where: { userId: request.auth!.userId, role: { code: 'TESTER' as any } } });
+    if (tester) {
+      response.status(403).json({ error: { code: 'TESTER_ORDER_RESTRICTED', message: 'Tester accounts can browse products but cannot place orders.' } });
+      return;
+    }
     const sellerId = z.string().uuid().parse(request.params.sellerId);
     const item = cartItemSchema.parse(request.body);
     if (!(await sellerIsVisible(request.auth!.userId, sellerId))) {
@@ -66,6 +71,11 @@ commerceRouter.post('/carts/:sellerId/items', requireAuth, async (request, respo
 
 commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
   try {
+    const tester = await prisma.userRole.findFirst({ where: { userId: request.auth!.userId, role: { code: 'TESTER' as any } } });
+    if (tester) {
+      response.status(403).json({ error: { code: 'TESTER_ORDER_RESTRICTED', message: 'Tester accounts can browse products but cannot place orders.' } });
+      return;
+    }
     const input = checkoutSchema.parse(request.body);
     const context = await getPrimaryApartment(request.auth!.userId);
     if (!context || !(await sellerIsVisible(request.auth!.userId, input.sellerId))) {
