@@ -218,7 +218,7 @@ function ImageUploadControl({ accessToken, label, multiple = false, onUploaded }
   const uploadHint = label.toLowerCase().includes('carousel')
     ? 'Best: 1200 x 500 px (12:5 ratio) - keep the same ratio for every carousel image.'
     : label.toLowerCase().includes('main image') || label.toLowerCase().includes('banner')
-      ? 'Recommended: 1200 x 800 px (3:2 ratio). JPG, PNG or WebP only; maximum 1.5 MB.'
+      ? 'Use exactly 1200 x 500 px (12:5 ratio) so the full banner fits on Home and the store page without stretching. JPG, PNG or WebP only; maximum 1.5 MB.'
       : label.toLowerCase().includes('advertisement')
         ? 'Recommended: 1200 x 628 px. Up to 3 images; JPG, PNG or WebP only; maximum 1.5 MB each.'
     : ['add images', 'upload images'].includes(label.toLowerCase())
