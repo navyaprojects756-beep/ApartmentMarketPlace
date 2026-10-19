@@ -797,6 +797,22 @@ function AdminWorkspace({ token, onLogout }) {
     return undefined;
   }, [tab, data]);
   useEffect(() => {
+    if (tab !== 'customers') return undefined;
+    const buttons = [];
+    document.querySelectorAll('.admin-user-row').forEach((row, index) => {
+      const user = data[index];
+      if (!user || row.querySelector('.admin-user-status-button')) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'admin-user-status-button';
+      button.textContent = user.isActive ? 'Disable' : 'Enable';
+      button.onclick = () => void toggleUser(user);
+      row.append(button);
+      buttons.push(button);
+    });
+    return () => buttons.forEach(button => button.remove());
+  }, [tab, data]);
+  useEffect(() => {
     const goBack = () => { if (tab !== 'overview') setTab('overview'); };
     window.__gatedcartNativeBack = goBack;
     window.ReactNativeWebView?.postMessage(JSON.stringify({ canGoBack: tab !== 'overview' }));
