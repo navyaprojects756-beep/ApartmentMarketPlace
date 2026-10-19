@@ -2509,6 +2509,7 @@ function usePullToRefresh(currentPage) {
         pulling = false;
         return;
       }
+      if (distance < 84) return;
       event.preventDefault();
       indicator.style.transform = `translate(-50%, ${Math.min(distance, 120) - 56}px)`;
       armed = distance >= 84;
