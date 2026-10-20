@@ -183,6 +183,14 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
       response.status(404).json({ error: { code: 'ORDER_NOT_FOUND', message: 'Order not found' } });
       return;
     }
+    if (status === 'COMPLETED' && !isAdmin) {
+      response.status(400).json({ error: { code: 'ORDER_PIN_REQUIRED', message: 'Enter the customer Order PIN to complete this order.' } });
+      return;
+    }
+    if (status === 'PICKED_UP' && order.fulfillmentType === 'PICKUP' && !isAdmin) {
+      response.status(400).json({ error: { code: 'ORDER_PIN_REQUIRED', message: 'Enter the customer Order PIN to complete this pickup.' } });
+      return;
+    }
     if (!isAdmin && order.customerId === request.auth!.userId && status === 'CANCELLED' && order.status !== 'PENDING') {
       response.status(400).json({ error: { code: 'CUSTOMER_CANCEL_WINDOW_CLOSED', message: 'Customers can cancel only while the seller is reviewing the order.' } });
       return;
