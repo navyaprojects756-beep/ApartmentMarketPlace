@@ -752,8 +752,11 @@ function AdminDeletionRequests({ token, onBack }) {
 }
 
 function AdminWorkspace({ token, onLogout }) {
-  const [tab, setTab] = useState('overview'); const [data, setData] = useState([]); const [metrics, setMetrics] = useState({}); const [message, setMessage] = useState(''); const [apartmentForm, setApartmentForm] = useState({ name: '', city: '' }); const [blockDrafts, setBlockDrafts] = useState({}); const [blockEdits, setBlockEdits] = useState({}); const [selectedApartmentSettings, setSelectedApartmentSettings] = useState(null);
+  const [tab, setTab] = useState('overview'); const [data, setData] = useState([]); const [metrics, setMetrics] = useState({}); const [message, setMessage] = useState(''); const [apartmentForm, setApartmentForm] = useState({ name: '', city: '' }); const [blockDrafts, setBlockDrafts] = useState({}); const [blockEdits, setBlockEdits] = useState({}); const [selectedApartmentSettings, setSelectedApartmentSettings] = useState(null); const [datePreset, setDatePreset] = useState('all'); const [dateFrom, setDateFrom] = useState(''); const [dateTo, setDateTo] = useState('');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  function localDateKey(value) { const date = new Date(value); if (Number.isNaN(date.getTime())) return ''; return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
+  function matchesDate(value) { if (datePreset === 'all') return true; const itemDate = localDateKey(value); const today = new Date(); const todayKey = localDateKey(today); const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1); const yesterdayKey = localDateKey(yesterday); if (datePreset === 'today') return itemDate === todayKey; if (datePreset === 'yesterday') return itemDate === yesterdayKey; return Boolean(dateFrom && dateTo) && itemDate >= dateFrom && itemDate <= dateTo; }
+  const filteredAdminData = tab === 'customers' || tab === 'orders' ? data.filter(item => matchesDate(tab === 'customers' ? item.createdAt : item.createdAt)) : data;
   async function load(nextTab = tab) { setMessage(''); const endpoint = nextTab === 'overview' ? '/admin/dashboard' : nextTab === 'customers' ? '/admin/users' : nextTab === 'apartments' ? '/admin/apartments' : nextTab === 'sellers' ? '/admin/sellers' : nextTab === 'orders' ? '/admin/orders' : null; if (!endpoint) return; const response = await fetch(`${API_BASE}${endpoint}`, { headers }); const result = await response.json(); if (!response.ok) { setMessage(result.error?.message || 'Unable to load data.'); return; } if (nextTab === 'overview') setMetrics(result); else setData(Array.isArray(result) ? result : []); }
   useEffect(() => { void load(tab); }, [tab]);
   useEffect(() => {
@@ -817,6 +820,39 @@ function AdminWorkspace({ token, onLogout }) {
     });
     return () => buttons.forEach(button => button.remove());
   }, [tab, data]);
+  useEffect(() => {
+    if (tab !== 'customers' && tab !== 'orders') return undefined;
+    const panel = document.querySelector('.admin-resource-panel');
+    if (!panel) return undefined;
+    const filterBar = document.createElement('div');
+    filterBar.className = 'admin-date-filters';
+    const select = document.createElement('select');
+    select.innerHTML = '<option value="all">All dates</option><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="custom">Custom date</option>';
+    select.value = datePreset;
+    const fromLabel = document.createElement('label');
+    fromLabel.textContent = 'From';
+    const fromInput = document.createElement('input');
+    fromInput.type = 'date'; fromInput.value = dateFrom; fromLabel.append(fromInput);
+    const toLabel = document.createElement('label');
+    toLabel.textContent = 'To';
+    const toInput = document.createElement('input');
+    toInput.type = 'date'; toInput.value = dateTo; toLabel.append(toInput);
+    const syncVisibility = () => {
+      const rows = Array.from(panel.querySelectorAll(tab === 'customers' ? '.admin-user-row' : '.admin-order-row'));
+      const filtered = rows.filter((row, index) => matchesDate(data[index]?.createdAt));
+      rows.forEach(row => { row.hidden = !filtered.includes(row); });
+      const count = panel.querySelector('.panel-heading > span');
+      if (count) count.textContent = `${filtered.length} of ${data.length} ${tab === 'customers' ? 'users' : 'orders'}`;
+      fromLabel.hidden = datePreset !== 'custom'; toLabel.hidden = datePreset !== 'custom';
+    };
+    select.onchange = event => { setDatePreset(event.target.value); };
+    fromInput.onchange = event => { setDateFrom(event.target.value); };
+    toInput.onchange = event => { setDateTo(event.target.value); };
+    filterBar.append(select, fromLabel, toLabel);
+    panel.querySelector('.panel-heading')?.after(filterBar);
+    syncVisibility();
+    return () => { filterBar.remove(); panel.querySelectorAll('.admin-user-row, .admin-order-row').forEach(row => { row.hidden = false; }); };
+  }, [tab, data, datePreset, dateFrom, dateTo]);
   useEffect(() => {
     const goBack = () => { if (tab !== 'overview') setTab('overview'); };
     window.__gatedcartNativeBack = goBack;
@@ -973,7 +1009,7 @@ function CategoryProductsScreen({ categoryId, accessToken, onBack, onAdd, onRemo
 function CommunityServiceProvidersScreen({ service, accessToken, onBack, showSeller, onNavigate, user }) {
   const [providers, setProviders] = useState([]); const [loading, setLoading] = useState(true); const [message, setMessage] = useState('');
   useEffect(() => { let active = true; setLoading(true); fetch(`${API_BASE}/home/community-services/${service.id}/providers`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.json()).then(data => { if (!active) return; if (Array.isArray(data.providers)) setProviders(data.providers); else setMessage('Unable to load service providers.'); }).catch(() => { if (active) setMessage('Unable to load service providers.'); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [service.id, accessToken]);
-  return <div className="app-shell"><Topbar user={user} cartCount={0} onCart={() => onNavigate?.('bag')} onNavigate={() => onNavigate?.('profile')} onLogout={() => {}} /><main className="community-service-page page-width"><button type="button" className="category-back-button" onClick={onBack}>← Back</button><div className="community-service-page-heading">{service.imageUrl ? <img src={assetUrl(service.imageUrl)} alt="" /> : <span>{service.name.slice(0, 1)}</span>}<div><p className="eyebrow">COMMUNITY SERVICE</p><h1>{service.name}</h1><p>Providers available in your apartment.</p></div></div>{loading && <p className="empty-panel-copy">Loading providers…</p>}{message && <p className="dashboard-message">{message}</p>}{!loading && !message && <div className="community-provider-list">{providers.length ? providers.map(provider => <article className="community-provider-card" key={provider.id}><div>{provider.imageUrl ? <img src={assetUrl(provider.imageUrl)} alt="" /> : <span>{provider.name.slice(0, 1)}</span>}</div><section><strong>{provider.name}</strong>{provider.description && <small>{provider.description}</small>}<small>{provider.address}</small><a href={`tel:${provider.phone}`}>{provider.phone}</a></section></article>) : <p className="empty-panel-copy">No providers are currently listed for this service.</p>}</div>}</main><BottomNav showSeller={showSeller} onNavigate={onNavigate || (() => {})} /></div>;
+  return <div className="app-shell"><Topbar user={user} cartCount={0} onCart={() => onNavigate?.('bag')} onNavigate={() => onNavigate?.('profile')} onLogout={() => {}} /><main className="community-service-page page-width"><button type="button" className="category-back-button" onClick={onBack}>← Back</button><div className="community-service-page-heading">{service.imageUrl ? <img src={assetUrl(service.imageUrl)} alt="" /> : <span>{service.name.slice(0, 1)}</span>}<div><p className="eyebrow">COMMUNITY SERVICE</p><h1>{service.name}</h1><p>Providers available in your apartment.</p></div></div>{loading && <p className="empty-panel-copy">Loading providers…</p>}{message && <p className="dashboard-message">{message}</p>}{!loading && !message && <div className="community-provider-list">{providers.length ? providers.map(provider => <article className="community-provider-card" key={provider.id}><div className="community-provider-media">{provider.imageUrl ? <img src={assetUrl(provider.imageUrl)} alt="" /> : <span>{provider.name.slice(0, 1)}</span>}</div><section><strong>{provider.name}</strong>{provider.description && <small>{provider.description}</small>}<small>{provider.address}</small><a href={`tel:${provider.phone}`}>{provider.phone}</a></section></article>) : <p className="empty-panel-copy">No providers are currently listed for this service.</p>}</div>}</main><BottomNav showSeller={showSeller} onNavigate={onNavigate || (() => {})} /></div>;
 }
 
 const activeOrderStatuses = new Set(['PENDING', 'ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP', 'ASSIGNED_TO_DELIVERY_BOY', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED']);
