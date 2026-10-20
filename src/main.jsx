@@ -787,12 +787,17 @@ function AdminWorkspace({ token, onLogout }) {
   useEffect(() => {
     if (tab !== 'customers') return undefined;
     const selects = Array.from(document.querySelectorAll('.admin-user-row select'));
-    selects.forEach(select => {
-      if (select.querySelector('option[value="TESTER"]')) return;
-      const option = document.createElement('option');
-      option.value = 'TESTER';
-      option.textContent = 'Tester';
-      select.insertBefore(option, select.querySelector('option[value="APARTMENT_SELLER"]'));
+    selects.forEach((select, index) => {
+      const user = data[index];
+      if (!user) return;
+      if (!select.querySelector('option[value="TESTER"]')) {
+        const option = document.createElement('option');
+        option.value = 'TESTER';
+        option.textContent = 'Tester';
+        select.insertBefore(option, select.querySelector('option[value="APARTMENT_SELLER"]'));
+      }
+      const selectedRole = user.roles?.map(item => item.role.code).find(code => code !== 'CUSTOMER') || 'CUSTOMER';
+      select.value = selectedRole;
     });
     return undefined;
   }, [tab, data]);
