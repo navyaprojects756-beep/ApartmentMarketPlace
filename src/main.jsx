@@ -2507,7 +2507,7 @@ function SellerArea({ accessToken, onLogout, onBack, onNavigate }) {
   const [preview, setPreview] = useState(false);
   useEffect(() => { fetch(`${API_BASE}/seller/settings`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(response => response.ok ? response.json() : null).then(data => { setSellerType(data?.sellerType || null); setSellerSettings(data); }).catch(() => {}); }, [accessToken]);
   if (preview && sellerSettings) return <div className="seller-preview-shell"><button type="button" className="seller-preview-back" onClick={() => setPreview(false)}>← Back to seller workspace</button><CustomerStorefront seller={sellerSettings} accessToken={accessToken} user={null} onBack={() => setPreview(false)} onAdd={() => {}} onRemove={() => {}} onCart={() => {}} cart={[]} cartCount={0} readOnly onNavigate={() => {}} /></div>;
-  return <div className="seller-area-shell">{sellerType && <button type="button" className="seller-customer-return" onClick={() => setPreview(true)}>Customer view</button>}<SellerCrudPortal accessToken={accessToken} onLogout={onLogout} /> </div>;
+  return <div className="seller-area-shell">{sellerType && <button type="button" className="seller-customer-return" onClick={() => sellerType === 'OUTSIDE' ? setPreview(true) : onBack()}>Customer view</button>}<SellerCrudPortal accessToken={accessToken} onLogout={onLogout} /> </div>;
 }
 
 function OrderSuccessScreen({ orders = [], onTrack, onContinue }) {
