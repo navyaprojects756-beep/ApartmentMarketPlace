@@ -34,15 +34,13 @@ sellerRouter.get('/:sellerId', requireAuth, async (request, response, next) => {
   try {
     const sellerId = z.string().uuid().parse(request.params.sellerId);
     const context = await getPrimaryApartment(request.auth!.userId);
-    if (!context) {
-      response.status(403).json({ error: { code: 'COMMUNITY_REQUIRED', message: 'Select an apartment first' } });
-      return;
-    }
-    const visibility = context.apartment.sellerDisplayMode === 'LOCAL_ONLY'
-      ? { sellerType: 'APARTMENT' as const, apartmentId: context.apartmentId }
-      : context.apartment.sellerDisplayMode === 'OUTSIDE_ONLY'
-        ? { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true, isEnabled: true } } }
-        : { OR: [{ sellerType: 'APARTMENT' as const, apartmentId: context.apartmentId }, { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true, isEnabled: true } } }] };
+    const visibility = context
+      ? context.apartment.sellerDisplayMode === 'LOCAL_ONLY'
+        ? { sellerType: 'APARTMENT' as const, apartmentId: context.apartmentId }
+        : context.apartment.sellerDisplayMode === 'OUTSIDE_ONLY'
+          ? { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true, isEnabled: true } } }
+          : { OR: [{ sellerType: 'APARTMENT' as const, apartmentId: context.apartmentId }, { sellerType: 'OUTSIDE' as const, deliveryAreas: { some: { apartmentId: context.apartmentId, isApproved: true, isEnabled: true } } }] }
+      : { userId: request.auth!.userId };
     const seller = await prisma.sellerProfile.findFirst({ where: { id: sellerId, status: 'APPROVED', ...visibility }, include: { reviews: { where: { productId: null }, select: { rating: true } }, operatingHours: { orderBy: { dayOfWeek: 'asc' } }, categories: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } }, advertisements: { where: { status: 'APPROVED', OR: [{ startAt: null }, { startAt: { lte: new Date() } }], AND: [{ OR: [{ endAt: null }, { endAt: { gte: new Date() } }] }] }, orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }], take: 3 }, advertisementReqs: { where: { status: 'PENDING', type: 'SELLER_ADVERTISEMENT' }, orderBy: { createdAt: 'desc' }, take: 3 }, products: { where: { availability: true }, include: { reviews: { select: { rating: true } }, images: { orderBy: { sortOrder: 'asc' } }, category: true, globalCategory: true, inventory: true }, orderBy: { createdAt: 'asc' } } } });
     if (!seller) {
       response.status(404).json({ error: { code: 'SELLER_NOT_FOUND', message: 'Seller is not available in your apartment' } });
