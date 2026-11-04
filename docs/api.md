@@ -229,3 +229,12 @@ These changes do not add API endpoints:
 - The client loads the exact branding asset from `/assets/gatedcart-logo-exact.svg`.
 - Seller workspace browser navigation stores the active seller tab in history and restores it through `popstate`.
 - Seller application description alignment is a client-only presentation change.
+
+## Global Admin list date filters - 2026-10-20
+
+The Global Admin web workspace applies client-side date filters to the records loaded from:
+
+- `GET /api/v1/admin/users`
+- `GET /api/v1/admin/orders`
+
+Both panels support All dates, Today, Yesterday, and a Custom date From/To range. Filtering uses the returned `createdAt` timestamp and does not change the API contract or require a migration.

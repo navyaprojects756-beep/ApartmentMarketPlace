@@ -32,3 +32,5 @@ Seller orders appear in Seller workspace → Orders. Move an order through the a
 ## Availability and categories
 
 The store is visible to customers only when it is approved and available for the apartment. Operating hours, active days, open status, delivery areas, product availability, and category availability are evaluated before customer display. Categories without available products are shown as disabled on Home.
+
+Seller Orders supports Today, Yesterday, and custom From/To date filters together with status filtering. Global Admin has equivalent date filters for the Customers and Orders management panels.

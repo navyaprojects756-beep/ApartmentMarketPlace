@@ -78,6 +78,10 @@ The shared WebView now uses the same order-history rules on Android, iOS, and br
 - Delivery orders show the customer delivery address and customer phone.
 - New orders use immutable checkout-time fulfillment snapshots, so later profile/address changes do not rewrite the order history.
 - Cancel order opens an in-app confirmation modal; no browser confirmation is used for that customer action.
+
+## Shared web updates - 2026-10-20
+
+The mobile shell loads the same hosted web application as the browser. The shared UI now includes responsive community-service provider cards and Global Admin date filters for Customers and Orders. These are web-client changes; no separate native screen implementation or native database migration is required.
 - The order status timeline has separated top spacing for compact mobile readability.
 
 The hosted API must apply migration `20261004170000_order_fulfillment_snapshots` before testing new orders on the mobile WebView.

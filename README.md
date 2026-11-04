@@ -261,6 +261,12 @@ Orders created before this migration may still use their existing relational add
 
 Before deploying today, configure production Firebase Admin credentials, JWT secrets, `VITE_FIREBASE_VAPID_KEY`, persistent image storage, and the production database. Run committed Prisma migrations with `npx prisma migrate deploy --schema prisma/schema.prisma`, then run `npm run build`, `npm run api:build`, and the hosted Firebase/order/push smoke tests. Do not seed the production database.
 
+## Global Admin date filters - 2026-10-20
+
+- The Global Admin Customers and Orders panels support **All dates**, **Today**, **Yesterday**, and a **Custom date** From/To range.
+- Filters use the existing `createdAt` values returned by the protected admin APIs and do not require a database migration.
+- The panel count shows the number of visible records compared with the total loaded records.
+
 ## UI polish and seller navigation - 2026-10-18
 
 - The web header uses the provided exact GatedCart logo asset at `public/assets/gatedcart-logo-exact.svg`, avoiding hand-drawn logo geometry and preventing mark overlap.

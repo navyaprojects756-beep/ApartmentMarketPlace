@@ -2535,3 +2535,9 @@ Orders created before the snapshot migration can only display the address data s
 - The web header uses the supplied exact GatedCart SVG asset from `public/assets/gatedcart-logo-exact.svg`.
 - Seller application “What do you sell?” text is center-aligned.
 - Seller workspace tab changes are represented in browser history; browser Back from Orders returns to Seller Overview.
+
+# Current implementation additions - 2026-10-20 admin and community-service UI
+
+- Global Admin Customers and Orders lists support All dates, Today, Yesterday, and custom From/To date filters using record creation timestamps.
+- Community-service provider cards use a responsive horizontal image-left/details-right layout, with two cards per row on wide screens and a readable mobile fallback.
+- Provider images are rendered without forced cropping so portrait and banner artwork remains visible.

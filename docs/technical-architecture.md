@@ -307,6 +307,10 @@ The root `index.html` sets the browser theme metadata to `#ff6b00`, matching the
 
 ## Seller lifecycle and rating UI - 2026-10-18
 
+## Global Admin date filters - 2026-10-20
+
+The Global Admin Customers and Orders panels load their existing API datasets and apply responsive client-side date filters using each record's `createdAt` timestamp. Available presets are All dates, Today, Yesterday, and a Custom From/To range. The filters do not require a schema change or additional endpoint.
+
 Seller order cards render one clickable lifecycle bar. Sellers may select operational statuses directly while an order is non-terminal. Cancellation is a separate lifecycle step protected by an in-app confirmation dialog. Delivered requires PIN verification through `POST /orders/:orderId/verify-items` with `targetStatus: "DELIVERED"`; successful verification changes the order to `DELIVERED`. Delivered, cancelled, and completed cards do not show an active lifecycle.
 
 Customer review forms use a manual carousel with one seller/product target visible at a time and left/right controls. There is no automatic scrolling. Comments remain private and public aggregates remain controlled by seller visibility settings.

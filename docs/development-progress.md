@@ -453,6 +453,14 @@ Historical note: orders created before the snapshot migration may not have immut
 - [x] Removed the temporary seller configuration guide page after review.
 - [x] Verified the web production build after the UI updates.
 
+## 2026-10-20 admin filtering and community-service UI checkpoint
+
+- [x] Added Global Admin date filters for customer and order lists: All dates, Today, Yesterday, and Custom From/To.
+- [x] Filtered rows now update their visible count and hide non-matching records without changing the API or database schema.
+- [x] Enlarged community-service provider imagery and redesigned provider cards to show two horizontal cards per row on wide screens, with image-left/details-right layout.
+- [x] Preserved a readable single-column provider layout on narrow mobile screens and used contain-style image rendering to avoid cropping provider artwork.
+- [x] Verified the web production build after the changes.
+
 ### Local verification limitations
 
 In the current restricted environment, `prisma migrate status` could not download Prisma's schema engine because outbound access was refused, and `npm test` was blocked by Windows `spawn EPERM` while starting the test workers. These are environment limitations and must be rerun in the deployment/CI environment.
