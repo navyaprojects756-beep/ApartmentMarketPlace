@@ -299,3 +299,9 @@ Before deploying today, configure production Firebase Admin credentials, JWT sec
 - Home seller-card descriptions wrap instead of being forced onto one line.
 - The description area keeps its existing fixed height so seller panels do not resize.
 - Longer descriptions scroll inside that area, with the scrollbar hidden across supported browsers.
+
+## Admin customer location filters - 2026-11-05
+
+- Global Admin Customers and Users rows now show the user's primary apartment, block, and flat/manual flat when available.
+- The customer filter bar includes Apartment and dependent Block selectors alongside the existing date filters.
+- The admin users API includes apartment associations with block and flat details and supports optional `apartmentId` and `blockId` query filters.

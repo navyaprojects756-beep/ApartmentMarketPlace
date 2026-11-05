@@ -265,3 +265,7 @@ Required migrations: `20261105120000_product_variants`, `20261105130000_product_
 ## Home seller-card presentation - 2026-11-05
 
 Seller descriptions continue to come from the existing seller response field. The web client wraps the text inside the fixed-height card description area and uses hidden-scrollbar overflow for descriptions longer than the available space; this is a client-only presentation change and does not alter the API contract.
+
+## Admin user location filtering - 2026-11-05
+
+`GET /api/v1/admin/users` returns each user's apartment associations with apartment, block, and flat details. Optional `apartmentId` and `blockId` query parameters restrict the result to users associated with that location. The admin customer UI displays the primary association and provides dependent Apartment and Block filters.

@@ -337,3 +337,7 @@ Checkout resolves each selected variant, locks tracked product or variant invent
 ## Home seller-card overflow behavior - 2026-11-05
 
 Seller-card descriptions use a fixed-height, wrapping text region. Overflow is scrollable within the region and scrollbars are visually hidden, preserving the existing seller-card and Home-panel dimensions.
+
+## Admin customer location data - 2026-11-05
+
+Admin user records load the user's ordered apartment associations, including block and flat relations. The customer workspace uses that primary association for display and filters the loaded records by apartment and block without changing user or apartment data.

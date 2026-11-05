@@ -488,3 +488,9 @@ The database-free `npm test` suite now passes 17/17. Seeded database/API integra
 - [x] Removed single-line truncation from Home seller descriptions.
 - [x] Added wrapping and hidden-scrollbar internal overflow without changing seller-card or panel dimensions.
 - [x] Verified the frontend production build after the presentation change.
+
+## 2026-11-05 Admin customer location checkpoint
+
+- [x] Added apartment, block, and flat/manual-flat details to admin user records.
+- [x] Added Apartment and dependent Block filters to the Global Admin Customers and Users workspace.
+- [x] Verified frontend build and backend TypeScript compilation after the admin changes.

@@ -264,3 +264,10 @@ The web build and backend type-check pass locally, and the database-free regress
 - [x] Confirm no visible scrollbar appears on desktop or mobile browsers.
 - [x] Confirm seller-card and Home-panel dimensions remain unchanged.
 - [ ] Repeat the long-description check on the hosted web app and mobile WebView.
+
+## 2026-11-05 Admin customer location checks
+
+- [x] Confirm customer rows identify apartment, block, and flat/manual flat.
+- [x] Confirm Apartment filtering limits the visible users.
+- [x] Confirm Block options update for the selected Apartment and filter correctly.
+- [ ] Repeat these checks on the hosted admin workspace.

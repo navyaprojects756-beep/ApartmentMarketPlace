@@ -72,3 +72,7 @@ Run these against a disposable database. On Windows hosts where the test runner 
 ## Home seller description display case
 
 Use both short and long seller descriptions on desktop and mobile. Expected behavior: text wraps, long text scrolls within the fixed card description region, and no visible scrollbar appears.
+
+## Admin customer location case
+
+Confirm each user row shows the primary apartment and block when assigned, with flat/manual flat where available. Select an apartment filter, verify the block list is limited to that apartment, then select a block and verify only matching users remain visible.
