@@ -322,3 +322,8 @@ Production must apply `20261018120000_coupons` and `20261018130000_allow_unlimit
 - `GatedCartLogo` renders the supplied exact SVG asset from `public/assets/gatedcart-logo-exact.svg`; header sizing is scoped separately from splash/login sizing.
 - Seller workspace tab navigation stores `gatedcartSellerTab` in browser history. The `popstate` handler restores the previous seller tab, including returning from Orders to Overview.
 - The seller application description textarea is center-aligned for the “What do you sell?” field.
+## Image upload and display pipeline - 2026-11-05
+
+- Product images export as `1200 × 900 px` (4:3); seller banners as `1200 × 500 px` (12:5); square assets as `600 × 600 px`.
+- Crop dragging is constrained, the export canvas is filled, and generated WebP output is compressed below 1.5 MB.
+- Product management thumbnails use a dedicated 4:3 frame; banner displays use a 12:5 frame.

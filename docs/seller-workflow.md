@@ -34,3 +34,11 @@ Seller orders appear in Seller workspace → Orders. Move an order through the a
 The store is visible to customers only when it is approved and available for the apartment. Operating hours, active days, open status, delivery areas, product availability, and category availability are evaluated before customer display. Categories without available products are shown as disabled on Home.
 
 Seller Orders supports Today, Yesterday, and custom From/To date filters together with status filtering. Global Admin has equivalent date filters for the Customers and Orders management panels.
+
+## Image upload rules - 2026-11-05
+
+- Selecting an image opens the crop editor before upload.
+- Product images export as `1200 × 900 px` (4:3) and display fully inside a 4:3 frame.
+- The main shop image/banner exports as `1200 × 500 px` (12:5) without top/bottom gaps.
+- The editor adapts to mobile width, prevents out-of-bounds dragging, and compresses output below 1.5 MB.
+- Product uploads are additive; replacing image 1 requires deleting the old image and uploading the replacement.

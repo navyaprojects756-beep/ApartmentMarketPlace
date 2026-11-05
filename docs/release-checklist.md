@@ -239,3 +239,11 @@ The web build and backend type-check pass locally. Prisma migration status was u
 - [x] Confirm community-service provider cards show two horizontal image-left/details-right cards per row on wide screens.
 - [x] Confirm provider images remain fully visible and the layout falls back to a readable mobile arrangement.
 - [ ] Repeat these checks on the hosted production domain after deployment.
+## 2026-11-05 image upload and crop checks
+
+- [x] Confirm image selection opens the responsive crop editor.
+- [x] Confirm product exports are `1200 × 900 px` (4:3) with no uncovered top/bottom canvas areas.
+- [x] Confirm banner exports are `1200 × 500 px` (12:5) without letterboxing gaps.
+- [x] Confirm product thumbnails use a fixed 4:3 frame and contain the complete image.
+- [x] Confirm generated WebP uploads are compressed below 1.5 MB.
+- [ ] Repeat product upload, replacement, banner, and customer-view checks on the hosted domain and mobile WebView.

@@ -238,3 +238,13 @@ The Global Admin web workspace applies client-side date filters to the records l
 - `GET /api/v1/admin/orders`
 
 Both panels support All dates, Today, Yesterday, and a Custom date From/To range. Filtering uses the returned `createdAt` timestamp and does not change the API contract or require a migration.
+## Image upload contract - 2026-11-05
+
+`POST /api/v1/uploads/image` remains the authenticated upload endpoint. The web client sends a cropped and compressed data URL rather than the unmodified selected file.
+
+- Product image: `1200 × 900 px` (4:3)
+- Seller main image/banner: `1200 × 500 px` (12:5)
+- Advertisement: `1200 × 628 px`
+- Logo, category, service, and provider image: `600 × 600 px`
+
+Generated WebP output is reduced below 1.5 MB before the request. New product images use the next `sortOrder` and do not replace existing images automatically.

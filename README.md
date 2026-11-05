@@ -277,3 +277,11 @@ Before deploying today, configure production Firebase Admin credentials, JWT sec
 
 - The customer seller-products page keeps the banner, search, and category tabs fixed while the product list scrolls inside its own viewport.
 - Mobile pull-down refresh must not reset the seller products page or hide its loaded data.
+
+## Image upload and framing update - 2026-11-05
+
+- Image selection opens a responsive crop editor before upload.
+- Product images export as `1200 × 900 px` (4:3); seller banners as `1200 × 500 px` (12:5); square assets as `600 × 600 px`.
+- Generated WebP output is compressed below 1.5 MB before the authenticated upload request.
+- Crop dragging is bounded and the export canvas is filled, preventing blank top/bottom areas.
+- Product thumbnails use a dedicated 4:3 frame; banner displays use 12:5 without letterboxing gaps.

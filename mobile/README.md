@@ -136,3 +136,10 @@ Install the fresh preview APK, allow notifications, log in, and verify that the 
 ## Customer products viewport
 
 - The customer seller-products screen uses an internal product-list scroll area; mobile pull-down gestures must not refresh or reset storefront data.
+
+## Shared image upload and framing - 2026-11-05
+
+- Image uploads use the shared WebView crop editor before the authenticated API upload.
+- Product images export as `1200 × 900 px` (4:3); seller banners as `1200 × 500 px` (12:5); square assets as `600 × 600 px`.
+- The crop frame adapts to mobile width, prevents out-of-bounds dragging, and compresses output below 1.5 MB.
+- Product thumbnails preserve the full image inside a 4:3 frame. No native rebuild is required because this is shared web UI.

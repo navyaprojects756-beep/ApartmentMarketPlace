@@ -2541,3 +2541,11 @@ Orders created before the snapshot migration can only display the address data s
 - Global Admin Customers and Orders lists support All dates, Today, Yesterday, and custom From/To date filters using record creation timestamps.
 - Community-service provider cards use a responsive horizontal image-left/details-right layout, with two cards per row on wide screens and a readable mobile fallback.
 - Provider images are rendered without forced cropping so portrait and banner artwork remains visible.
+
+# Current implementation additions - 2026-11-05 image upload and framing
+
+- Image selection opens a responsive crop editor before upload.
+- Product images export as `1200 × 900 px` (4:3); seller banners as `1200 × 500 px` (12:5); square assets as `600 × 600 px`.
+- Generated WebP output is compressed below 1.5 MB before the authenticated upload request.
+- Crop dragging is bounded and the export canvas is filled, preventing blank top/bottom areas.
+- Product thumbnails use a dedicated 4:3 frame; banner displays use 12:5 without letterboxing gaps.
