@@ -15,7 +15,8 @@
     "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
     "db:generate": "prisma generate --schema prisma/schema.prisma",
     "db:seed": "tsx prisma/seed.ts",
-    "test": "tsx --test tests/core-rules.test.ts tests/api.integration.test.ts"
+    "test": "tsx --test tests/unit-regression.test.ts",
+    "test:integration": "tsx --test tests/core-rules.test.ts tests/api.integration.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.1",

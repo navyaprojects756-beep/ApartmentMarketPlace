@@ -11,7 +11,7 @@ import { validateCouponForCheckout } from './coupon.routes.js';
 
 export const commerceRouter = Router();
 
-const cartItemSchema = z.object({ productId: z.string().uuid(), quantity: z.number().int().positive() });
+const cartItemSchema = z.object({ productId: z.string().uuid(), variantId: z.string().uuid().nullable().optional(), quantity: z.number().int().positive() });
 const checkoutSchema = z.object({ sellerId: z.string().uuid(), items: z.array(cartItemSchema).min(1), fulfillmentType: z.enum(['DELIVERY', 'PICKUP']), paymentMethod: z.enum(['CASH_ON_DELIVERY', 'DUMMY_PAYMENT']), addressId: z.string().uuid().optional(), customerNotes: z.string().max(2000).optional(), couponCode: z.string().trim().min(3).max(80).optional() });
 const orderReferenceAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -37,7 +37,7 @@ commerceRouter.get('/carts/:sellerId', requireAuth, async (request, response, ne
       response.status(404).json({ error: { code: 'SELLER_NOT_FOUND', message: 'Seller is not available in your apartment' } });
       return;
     }
-    response.json(await prisma.cart.findUnique({ where: { userId_sellerId: { userId: request.auth!.userId, sellerId } }, include: { items: { include: { product: true } }, seller: true } }));
+    response.json(await prisma.cart.findUnique({ where: { userId_sellerId: { userId: request.auth!.userId, sellerId } }, include: { items: { include: { product: true, variant: true } }, seller: true } }));
   } catch (error) {
     next(error);
   }
@@ -56,13 +56,19 @@ commerceRouter.post('/carts/:sellerId/items', requireAuth, async (request, respo
       response.status(404).json({ error: { code: 'SELLER_NOT_FOUND', message: 'Seller is not available in your apartment' } });
       return;
     }
-    const product = await prisma.product.findFirst({ where: { id: item.productId, sellerId, availability: true } });
+    const product = await prisma.product.findFirst({ where: { id: item.productId, sellerId, availability: true }, include: { variants: { where: { availability: true } } } });
     if (!product) {
       response.status(404).json({ error: { code: 'PRODUCT_NOT_FOUND', message: 'Product is unavailable' } });
       return;
     }
     const cart = await prisma.cart.upsert({ where: { userId_sellerId: { userId: request.auth!.userId, sellerId } }, update: {}, create: { userId: request.auth!.userId, sellerId } });
-    const cartItem = await prisma.cartItem.upsert({ where: { cartId_productId: { cartId: cart.id, productId: product.id } }, update: { quantity: item.quantity }, create: { cartId: cart.id, productId: product.id, quantity: item.quantity } });
+    if (product.hasVariants && product.variants.length && !item.variantId) throw new Error('PRODUCT_OPTION_REQUIRED');
+    const variant = item.variantId ? product.variants.find(option => option.id === item.variantId) : undefined;
+    if (item.variantId && (!product.hasVariants || !variant)) throw new Error('PRODUCT_OPTION_INVALID');
+    const existing = await prisma.cartItem.findFirst({ where: { cartId: cart.id, productId: product.id, variantId: item.variantId || null } });
+    const cartItem = existing
+      ? await prisma.cartItem.update({ where: { id: existing.id }, data: { quantity: item.quantity } })
+      : await prisma.cartItem.create({ data: { cartId: cart.id, productId: product.id, variantId: item.variantId || null, quantity: item.quantity } });
     response.status(201).json(cartItem);
   } catch (error) {
     next(error);
@@ -95,23 +101,35 @@ commerceRouter.post('/orders', requireAuth, async (request, response, next) => {
       if (!availability.isOpen) throw new Error(availability.reason || 'STORE_CLOSED');
       if (input.fulfillmentType === 'DELIVERY' && !seller.deliveryEnabled) throw new Error('DELIVERY_NOT_AVAILABLE');
       if (input.fulfillmentType === 'PICKUP' && !seller.pickupEnabled) throw new Error('PICKUP_NOT_AVAILABLE');
-      const products = await tx.product.findMany({ where: { id: { in: input.items.map(item => item.productId) }, sellerId: input.sellerId, availability: true } });
-      if (products.length !== input.items.length) throw new Error('PRODUCT_SCOPE_INVALID');
+      const productIds = [...new Set(input.items.map(item => item.productId))];
+      const products = await tx.product.findMany({ where: { id: { in: productIds }, sellerId: input.sellerId, availability: true }, include: { variants: true } });
+      if (products.length !== productIds.length) throw new Error('PRODUCT_SCOPE_INVALID');
       let subtotal = new Prisma.Decimal(0);
-      const orderItems: Array<{ productId: string; productName: string; quantity: number; unitPrice: Prisma.Decimal; discount: Prisma.Decimal; totalPrice: Prisma.Decimal }> = [];
+      const orderItems: Array<{ productId: string; variantId?: string; variantLabel?: string; productName: string; quantity: number; unitPrice: Prisma.Decimal; discount: Prisma.Decimal; totalPrice: Prisma.Decimal }> = [];
       for (const item of input.items) {
         const product = products.find(record => record.id === item.productId)!;
-        if (product.maximumQuantity && item.quantity > product.maximumQuantity) throw new Error('MAXIMUM_QUANTITY_EXCEEDED');
-        if (item.quantity < product.minimumQuantity) throw new Error('MINIMUM_QUANTITY_NOT_MET');
-        if (product.inventoryTracking) {
+        const variant = item.variantId ? product.variants.find(option => option.id === item.variantId && option.availability) : undefined;
+        if (product.hasVariants && product.variants.length && !variant) throw new Error(item.variantId ? 'PRODUCT_OPTION_INVALID' : 'PRODUCT_OPTION_REQUIRED');
+        if (item.variantId && (!product.hasVariants || !variant)) throw new Error('PRODUCT_OPTION_INVALID');
+        const pricing = variant || product;
+        if (pricing.maximumQuantity && item.quantity > pricing.maximumQuantity) throw new Error('MAXIMUM_QUANTITY_EXCEEDED');
+        if (item.quantity < pricing.minimumQuantity) throw new Error('MINIMUM_QUANTITY_NOT_MET');
+        if (pricing.inventoryTracking) {
+          if (variant) {
+            await tx.$queryRaw`SELECT id FROM product_variants WHERE id = ${variant.id}::uuid FOR UPDATE`;
+            const currentVariant = await tx.productVariant.findUnique({ where: { id: variant.id } });
+            if (!currentVariant || currentVariant.quantity < item.quantity) throw new Error('INSUFFICIENT_STOCK');
+            await tx.productVariant.update({ where: { id: variant.id }, data: { quantity: { decrement: item.quantity } } });
+          } else {
           await tx.$queryRaw`SELECT id FROM inventory WHERE product_id = ${product.id}::uuid FOR UPDATE`;
           const inventory = await tx.inventory.findUnique({ where: { productId: product.id } });
           if (!inventory || inventory.quantity < item.quantity) throw new Error('INSUFFICIENT_STOCK');
           await tx.inventory.update({ where: { productId: product.id }, data: { quantity: { decrement: item.quantity } } });
+          }
         }
-        const totalPrice = product.finalPrice.mul(item.quantity);
+        const totalPrice = pricing.finalPrice.mul(item.quantity);
         subtotal = subtotal.add(totalPrice);
-        orderItems.push({ productId: product.id, productName: product.name, quantity: item.quantity, unitPrice: product.finalPrice, discount: product.discount, totalPrice });
+        orderItems.push({ productId: product.id, variantId: variant?.id, variantLabel: variant ? `${product.variantName || variant.optionName}: ${variant.optionValue}` : undefined, productName: product.name, quantity: item.quantity, unitPrice: pricing.finalPrice, discount: pricing.discount, totalPrice });
       }
       const couponResult = input.couponCode ? await validateCouponForCheckout(tx, { code: input.couponCode, sellerId: seller.id, userId: request.auth!.userId, apartmentId: context.apartmentId, subtotal }) : null;
       const couponDiscount = couponResult?.discount ?? new Prisma.Decimal(0);
@@ -210,10 +228,11 @@ commerceRouter.patch('/orders/:orderId/status', requireAuth, async (request, res
       response.status(400).json({ error: { code: 'INVALID_STATUS_TRANSITION', message: `Cannot move order from ${order.status} to ${status}` } });
       return;
     }
-    const updated = await prisma.$transaction(async tx => { const item = await tx.order.update({ where: { id: orderId }, data: { status, ...(status === 'ACCEPTED' ? { acceptedAt: new Date() } : {}), ...(status === 'PREPARING' ? { preparingAt: new Date() } : {}), ...(status === 'READY_FOR_PICKUP' ? { readyAt: new Date() } : {}), ...(status === 'PICKED_UP' ? { pickedUpAt: new Date() } : {}), ...(status === 'DELIVERED' ? { deliveredAt: new Date() } : {}), ...(status === 'CANCELLED' ? { cancelledAt: new Date() } : {}) } }); if (status === 'CANCELLED' && order.status !== 'CANCELLED') { for (const orderItem of order.items) { const product = await tx.product.findUnique({ where: { id: orderItem.productId }, select: { inventoryTracking: true } }); if (product?.inventoryTracking) { const inventory = await tx.inventory.update({ where: { productId: orderItem.productId }, data: { quantity: { increment: orderItem.quantity } } }); await tx.inventoryMovement.create({ data: { productId: orderItem.productId, inventoryId: inventory.id, type: 'CANCELLED_ORDER', quantity: orderItem.quantity, orderId, reason: `Order ${order.orderNumber} cancelled` } }); } } } await tx.orderStatusHistory.create({ data: { orderId, fromStatus: order.status, toStatus: status, changedById: request.auth!.userId, note } }); await tx.auditLog.create({ data: { actorId: request.auth!.userId, action: 'ORDER_STATUS_CHANGED', entityType: 'Order', entityId: orderId, beforeData: { status: order.status }, afterData: { status }, } }); return item; });
+    const updated = await prisma.$transaction(async tx => { const item = await tx.order.update({ where: { id: orderId }, data: { status, ...(status === 'ACCEPTED' ? { acceptedAt: new Date() } : {}), ...(status === 'PREPARING' ? { preparingAt: new Date() } : {}), ...(status === 'READY_FOR_PICKUP' ? { readyAt: new Date() } : {}), ...(status === 'PICKED_UP' ? { pickedUpAt: new Date() } : {}), ...(status === 'DELIVERED' ? { deliveredAt: new Date() } : {}), ...(status === 'CANCELLED' ? { cancelledAt: new Date() } : {}) } }); if (status === 'CANCELLED' && order.status !== 'CANCELLED') { for (const orderItem of order.items) { if (orderItem.variantId) { await tx.productVariant.update({ where: { id: orderItem.variantId }, data: { quantity: { increment: orderItem.quantity } } }); continue; } const product = await tx.product.findUnique({ where: { id: orderItem.productId }, select: { inventoryTracking: true } }); if (product?.inventoryTracking) { const inventory = await tx.inventory.update({ where: { productId: orderItem.productId }, data: { quantity: { increment: orderItem.quantity } } }); await tx.inventoryMovement.create({ data: { productId: orderItem.productId, inventoryId: inventory.id, type: 'CANCELLED_ORDER', quantity: orderItem.quantity, orderId, reason: `Order ${order.orderNumber} cancelled` } }); } } } await tx.orderStatusHistory.create({ data: { orderId, fromStatus: order.status, toStatus: status, changedById: request.auth!.userId, note } }); await tx.auditLog.create({ data: { actorId: request.auth!.userId, action: 'ORDER_STATUS_CHANGED', entityType: 'Order', entityId: orderId, beforeData: { status: order.status }, afterData: { status }, } }); return item; });
     if (status === 'REJECTED' && order.status !== 'REJECTED') {
       await prisma.$transaction(async tx => {
         for (const orderItem of order.items) {
+          if (orderItem.variantId) { await tx.productVariant.update({ where: { id: orderItem.variantId }, data: { quantity: { increment: orderItem.quantity } } }); continue; }
           const product = await tx.product.findUnique({ where: { id: orderItem.productId }, select: { inventoryTracking: true } });
           if (!product?.inventoryTracking) continue;
           const inventory = await tx.inventory.update({ where: { productId: orderItem.productId }, data: { quantity: { increment: orderItem.quantity } } });

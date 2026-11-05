@@ -1110,3 +1110,350 @@ textarea.seller-description-input { display: block !important; width: 100% !impo
 .account-disabled-icon { display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto 18px; border-radius: 50%; color: #fff; background: #ff6b00; font-size: 28px; font-weight: 800; }
 .account-disabled-card .auth-button { margin-top: 4px; }
 .admin-user-row .status { flex: 0 0 auto; font-size: 10px; font-weight: 700; }
+.product-variant-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  color: #6d6780;
+  font-size: 12px;
+}
+
+.product-variant-picker select,
+.product-variant-control select {
+  min-height: 34px;
+  border: 1px solid #ddd8e8;
+  border-radius: 9px;
+  background: #fff;
+  color: #18213d;
+  padding: 6px 9px;
+}
+
+.product-variant-picker {
+  display: block;
+  margin: 12px 0;
+}
+
+.product-detail-price {
+  flex-wrap: wrap;
+}
+
+.product-detail-price .product-variant-picker {
+  flex: 0 0 100%;
+  order: 3;
+  width: 100%;
+  min-width: 0;
+  margin: 10px 0 2px;
+}
+
+.product-variant-picker > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #625b77;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.product-variant-options {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 1px 6px;
+  scrollbar-width: thin;
+}
+
+.product-variant-options button {
+  display: grid;
+  flex: 0 0 auto;
+  min-width: 76px;
+  min-height: 54px;
+  gap: 4px;
+  align-content: center;
+  justify-items: center;
+  border: 1px solid #ddd8e8;
+  border-radius: 8px;
+  background: #fff;
+  color: #18213d;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.product-variant-options button small {
+  color: #77708d;
+  font-size: 11px;
+}
+
+.product-variant-options button.selected {
+  border-color: #ff6b00;
+  background: #fff4e9;
+  box-shadow: 0 0 0 1px #ff6b00;
+}
+
+.product-variant-options button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.product-variant-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.price-row:has(.product-variant-control) > strong,
+.price-row:has(.product-variant-control) > del {
+  display: none;
+}
+
+.variant-card-price {
+  color: var(--ink);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.product-variant-control select {
+  min-width: 118px;
+}
+
+.seller-product-variants {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eeeaf4;
+}
+
+.seller-product-variants-heading,
+.seller-product-variant-row,
+.seller-product-variant-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.seller-product-variants-heading {
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+button.seller-product-variants-heading {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #18213d;
+  text-align: left;
+  cursor: pointer;
+  padding: 0 0 8px;
+}
+
+button.seller-product-variants-heading span {
+  color: #5c48df;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.seller-product-variants-body {
+  border-top: 1px solid #eeeaf4;
+  padding-top: 8px;
+}
+
+.seller-variant-help {
+  display: block;
+  margin-bottom: 4px;
+  color: #817a96;
+  font-size: 11px;
+}
+
+.seller-product-variants-heading small,
+.seller-product-variant-row small,
+.seller-variant-message {
+  color: #817a96;
+  font-size: 11px;
+}
+
+.seller-product-variant-row {
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid #f0edf5;
+}
+
+.seller-product-variant-row span {
+  display: grid;
+  gap: 2px;
+}
+
+.seller-product-variant-form input:not([type='checkbox']) {
+  min-width: 90px;
+  max-width: 135px;
+}
+
+.seller-product-variant-form {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 4px 0 8px;
+  scrollbar-width: thin;
+}
+
+.seller-product-variant-form input:not([type='checkbox']) {
+  flex: 0 0 130px;
+  width: 130px;
+  max-width: none;
+}
+
+.seller-product-variant-form label {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.seller-product-variant-form button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.seller-product-variant-row > span {
+  min-width: 0;
+}
+
+.seller-product-variant-row > span:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.seller-variant-actions,
+.variant-stock-editor {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.seller-variant-actions button,
+.variant-stock-editor button {
+  min-height: 30px;
+  border: 1px solid #ddd8e8;
+  border-radius: 7px;
+  background: #fff;
+  color: #4e3bd6;
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+.variant-stock-editor input[type='number'] {
+  width: 72px;
+  min-height: 30px;
+}
+
+.seller-product-variant-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.seller-variant-actions {
+  display: grid;
+  justify-items: stretch;
+  min-width: 78px;
+}
+
+.seller-product-variant-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  overflow: visible;
+  padding: 8px 0 4px;
+}
+
+.seller-product-variant-form input:not([type='checkbox']) {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  flex: initial;
+  box-sizing: border-box;
+}
+
+.seller-product-variant-form label {
+  grid-column: 1 / -1;
+}
+
+.seller-product-variant-form button {
+  width: 100%;
+}
+
+.variant-stock-editor {
+  margin-top: 7px;
+}
+
+@media (max-width: 420px) {
+  .seller-product-variant-row {
+    gap: 8px;
+  }
+
+  .seller-variant-actions {
+    min-width: 72px;
+  }
+
+  .seller-product-variant-form {
+    grid-template-columns: 1fr;
+  }
+
+  .seller-product-variant-form label,
+  .seller-product-variant-form button {
+    grid-column: auto;
+  }
+}
+
+.seller-product-variant-form {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow-x: auto;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.seller-product-variant-form input:not([type='checkbox']) {
+  flex: 0 0 130px;
+  width: 130px;
+}
+
+.seller-product-variant-form label {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.seller-product-variant-form button {
+  flex: 0 0 100px;
+  width: 100px;
+}
+
+.seller-product-variant-row > span b {
+  color: #18213d;
+  font-size: 13px;
+}
+
+.order-item-variant {
+  color: #6f6784;
+  font-size: 11px;
+}
+
+.variant-name-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  color: #504866;
+  font-size: 13px;
+}
+
+.variant-name-field select {
+  min-height: 36px;
+  min-width: 150px;
+  border: 1px solid #ddd8e8;
+  border-radius: 8px;
+  background: #fff;
+  padding: 7px 9px;
+}

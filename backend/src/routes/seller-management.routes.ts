@@ -85,7 +85,7 @@ sellerManagementRouter.put('/delivery-areas', requireAuth, async (request, respo
 });
 
 sellerManagementRouter.get('/catalog', requireAuth, async (request, response, next) => {
-  try { const seller = await sellerForUser(request.auth!.userId); if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; } response.json(await prisma.product.findMany({ where: { sellerId: seller.id }, include: { category: true, globalCategory: true, inventory: true, images: { orderBy: { sortOrder: 'asc' } } }, orderBy: { createdAt: 'desc' } })); } catch (error) { next(error); }
+  try { const seller = await sellerForUser(request.auth!.userId); if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; } response.json(await prisma.product.findMany({ where: { sellerId: seller.id }, include: { category: true, globalCategory: true, inventory: true, variants: { orderBy: { sortOrder: 'asc' } }, images: { orderBy: { sortOrder: 'asc' } } }, orderBy: { createdAt: 'desc' } })); } catch (error) { next(error); }
 });
 
 sellerManagementRouter.get('/categories', requireAuth, async (request, response, next) => {
@@ -146,9 +146,9 @@ sellerManagementRouter.post('/products', requireAuth, async (request, response, 
   try {
     const seller = await sellerForUser(request.auth!.userId);
     if (!seller) { response.status(403).json({ error: { code: 'SELLER_REQUIRED', message: 'Seller access is required' } }); return; }
-    const input = z.object({ categoryId: z.string().uuid().nullable().optional(), globalCategoryId: z.string().uuid().nullable().optional(), name: z.string().trim().min(2).max(180), description: z.string().max(3000).nullable().optional(), instructions: z.string().max(3000).nullable().optional(), sku: z.string().max(80).nullable().optional(), price: z.number().nonnegative(), discount: z.number().nonnegative().default(0), unit: z.string().max(40).nullable().optional(), inventoryTracking: z.boolean().default(false), quantity: z.number().int().nonnegative().default(0), lowStockLevel: z.number().int().nonnegative().default(5), minimumQuantity: z.number().int().positive().default(1), maximumQuantity: z.number().int().positive().nullable().optional(), preparationTimeMin: z.number().int().nonnegative().nullable().optional(), deliveryEligible: z.boolean().default(true), pickupEligible: z.boolean().default(true) }).parse(request.body);
+    const input = z.object({ categoryId: z.string().uuid().nullable().optional(), globalCategoryId: z.string().uuid().nullable().optional(), name: z.string().trim().min(2).max(180), description: z.string().max(3000).nullable().optional(), instructions: z.string().max(3000).nullable().optional(), sku: z.string().max(80).nullable().optional(), price: z.number().nonnegative(), discount: z.number().nonnegative().default(0), unit: z.string().max(40).nullable().optional(), inventoryTracking: z.boolean().default(false), quantity: z.number().int().nonnegative().default(0), lowStockLevel: z.number().int().nonnegative().default(5), minimumQuantity: z.number().int().positive().default(1), maximumQuantity: z.number().int().positive().nullable().optional(), preparationTimeMin: z.number().int().nonnegative().nullable().optional(), deliveryEligible: z.boolean().default(true), pickupEligible: z.boolean().default(true), hasVariants: z.boolean().default(false), variantName: z.string().trim().min(1).max(40).nullable().optional() }).parse(request.body);
     const finalPrice = Math.max(0, input.price - input.discount);
-    const product = await prisma.$transaction(async tx => { const created = await tx.product.create({ data: { sellerId: seller.id, categoryId: input.categoryId, globalCategoryId: input.globalCategoryId, name: input.name, description: input.description, instructions: input.instructions, sku: input.sku, price: input.price, discount: input.discount, finalPrice, unit: input.unit, inventoryTracking: input.inventoryTracking, minimumQuantity: input.minimumQuantity, maximumQuantity: input.maximumQuantity, preparationTimeMin: input.preparationTimeMin, deliveryEligible: input.deliveryEligible, pickupEligible: input.pickupEligible, inventory: { create: { quantity: input.quantity, lowStockLevel: input.lowStockLevel } } } }); if (input.inventoryTracking && input.quantity > 0) await tx.inventoryMovement.create({ data: { productId: created.id, type: 'INITIAL_STOCK', quantity: input.quantity, reason: 'Initial product stock' } }); return created; });
+    const product = await prisma.$transaction(async tx => { const created = await tx.product.create({ data: { sellerId: seller.id, categoryId: input.categoryId, globalCategoryId: input.globalCategoryId, name: input.name, description: input.description, instructions: input.instructions, sku: input.sku, price: input.price, discount: input.discount, finalPrice, unit: input.unit, hasVariants: input.hasVariants, variantName: input.hasVariants ? input.variantName : null, inventoryTracking: input.inventoryTracking, minimumQuantity: input.minimumQuantity, maximumQuantity: input.maximumQuantity, preparationTimeMin: input.preparationTimeMin, deliveryEligible: input.deliveryEligible, pickupEligible: input.pickupEligible, inventory: { create: { quantity: input.quantity, lowStockLevel: input.lowStockLevel } } } }); if (input.inventoryTracking && input.quantity > 0) await tx.inventoryMovement.create({ data: { productId: created.id, type: 'INITIAL_STOCK', quantity: input.quantity, reason: 'Initial product stock' } }); return created; });
     response.status(201).json(product);
   } catch (error) { next(error); }
 });
@@ -157,7 +157,7 @@ sellerManagementRouter.patch('/products/:productId', requireAuth, async (request
   try {
     const seller = await sellerForUser(request.auth!.userId);
     const productId = z.string().uuid().parse(request.params.productId);
-    const input = z.object({ categoryId: z.string().uuid().nullable().optional(), globalCategoryId: z.string().uuid().nullable().optional(), name: z.string().trim().min(2).max(180).optional(), description: z.string().max(3000).nullable().optional(), instructions: z.string().max(3000).nullable().optional(), sku: z.string().max(80).nullable().optional(), unit: z.string().max(40).nullable().optional(), price: z.number().nonnegative().optional(), discount: z.number().nonnegative().optional(), availability: z.boolean().optional(), inventoryTracking: z.boolean().optional(), quantity: z.number().int().nonnegative().optional(), lowStockLevel: z.number().int().nonnegative().optional(), minimumQuantity: z.number().int().positive().optional(), maximumQuantity: z.number().int().positive().nullable().optional(), preparationTimeMin: z.number().int().nonnegative().nullable().optional(), deliveryEligible: z.boolean().optional(), pickupEligible: z.boolean().optional() }).parse(request.body);
+    const input = z.object({ categoryId: z.string().uuid().nullable().optional(), globalCategoryId: z.string().uuid().nullable().optional(), name: z.string().trim().min(2).max(180).optional(), description: z.string().max(3000).nullable().optional(), instructions: z.string().max(3000).nullable().optional(), sku: z.string().max(80).nullable().optional(), unit: z.string().max(40).nullable().optional(), price: z.number().nonnegative().optional(), discount: z.number().nonnegative().optional(), availability: z.boolean().optional(), hasVariants: z.boolean().optional(), variantName: z.string().trim().min(1).max(40).nullable().optional(), inventoryTracking: z.boolean().optional(), quantity: z.number().int().nonnegative().optional(), lowStockLevel: z.number().int().nonnegative().optional(), minimumQuantity: z.number().int().positive().optional(), maximumQuantity: z.number().int().positive().nullable().optional(), preparationTimeMin: z.number().int().nonnegative().nullable().optional(), deliveryEligible: z.boolean().optional(), pickupEligible: z.boolean().optional() }).parse(request.body);
     const product = await prisma.product.findFirst({ where: { id: productId, sellerId: seller?.id } });
     if (!product) { response.status(404).json({ error: { code: 'PRODUCT_NOT_FOUND', message: 'Product not found' } }); return; }
     const price = input.price ?? Number(product.price); const discount = input.discount ?? Number(product.discount);
@@ -167,6 +167,37 @@ sellerManagementRouter.patch('/products/:productId', requireAuth, async (request
       if (quantity !== undefined || lowStockLevel !== undefined) await tx.inventory.upsert({ where: { productId }, update: { ...(quantity === undefined ? {} : { quantity }), ...(lowStockLevel === undefined ? {} : { lowStockLevel }) }, create: { productId, quantity: quantity ?? 0, lowStockLevel: lowStockLevel ?? 0 } });
       return updated;
     }));
+  } catch (error) { next(error); }
+});
+
+sellerManagementRouter.post('/products/:productId/variants', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId); const productId = z.string().uuid().parse(request.params.productId);
+    const input = z.object({ optionName: z.string().trim().min(1).max(40).default('Option'), optionValue: z.string().trim().min(1).max(80), price: z.number().nonnegative(), discount: z.number().nonnegative().default(0), unit: z.string().max(40).nullable().optional(), inventoryTracking: z.boolean().default(false), quantity: z.number().int().nonnegative().default(0), lowStockLevel: z.number().int().nonnegative().default(0), minimumQuantity: z.number().int().positive().default(1), maximumQuantity: z.number().int().positive().nullable().optional(), sortOrder: z.number().int().nonnegative().default(0), availability: z.boolean().default(true) }).parse(request.body);
+    const product = await prisma.product.findFirst({ where: { id: productId, sellerId: seller?.id }, select: { id: true } });
+    if (!product) { response.status(404).json({ error: { code: 'PRODUCT_NOT_FOUND', message: 'Product not found' } }); return; }
+    const variant = await prisma.$transaction(async tx => { await tx.product.update({ where: { id: productId }, data: { hasVariants: true } }); return tx.productVariant.create({ data: { productId, ...input, finalPrice: Math.max(0, input.price - input.discount) } }); });
+    response.status(201).json(variant);
+  } catch (error) { next(error); }
+});
+
+sellerManagementRouter.patch('/products/:productId/variants/:variantId', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId); const productId = z.string().uuid().parse(request.params.productId); const variantId = z.string().uuid().parse(request.params.variantId);
+    const input = z.object({ optionName: z.string().trim().min(1).max(40).optional(), optionValue: z.string().trim().min(1).max(80).optional(), price: z.number().nonnegative().optional(), discount: z.number().nonnegative().optional(), unit: z.string().max(40).nullable().optional(), inventoryTracking: z.boolean().optional(), quantity: z.number().int().nonnegative().optional(), lowStockLevel: z.number().int().nonnegative().optional(), minimumQuantity: z.number().int().positive().optional(), maximumQuantity: z.number().int().positive().nullable().optional(), sortOrder: z.number().int().nonnegative().optional(), availability: z.boolean().optional() }).parse(request.body);
+    const variant = await prisma.productVariant.findFirst({ where: { id: variantId, productId, product: { sellerId: seller?.id } } });
+    if (!variant) { response.status(404).json({ error: { code: 'VARIANT_NOT_FOUND', message: 'Product option not found' } }); return; }
+    const price = input.price ?? Number(variant.price); const discount = input.discount ?? Number(variant.discount);
+    response.json(await prisma.productVariant.update({ where: { id: variantId }, data: { ...input, price, discount, finalPrice: Math.max(0, price - discount) } }));
+  } catch (error) { next(error); }
+});
+
+sellerManagementRouter.delete('/products/:productId/variants/:variantId', requireAuth, async (request, response, next) => {
+  try {
+    const seller = await sellerForUser(request.auth!.userId); const productId = z.string().uuid().parse(request.params.productId); const variantId = z.string().uuid().parse(request.params.variantId);
+    const variant = await prisma.productVariant.findFirst({ where: { id: variantId, productId, product: { sellerId: seller?.id } }, select: { id: true } });
+    if (!variant) { response.status(404).json({ error: { code: 'VARIANT_NOT_FOUND', message: 'Product option not found' } }); return; }
+    await prisma.productVariant.delete({ where: { id: variantId } }); response.status(204).send();
   } catch (error) { next(error); }
 });
 

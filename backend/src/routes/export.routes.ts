@@ -62,7 +62,7 @@ exportRouter.get('/seller/orders/:orderId/print.pdf', requireAuth, async (reques
     document.y = infoTop + 112;
     document.fontSize(10).fillColor('#777').text('ITEM', 55, document.y).text('QTY', 360, document.y).text('AMOUNT', 450, document.y); document.moveDown(0.5);
     document.moveTo(55, document.y).lineTo(540, document.y).strokeColor('#ddd6ec').stroke();
-    for (const item of order.items) { document.moveDown(0.5).fillColor('#222').text(item.productName, 55, document.y).text(String(item.quantity), 360, document.y).text(`₹${Number(item.totalPrice).toFixed(2)}`, 450, document.y); }
+    for (const item of order.items) { document.moveDown(0.5).fillColor('#222').text(`${item.productName}${item.variantLabel ? ` · ${item.variantLabel}` : ''}`, 55, document.y).text(String(item.quantity), 360, document.y).text(`₹${Number(item.totalPrice).toFixed(2)}`, 450, document.y); }
     document.moveDown().moveTo(350, document.y).lineTo(540, document.y).strokeColor('#ddd6ec').stroke(); document.moveDown().fontSize(10).fillColor('#555').text(`Subtotal: ₹${Number(order.subtotal).toFixed(2)}`, 360, document.y).text(`Coupon${(order as any).couponCode ? ` (${(order as any).couponCode})` : ''}: -₹${Number(order.discount).toFixed(2)}`, 360, document.y + 16).text(`Delivery: ₹${Number(order.deliveryCharge).toFixed(2)}`, 360, document.y + 32).fontSize(14).fillColor('#4b2eb4').text(`Total: ₹${Number(order.total).toFixed(2)}`, 360, document.y + 52).fontSize(10).fillColor('#555').text(`Notes: ${order.customerNotes || '—'}`, 55, document.y + 72);
     document.end();
   } catch (error) { next(error); }
