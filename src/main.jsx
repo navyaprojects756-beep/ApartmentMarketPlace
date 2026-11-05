@@ -909,12 +909,21 @@ function AdminWorkspace({ token, onLogout }) {
     blockSelect.disabled = true;
     const updateBlocks = () => { blockSelect.innerHTML = '<option value="">All blocks</option>'; const apartment = apartments.find(item => item.id === apartmentSelect.value); (apartment?.blocks || []).forEach(block => { const option = document.createElement('option'); option.value = block.id; option.textContent = block.name; blockSelect.append(option); }); blockSelect.disabled = !apartmentSelect.value; };
     const matchesCustomerLocation = user => !apartmentSelect.value || user?.apartments?.some(association => association.apartmentId === apartmentSelect.value && (!blockSelect.value || association.blockId === blockSelect.value));
+    const platformSummary = document.createElement('div');
+    platformSummary.className = 'admin-platform-counts';
+    platformSummary.innerHTML = '<span>Matching users: 0</span><span>Website: 0</span><span>Android: 0</span>';
     const syncVisibility = () => {
       const rows = Array.from(panel.querySelectorAll(tab === 'customers' ? '.admin-user-row' : '.admin-order-row'));
+      const matchingUsers = tab === 'customers' ? data.filter(user => matchesDate(user.createdAt) && matchesCustomerLocation(user)) : [];
       const filtered = rows.filter((row, index) => matchesDate(data[index]?.createdAt) && (tab !== 'customers' || matchesCustomerLocation(data[index])));
       rows.forEach(row => { row.hidden = !filtered.includes(row); });
       const count = panel.querySelector('.panel-heading > span');
       if (count) count.textContent = `${filtered.length} of ${data.length} ${tab === 'customers' ? 'users' : 'orders'}`;
+      if (tab === 'customers') {
+        const websiteUsers = new Set(matchingUsers.filter(user => user.pushDevices?.some(device => device.platform === 'web')).map(user => user.id)).size;
+        const androidUsers = new Set(matchingUsers.filter(user => user.pushDevices?.some(device => device.platform === 'android')).map(user => user.id)).size;
+        platformSummary.innerHTML = `<span>Matching users: ${matchingUsers.length}</span><span>Website: ${websiteUsers}</span><span>Android: ${androidUsers}</span>`;
+      }
       fromLabel.hidden = datePreset !== 'custom'; toLabel.hidden = datePreset !== 'custom';
     };
     select.onchange = event => { setDatePreset(event.target.value); };
@@ -923,7 +932,7 @@ function AdminWorkspace({ token, onLogout }) {
     apartmentSelect.onchange = () => { updateBlocks(); syncVisibility(); };
     blockSelect.onchange = () => syncVisibility();
     apartmentLabel.append(apartmentSelect); blockLabel.append(blockSelect);
-    filterBar.append(select, fromLabel, toLabel, ...(tab === 'customers' ? [apartmentLabel, blockLabel] : []));
+    filterBar.append(select, fromLabel, toLabel, ...(tab === 'customers' ? [apartmentLabel, blockLabel, platformSummary] : []));
     panel.querySelector('.panel-heading')?.after(filterBar);
     syncVisibility();
     return () => { filterBar.remove(); panel.querySelectorAll('.admin-user-row, .admin-order-row').forEach(row => { row.hidden = false; }); };

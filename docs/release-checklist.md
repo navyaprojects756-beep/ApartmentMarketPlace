@@ -271,3 +271,10 @@ The web build and backend type-check pass locally, and the database-free regress
 - [x] Confirm Apartment filtering limits the visible users.
 - [x] Confirm Block options update for the selected Apartment and filter correctly.
 - [ ] Repeat these checks on the hosted admin workspace.
+
+## 2026-11-05 Admin platform count checks
+
+- [x] Confirm Website and Android counts appear at the top of Customers and Users.
+- [x] Confirm counts use distinct users rather than device rows.
+- [x] Confirm date, apartment, and block filters update the platform counts.
+- [ ] Verify counts against production push-device data after deployment.

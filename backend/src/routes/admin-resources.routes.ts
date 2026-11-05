@@ -140,7 +140,7 @@ adminResourcesRouter.get('/users', ...adminOnly, async (request, response, next)
   try {
     const query = z.object({ search: z.string().trim().optional(), apartmentId: z.string().uuid().optional(), blockId: z.string().uuid().optional() }).parse(request.query);
     const where = { ...(query.search ? { OR: [{ name: { contains: query.search, mode: 'insensitive' as const } }, { phone: { contains: query.search } }] } : {}), ...(query.apartmentId || query.blockId ? { apartments: { some: { ...(query.apartmentId ? { apartmentId: query.apartmentId } : {}), ...(query.blockId ? { blockId: query.blockId } : {}) } } } : {}) };
-    response.json(await prisma.user.findMany({ where, include: { roles: { include: { role: true } }, apartments: { include: { apartment: true, block: true, flat: true }, orderBy: { isPrimary: 'desc' } } }, orderBy: { createdAt: 'desc' }, take: 500 }));
+    response.json(await prisma.user.findMany({ where, include: { roles: { include: { role: true } }, apartments: { include: { apartment: true, block: true, flat: true }, orderBy: { isPrimary: 'desc' } }, pushDevices: { where: { isActive: true }, select: { platform: true } } }, orderBy: { createdAt: 'desc' }, take: 500 }));
   } catch (error) { next(error); }
 });
 

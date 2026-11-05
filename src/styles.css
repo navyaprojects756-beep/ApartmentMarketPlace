@@ -173,6 +173,8 @@ button { cursor: pointer; border: 0; background: transparent; color: inherit; }
  .admin-date-filters select { min-width: 130px; }
  .admin-date-filters label { display: grid; gap: 3px; color: var(--muted); font-size: 10px; font-weight: 700; }
  .admin-date-filters input { min-width: 130px; }
+.admin-platform-counts { display: flex; flex: 1 0 100%; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.admin-platform-counts span { padding: 5px 8px; border-radius: 999px; color: #6241d3; background: #f0ecff; font-size: 10px; font-weight: 700; }
  .admin-user-row button { padding: 7px 10px; border-radius: 8px; color: #6241d3; background: #f0ecff; font-size: 10px; font-weight: 700; }
  .admin-order-row > strong { white-space: nowrap; }
  .fulfillment-switch { display: flex; gap: 6px; margin: 18px 0; padding: 5px; border-radius: 12px; background: #f1eef8; }

@@ -76,3 +76,5 @@ Use both short and long seller descriptions on desktop and mobile. Expected beha
 ## Admin customer location case
 
 Confirm each user row shows the primary apartment and block when assigned, with flat/manual flat where available. Select an apartment filter, verify the block list is limited to that apartment, then select a block and verify only matching users remain visible.
+
+Also verify that the top summary shows Total matching users, registered Website users, and registered Android users, and that all three values update when date, apartment, or block filters change.

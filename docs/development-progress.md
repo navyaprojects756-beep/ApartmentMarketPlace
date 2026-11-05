@@ -494,3 +494,9 @@ The database-free `npm test` suite now passes 17/17. Seeded database/API integra
 - [x] Added apartment, block, and flat/manual-flat details to admin user records.
 - [x] Added Apartment and dependent Block filters to the Global Admin Customers and Users workspace.
 - [x] Verified frontend build and backend TypeScript compilation after the admin changes.
+
+## 2026-11-05 Admin platform counts checkpoint
+
+- [x] Added active push-device platform data to admin user records.
+- [x] Added distinct Website and Android counts above the Customers and Users filters.
+- [x] Counts update with date, apartment, and block filtering; total matching users includes users without registered push devices.

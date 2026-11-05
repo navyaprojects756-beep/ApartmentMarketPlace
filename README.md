@@ -305,3 +305,4 @@ Before deploying today, configure production Firebase Admin credentials, JWT sec
 - Global Admin Customers and Users rows now show the user's primary apartment, block, and flat/manual flat when available.
 - The customer filter bar includes Apartment and dependent Block selectors alongside the existing date filters.
 - The admin users API includes apartment associations with block and flat details and supports optional `apartmentId` and `blockId` query filters.
+- The same top filter area shows distinct registered Website and Android user counts, recalculated after date, apartment, and block filters. Total matching users includes users without push registration.

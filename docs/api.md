@@ -269,3 +269,5 @@ Seller descriptions continue to come from the existing seller response field. Th
 ## Admin user location filtering - 2026-11-05
 
 `GET /api/v1/admin/users` returns each user's apartment associations with apartment, block, and flat details. Optional `apartmentId` and `blockId` query parameters restrict the result to users associated with that location. The admin customer UI displays the primary association and provides dependent Apartment and Block filters.
+
+The response also includes active push-device platform values. The admin UI uses distinct user IDs to show registered `web` and `android` counts; these counts follow the same date, apartment, and block filters and do not represent users who have never registered a push device.
