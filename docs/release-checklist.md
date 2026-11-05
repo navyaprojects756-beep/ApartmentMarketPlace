@@ -211,7 +211,7 @@ npx eas build --platform android --profile preview
 
 ### Local verification note
 
-The web build and backend type-check pass locally. Prisma migration status was unable to reach Prisma's binary host in the restricted environment, and the test runner was blocked by Windows `spawn EPERM`; rerun both in CI or the deployment environment.
+The web build and backend type-check pass locally, and the database-free regression suite passes 17/17. Seeded integration tests currently need maintenance for the Firebase-only authentication contract and current seeded roles/home-mode behavior. Prisma migration status still requires engine access and a configured disposable database.
 
 ## 2026-10-18 UI polish checks
 
@@ -247,3 +247,20 @@ The web build and backend type-check pass locally. Prisma migration status was u
 - [x] Confirm product thumbnails use a fixed 4:3 frame and contain the complete image.
 - [x] Confirm generated WebP uploads are compressed below 1.5 MB.
 - [ ] Repeat product upload, replacement, banner, and customer-view checks on the hosted domain and mobile WebView.
+
+## 2026-11-05 product variant release checks
+
+- [x] Apply and review the three product-variant Prisma migrations.
+- [x] Confirm variant fields and inventory operations remain seller-scoped.
+- [x] Confirm customers must choose an option and different options remain separate cart lines.
+- [x] Confirm checkout sends `variantId`, locks tracked stock, and preserves the selected label on order items.
+- [x] Run database-free regression tests and the frontend build.
+- [ ] Run seeded database/API integration tests and hosted customer/seller smoke tests after deployment.
+
+## 2026-11-05 Home seller description checks
+
+- [x] Confirm long seller descriptions wrap inside the existing card area.
+- [x] Confirm descriptions scroll internally when they exceed the fixed area.
+- [x] Confirm no visible scrollbar appears on desktop or mobile browsers.
+- [x] Confirm seller-card and Home-panel dimensions remain unchanged.
+- [ ] Repeat the long-description check on the hosted web app and mobile WebView.

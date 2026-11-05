@@ -463,7 +463,7 @@ Historical note: orders created before the snapshot migration may not have immut
 
 ### Local verification limitations
 
-In the current restricted environment, `prisma migrate status` could not download Prisma's schema engine because outbound access was refused, and `npm test` was blocked by Windows `spawn EPERM` while starting the test workers. These are environment limitations and must be rerun in the deployment/CI environment.
+The database-free `npm test` suite now passes 17/17. Seeded database/API integration tests were executed outside the restricted runner: they reach the application but currently expose stale assumptions (the database includes `TESTER`, home-mode expectations differ, and the tests still call removed dummy-OTP endpoints). Prisma migration status still requires Prisma engine access and a configured disposable database.
 ## 2026-11-05 image upload and framing checkpoint
 
 - [x] Added responsive crop-before-upload behavior for product, banner, advertisement, and square image types.
@@ -472,3 +472,19 @@ In the current restricted environment, `prisma migrate status` could not downloa
 - [x] Added fixed product thumbnail frames that contain the complete uploaded image.
 - [x] Verified the frontend production build and `git diff --check` after the image changes.
 - [ ] Repeat visual upload and customer-view smoke tests on the hosted web app and mobile WebView.
+
+## 2026-11-05 product variants checkpoint
+
+- [x] Added `ProductVariant` schema, relations, uniqueness constraints, and three forward Prisma migrations.
+- [x] Added per-variant pricing, discounts, units, quantity limits, availability, and inventory tracking.
+- [x] Added variant-aware seller responses, cart lines, checkout pricing/stock locking, and order-item snapshots.
+- [x] Added customer option selection and sold-out handling.
+- [x] Added regression coverage for variant price floors, option-specific cart keys, stock availability, and multi-variant product validation.
+- [x] `npm test` passes 17/17 cases; the frontend build passes.
+- [ ] Run seeded database/API integration tests where PostgreSQL, Prisma engine access, and Node worker spawning are available.
+
+## 2026-11-05 Home seller description checkpoint
+
+- [x] Removed single-line truncation from Home seller descriptions.
+- [x] Added wrapping and hidden-scrollbar internal overflow without changing seller-card or panel dimensions.
+- [x] Verified the frontend production build after the presentation change.

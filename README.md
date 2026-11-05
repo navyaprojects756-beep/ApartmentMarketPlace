@@ -285,3 +285,17 @@ Before deploying today, configure production Firebase Admin credentials, JWT sec
 - Generated WebP output is compressed below 1.5 MB before the authenticated upload request.
 - Crop dragging is bounded and the export canvas is filled, preventing blank top/bottom areas.
 - Product thumbnails use a dedicated 4:3 frame; banner displays use 12:5 without letterboxing gaps.
+
+## Product variants and verification - 2026-11-05
+
+- Products may define a shared option name and multiple variants, each with its own price, discount, unit, quantity limits, availability, and optional inventory tracking.
+- Customers must select a variant before adding it; different variants remain separate cart lines. Checkout validates the selected variant and stores its label on the order item.
+- Tracked variant stock is locked and decremented transactionally. Duplicate products start unavailable with zero inventory until reviewed.
+- Variant migrations: `20261105120000_product_variants`, `20261105130000_product_variant_toggle`, and `20261105140000_product_variant_name`.
+- `npm test` passes all 17 database-free regression cases and `npm run build` passes. Integration tests require a seeded disposable PostgreSQL database and a host that permits Node test-worker spawning.
+
+## Home seller description display - 2026-11-05
+
+- Home seller-card descriptions wrap instead of being forced onto one line.
+- The description area keeps its existing fixed height so seller panels do not resize.
+- Longer descriptions scroll inside that area, with the scrollbar hidden across supported browsers.

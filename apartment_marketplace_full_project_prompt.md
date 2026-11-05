@@ -2549,3 +2549,11 @@ Orders created before the snapshot migration can only display the address data s
 - Generated WebP output is compressed below 1.5 MB before the authenticated upload request.
 - Crop dragging is bounded and the export canvas is filled, preventing blank top/bottom areas.
 - Product thumbnails use a dedicated 4:3 frame; banner displays use 12:5 without letterboxing gaps.
+
+## Product variants and inventory - 2026-11-05
+
+The implementation supports optional product variants. A product can define a shared option name and multiple values, with per-variant pricing, discount, unit, quantity limits, availability, and inventory tracking. Customers select an option before adding it to the cart; checkout validates and prices the selected variant on the server, and order items preserve the selected option label. Tracked variant stock is decremented transactionally. The schema changes are delivered by the three committed `20261105` product-variant migrations.
+
+## Home seller description display - 2026-11-05
+
+Home seller cards preserve their existing dimensions while allowing seller descriptions to wrap. Text that exceeds the reserved description area scrolls internally, and scrollbars remain visually hidden on desktop and mobile browsers. This is a shared web-client presentation behavior and does not change the seller API payload.

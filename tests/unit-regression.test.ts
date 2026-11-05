@@ -25,6 +25,7 @@ function variantFinalPrice(price: number, discount = 0) { return Math.max(0, pri
 function variantCartKey(productId: string, variantId?: string | null) { return `${productId}:${variantId || 'base'}`; }
 function variantAvailable(variant: { availability: boolean; inventoryTracking: boolean; quantity: number }) { return variant.availability && (!variant.inventoryTracking || variant.quantity > 0); }
 function uniqueProductCount(productIds: string[]) { return new Set(productIds).size; }
+function variantCreateAction(existing: { availability: boolean } | null) { return existing ? (existing.availability ? 'ALREADY_EXISTS' : 'REACTIVATE') : 'CREATE'; }
 
 const transitions: Record<string, string[]> = {
   PENDING: ['ACCEPTED', 'CANCELLED'], ACCEPTED: ['PREPARING', 'CANCELLED'], PREPARING: ['READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'CANCELLED'],
@@ -137,5 +138,11 @@ describe('database-free backend business rules', () => {
   it('validates checkout products by unique product IDs when multiple variants are ordered', () => {
     assert.equal(uniqueProductCount(['product-1', 'product-1']), 1);
     assert.equal(uniqueProductCount(['product-1', 'product-2']), 2);
+  });
+
+  it('reactivates a matching inactive variant instead of creating a duplicate', () => {
+    assert.equal(variantCreateAction({ availability: false }), 'REACTIVATE');
+    assert.equal(variantCreateAction({ availability: true }), 'ALREADY_EXISTS');
+    assert.equal(variantCreateAction(null), 'CREATE');
   });
 });

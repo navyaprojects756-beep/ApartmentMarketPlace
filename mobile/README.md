@@ -143,3 +143,11 @@ Install the fresh preview APK, allow notifications, log in, and verify that the 
 - Product images export as `1200 × 900 px` (4:3); seller banners as `1200 × 500 px` (12:5); square assets as `600 × 600 px`.
 - The crop frame adapts to mobile width, prevents out-of-bounds dragging, and compresses output below 1.5 MB.
 - Product thumbnails preserve the full image inside a 4:3 frame. No native rebuild is required because this is shared web UI.
+
+## Product variants - 2026-11-05
+
+The mobile shell consumes the same variant-aware product, cart, checkout, and order contracts as the web client. Variant-enabled products require an option selection, tracked variant stock controls availability, and order responses include the selected option label. Apply the root Prisma migrations before connecting the shell to a local API.
+
+## Home seller descriptions - 2026-11-05
+
+The shared WebView Home seller cards wrap long descriptions inside the existing fixed-height region. Overflow scrolls within that region with the scrollbar hidden, so mobile seller panels retain their current dimensions.

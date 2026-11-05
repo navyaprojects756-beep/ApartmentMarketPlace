@@ -176,7 +176,20 @@ sellerManagementRouter.post('/products/:productId/variants', requireAuth, async 
     const input = z.object({ optionName: z.string().trim().min(1).max(40).default('Option'), optionValue: z.string().trim().min(1).max(80), price: z.number().nonnegative(), discount: z.number().nonnegative().default(0), unit: z.string().max(40).nullable().optional(), inventoryTracking: z.boolean().default(false), quantity: z.number().int().nonnegative().default(0), lowStockLevel: z.number().int().nonnegative().default(0), minimumQuantity: z.number().int().positive().default(1), maximumQuantity: z.number().int().positive().nullable().optional(), sortOrder: z.number().int().nonnegative().default(0), availability: z.boolean().default(true) }).parse(request.body);
     const product = await prisma.product.findFirst({ where: { id: productId, sellerId: seller?.id }, select: { id: true } });
     if (!product) { response.status(404).json({ error: { code: 'PRODUCT_NOT_FOUND', message: 'Product not found' } }); return; }
-    const variant = await prisma.$transaction(async tx => { await tx.product.update({ where: { id: productId }, data: { hasVariants: true } }); return tx.productVariant.create({ data: { productId, ...input, finalPrice: Math.max(0, input.price - input.discount) } }); });
+    const variant = await prisma.$transaction(async tx => {
+      await tx.product.update({ where: { id: productId }, data: { hasVariants: true } });
+      const existing = await tx.productVariant.findUnique({ where: { productId_optionName_optionValue: { productId, optionName: input.optionName, optionValue: input.optionValue } } });
+      if (existing?.availability) {
+        const error = new Error('VARIANT_ALREADY_EXISTS');
+        (error as Error & { statusCode?: number; code?: string }).statusCode = 409;
+        (error as Error & { statusCode?: number; code?: string }).code = 'VARIANT_ALREADY_EXISTS';
+        throw error;
+      }
+      if (existing) {
+        return tx.productVariant.update({ where: { id: existing.id }, data: { ...input, availability: true, finalPrice: Math.max(0, input.price - input.discount) } });
+      }
+      return tx.productVariant.create({ data: { productId, ...input, finalPrice: Math.max(0, input.price - input.discount) } });
+    });
     response.status(201).json(variant);
   } catch (error) { next(error); }
 });

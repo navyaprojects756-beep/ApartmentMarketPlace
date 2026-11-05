@@ -42,3 +42,17 @@ Seller Orders supports Today, Yesterday, and custom From/To date filters togethe
 - The main shop image/banner exports as `1200 × 500 px` (12:5) without top/bottom gaps.
 - The editor adapts to mobile width, prevents out-of-bounds dragging, and compresses output below 1.5 MB.
 - Product uploads are additive; replacing image 1 requires deleting the old image and uploading the replacement.
+
+## Product variants - 2026-11-05
+
+Sellers can enable variants and define a shared option name plus distinct values, such as `Size: Small` and `Size: Large`. Review each option's price, discount, unit, minimum/maximum quantity, availability, and inventory tracking independently.
+
+- A tracked zero-quantity variant is sold out; an untracked variant does not require a quantity balance.
+- Deactivate old options instead of removing the history needed by existing orders.
+- Duplicated products start unavailable and with zero stock, including their copied variant structure.
+- Re-adding a deactivated option reuses and activates the existing option record, so sellers do not receive a database uniqueness error. An option that is already active must be edited or deactivated first.
+- Verify the customer picker, separate cart lines, checkout totals, and variant label in order history after catalog changes.
+
+## Home seller descriptions - 2026-11-05
+
+Seller descriptions on Home wrap across lines within the existing card size. When the text is longer than the reserved description area, it can be scrolled inside that area without showing a scrollbar. This does not change seller-card dimensions or seller data requirements.

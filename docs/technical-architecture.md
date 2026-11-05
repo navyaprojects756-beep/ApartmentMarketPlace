@@ -327,3 +327,13 @@ Production must apply `20261018120000_coupons` and `20261018130000_allow_unlimit
 - Product images export as `1200 × 900 px` (4:3); seller banners as `1200 × 500 px` (12:5); square assets as `600 × 600 px`.
 - Crop dragging is constrained, the export canvas is filled, and generated WebP output is compressed below 1.5 MB.
 - Product management thumbnails use a dedicated 4:3 frame; banner displays use a 12:5 frame.
+
+## Product variant model - 2026-11-05
+
+`ProductVariant` is a child of `Product`. `CartItem` is unique by cart, product, and nullable variant, allowing base products and multiple options to coexist without merging quantities. `OrderItem` stores both the variant relation and a display-label snapshot.
+
+Checkout resolves each selected variant, locks tracked product or variant inventory rows, calculates authoritative pricing, and creates the order item in one PostgreSQL transaction.
+
+## Home seller-card overflow behavior - 2026-11-05
+
+Seller-card descriptions use a fixed-height, wrapping text region. Overflow is scrollable within the region and scrollbars are visually hidden, preserving the existing seller-card and Home-panel dimensions.

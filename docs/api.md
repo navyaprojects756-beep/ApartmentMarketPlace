@@ -248,3 +248,20 @@ Both panels support All dates, Today, Yesterday, and a Custom date From/To range
 - Logo, category, service, and provider image: `600 × 600 px`
 
 Generated WebP output is reduced below 1.5 MB before the request. New product images use the next `sortOrder` and do not replace existing images automatically.
+
+## Product variants and checkout contract - 2026-11-05
+
+Product responses can include `hasVariants`, `variantName`, and `variants`. Each variant exposes its option name/value, price, discount, final price, unit, quantity limits, availability, inventory-tracking flag, and quantity.
+
+- `POST /carts/:sellerId/items` accepts an optional `variantId`; variant-enabled products require a valid variant.
+- `POST /orders` accepts `variantId` per item, recalculates variant pricing server-side, validates ownership and availability, enforces quantity limits, and rejects insufficient stock.
+- Tracked variant inventory is row-locked and decremented inside checkout. Untracked variants remain available while enabled.
+- Order items preserve `variantId` and a snapshot `variantLabel`.
+- Product duplication copies variant structure but starts the duplicate unavailable with zero stock.
+- Re-adding an option whose matching row is inactive reuses that row, updates its values, and activates it. An already-active duplicate returns `409 VARIANT_ALREADY_EXISTS`.
+
+Required migrations: `20261105120000_product_variants`, `20261105130000_product_variant_toggle`, and `20261105140000_product_variant_name`.
+
+## Home seller-card presentation - 2026-11-05
+
+Seller descriptions continue to come from the existing seller response field. The web client wraps the text inside the fixed-height card description area and uses hidden-scrollbar overflow for descriptions longer than the available space; this is a client-only presentation change and does not alter the API contract.

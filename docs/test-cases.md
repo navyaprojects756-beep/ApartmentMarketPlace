@@ -15,12 +15,22 @@ The default suite covers:
 - Inventory quantity validation, unavailable products, exact stock use, and oversell prevention.
 - Valid forward order lifecycle transitions and terminal-order protection.
 - Inclusive admin/customer/order date filtering.
+- Variant final-price floors, option-specific cart keys, tracked zero-stock behavior, and unique product validation when several variants are ordered.
 
 Run it with:
 
 ```bash
 npm test
 ```
+
+The committed integration suites are separate because they require seeded PostgreSQL data:
+
+```bash
+npx tsx --test tests/core-rules.test.ts
+npx tsx --test tests/api.integration.test.ts
+```
+
+Run these against a disposable database. On Windows hosts where the test runner cannot spawn workers, running each file separately avoids the parallel-file `spawn EPERM` failure, but the database and seed prerequisites still apply.
 
 ## UI and backend acceptance matrix
 
@@ -38,6 +48,7 @@ npm test
 | Checkout | Address/takeaway selection and confirmation | Transaction validates price, stock, seller, coupon, fulfillment snapshot | No oversell; immutable order-time contact details |
 | Orders | Customer tracking, cancellation, review | Status transitions, PIN verification, snapshots, ratings | Invalid transitions/PINs are rejected |
 | Seller products | Create/edit/duplicate/deactivate, inventory | Seller ownership and validation | Seller cannot alter another seller’s product |
+| Product variants | Select option, compare prices, add multiple options, sold-out option | Variant ownership, pricing, quantity limits, and stock locking | Each option is a separate cart/order line and unavailable tracked options cannot be purchased |
 | Seller orders | Lifecycle bar, accept/processing/ready/delivery | Authorized status transition and history | Terminal orders cannot be changed |
 | Delivery | Assigned orders, pickup/out-for-delivery/delivered | Assignment and apartment/seller scope | Delivery staff sees only assigned eligible work |
 | Coupons | Create, deactivate, apply, minimum subtotal | Date, apartment, first-order, usage, and seller rules | Coupon is revalidated during checkout |
@@ -57,3 +68,7 @@ npm test
 - Do not test uploads by writing to the repository `uploads/` directory in the default suite.
 - Product variants: enable a shared option name, add different prices/discounts, edit stock only, deactivate old options, and verify selected options in cart/orders.
 - Add a regression test before changing a business rule, then run `npm test` and the relevant UI smoke cases.
+
+## Home seller description display case
+
+Use both short and long seller descriptions on desktop and mobile. Expected behavior: text wraps, long text scrolls within the fixed card description region, and no visible scrollbar appears.

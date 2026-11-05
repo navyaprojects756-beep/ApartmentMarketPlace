@@ -112,13 +112,16 @@ app.use((request, response) => {
 const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
   console.error(error);
   const requestId = (request as typeof request & { requestId?: string }).requestId;
-  const statusCode = error instanceof ZodError ? 400 : error instanceof Prisma.PrismaClientKnownRequestError ? (error.code === 'P2025' ? 404 : 409) : error instanceof Prisma.PrismaClientValidationError ? 500 : 500;
+  const statusCode = error instanceof ZodError ? 400 : (error as { statusCode?: number }).statusCode || (error instanceof Prisma.PrismaClientKnownRequestError ? (error.code === 'P2025' ? 404 : 409) : error instanceof Prisma.PrismaClientValidationError ? 500 : 500);
   recordErrorLog({ error, code: error instanceof ZodError ? 'VALIDATION_ERROR' : error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined, request: { ...request, id: requestId } as never, statusCode, userId: (request as typeof request & { auth?: { userId?: string } }).auth?.userId });
   if (error instanceof ZodError) {
     response.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Request validation failed', details: error.flatten() } });
     return;
   }
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+  if ((error as { code?: string }).code === 'VARIANT_ALREADY_EXISTS') {
+    response.status(409).json({ error: { code: 'VARIANT_ALREADY_EXISTS', message: 'This option already exists. Deactivate it before adding a replacement.' } });
+    return;
+  } else if (error instanceof Prisma.PrismaClientKnownRequestError) {
     response.status(error.code === 'P2025' ? 404 : 409).json({ error: { code: error.code, message: 'The requested database operation could not be completed' } });
     return;
   }
