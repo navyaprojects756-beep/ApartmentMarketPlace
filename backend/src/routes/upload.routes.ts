@@ -7,7 +7,7 @@ export const uploadRouter = Router();
 
 uploadRouter.post('/image', requireAuth, async (request, response, next) => {
   try {
-    const input = z.object({ dataUrl: z.string().min(30).max(2_000_000) }).parse(request.body);
+    const input = z.object({ dataUrl: z.string().min(30).max(3_000_000) }).parse(request.body);
     response.status(201).json(await saveImageDataUrl(input.dataUrl));
   } catch (error) {
     if (error instanceof Error && ['IMAGE_FORMAT_NOT_SUPPORTED', 'IMAGE_SIZE_INVALID'].includes(error.message)) {

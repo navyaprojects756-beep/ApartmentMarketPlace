@@ -1,4 +1,4 @@
-import { Component, StrictMode, useEffect, useRef, useState } from 'react';
+import { Component, StrictMode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
@@ -212,40 +212,71 @@ function assetUrl(url) {
   } catch { return `${MEDIA_ORIGIN}${url.startsWith('/') ? url : `/${url}`}`; }
 }
 
+function imageUploadConfig(label) {
+  const name = label.toLowerCase();
+  if (name === 'change image') return { width: 600, height: 600, maxBytes: 1.5 * 1024 * 1024, hint: '600 × 600 px · square crop · max 1.5 MB' };
+  if (name.includes('main image') || name.includes('banner') || name.includes('carousel')) return { width: 1200, height: 500, maxBytes: 1.5 * 1024 * 1024, hint: '1200 × 500 px · 12:5 ratio · max 1.5 MB' };
+  if (name.includes('advertisement') || name.includes('ad images')) return { width: 1200, height: 628, maxBytes: 1.5 * 1024 * 1024, hint: '1200 × 628 px · max 1.5 MB' };
+  if (name.includes('logo') || name.includes('category') || name.includes('service') || name.includes('provider')) return { width: 600, height: 600, maxBytes: 1.5 * 1024 * 1024, hint: '600 × 600 px · square crop · max 1.5 MB' };
+  if (name.includes('image')) return { width: 1200, height: 900, maxBytes: 1.5 * 1024 * 1024, hint: '1200 × 900 px · 4:3 ratio · max 1.5 MB' };
+  return { width: 1200, height: 900, maxBytes: 1.5 * 1024 * 1024, hint: 'Optimized to 1200 × 900 px · max 1.5 MB' };
+}
+
+async function imageFileToDataUrl(file, config, crop) {
+  const sourceUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise((resolve, reject) => { const element = new Image(); element.onload = () => resolve(element); element.onerror = () => reject(new Error('Unable to read image.')); element.src = sourceUrl; });
+    const canvas = document.createElement('canvas'); canvas.width = config.width; canvas.height = config.height;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#f8f9fc';
+    context.fillRect(0, 0, config.width, config.height);
+    const scale = Math.max(config.width / image.naturalWidth, config.height / image.naturalHeight) * crop.zoom;
+    const drawWidth = image.naturalWidth * scale; const drawHeight = image.naturalHeight * scale;
+    const offsetX = (config.width - drawWidth) / 2 + (crop.x * config.width / crop.frameWidth);
+    const offsetY = (config.height - drawHeight) / 2 + (crop.y * config.height / crop.frameHeight);
+    context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+    let quality = 0.86; let blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', quality));
+    while (blob && blob.size > config.maxBytes && quality > 0.45) { quality -= 0.08; blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', quality)); }
+    if (!blob || blob.size > config.maxBytes) throw new Error('Unable to reduce this image below 1.5 MB.');
+    return await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(new Error('Unable to prepare image.')); reader.readAsDataURL(blob); });
+  } finally { URL.revokeObjectURL(sourceUrl); }
+}
+
+function ImageCropEditor({ file, config, onCancel, onConfirm }) {
+  const [sourceUrl, setSourceUrl] = useState(''); const [imageSize, setImageSize] = useState({ width: 1, height: 1 }); const [zoom, setZoom] = useState(1); const [position, setPosition] = useState({ x: 0, y: 0 }); const [frameWidth, setFrameWidth] = useState(360); const frameRef = useRef(null); const drag = useRef(null);
+  const frameHeight = frameWidth * config.height / config.width;
+  useEffect(() => { const url = URL.createObjectURL(file); setSourceUrl(url); setZoom(1); setPosition({ x: 0, y: 0 }); const image = new Image(); image.onload = () => setImageSize({ width: image.naturalWidth, height: image.naturalHeight }); image.src = url; return () => URL.revokeObjectURL(url); }, [file]);
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return undefined;
+    const updateFrameWidth = () => setFrameWidth(Math.max(1, Math.round(frame.getBoundingClientRect().width)));
+    updateFrameWidth();
+    const observer = new ResizeObserver(updateFrameWidth);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, []);
+  const ratio = Math.max(frameWidth / imageSize.width, frameHeight / imageSize.height) * zoom;
+  const imageStyle = { width: imageSize.width * ratio, height: imageSize.height * ratio, transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`, left: '50%', top: '50%' };
+  const onPointerDown = event => { event.currentTarget.setPointerCapture?.(event.pointerId); drag.current = { x: event.clientX, y: event.clientY, startX: position.x, startY: position.y }; };
+  const onPointerMove = event => {
+    if (!drag.current) return;
+    const nextX = drag.current.startX + event.clientX - drag.current.x;
+    const nextY = drag.current.startY + event.clientY - drag.current.y;
+    const maxX = Math.max(0, (imageSize.width * ratio - frameWidth) / 2);
+    const maxY = Math.max(0, (imageSize.height * ratio - frameHeight) / 2);
+    setPosition({ x: Math.max(-maxX, Math.min(maxX, nextX)), y: Math.max(-maxY, Math.min(maxY, nextY)) });
+  };
+  const onPointerUp = () => { drag.current = null; };
+  return <div className="image-editor-overlay" role="dialog" aria-modal="true"><section className="image-editor"><button type="button" className="image-editor-close" onClick={onCancel} aria-label="Close image editor">×</button><div className="image-editor-heading"><strong>Adjust image</strong><small>Drag to position · use zoom to fit important details</small></div><div ref={frameRef} className="image-editor-frame" style={{ height: frameHeight }} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>{sourceUrl && <img src={sourceUrl} alt="Crop preview" style={imageStyle} draggable="false" />}</div><p className="image-editor-rule">Final image: {config.width} × {config.height}px · compressed below {Math.round(config.maxBytes / 1024 / 1024 * 10) / 10} MB</p><div className="image-editor-zoom"><button type="button" onClick={() => setZoom(value => Math.max(1, value - .1))}>−</button><input type="range" min="1" max="3" step=".05" value={zoom} onChange={event => setZoom(Number(event.target.value))} aria-label="Zoom" /><button type="button" onClick={() => setZoom(value => Math.min(3, value + .1))}>+</button><span>{Math.round(zoom * 100)}%</span></div><div className="image-editor-actions"><button type="button" className="secondary-button" onClick={onCancel}>Cancel</button><button type="button" className="primary-button" onClick={() => onConfirm({ zoom, x: position.x, y: position.y, frameWidth, frameHeight })}>Use image</button></div></section></div>;
+}
+
 function ImageUploadControl({ accessToken, label, multiple = false, onUploaded }) {
-  const [uploading, setUploading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const uploadHint = label.toLowerCase().includes('carousel')
-    ? 'Best: 1200 x 500 px (12:5 ratio) - keep the same ratio for every carousel image.'
-    : label.toLowerCase().includes('main image') || label.toLowerCase().includes('banner')
-      ? 'Use exactly 1200 x 500 px (12:5 ratio) so the full banner fits on Home and the store page without stretching. JPG, PNG or WebP only; maximum 1.5 MB.'
-      : label.toLowerCase().includes('advertisement')
-        ? 'Recommended: 1200 x 628 px. Up to 3 images; JPG, PNG or WebP only; maximum 1.5 MB each.'
-    : ['add images', 'upload images'].includes(label.toLowerCase())
-      ? 'Best: 1200 x 900 px (4:3 ratio) - use the same format for every product image.'
-      : '';
-  async function upload(event) {
-    const files = [...event.target.files];
-    event.target.value = '';
-    if (!files.length) return;
-    setErrorMessage('');
-    setUploading(true);
-    try {
-      const urls = [];
-      for (const file of files) {
-        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Use JPG, PNG or WebP images.');
-        if (file.size > 1.5 * 1024 * 1024) throw new Error('Each image must be smaller than 1.5 MB.');
-        const dataUrl = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(new Error('Unable to read image.')); reader.readAsDataURL(file); });
-        const response = await fetch(`${API_BASE}/uploads/image`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl }) });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || 'Image upload failed.');
-        urls.push(assetUrl(data.url));
-      }
-      await onUploaded(urls);
-    } catch (error) { setErrorMessage(error.message); }
-    finally { setUploading(false); }
-  }
-  return <div className="image-upload-control-wrap"><label className="image-upload-control"><span>{uploading ? 'Uploading…' : label}</span><input type="file" accept="image/jpeg,image/png,image/webp" multiple={multiple} onChange={upload} disabled={uploading} /></label>{uploadHint && <small className="media-size-note upload-size-note">{uploadHint}</small>}{errorMessage && <small className="inline-error">{errorMessage}</small>}</div>;
+  const [uploading, setUploading] = useState(false); const [errorMessage, setErrorMessage] = useState(''); const [files, setFiles] = useState([]); const [currentFile, setCurrentFile] = useState(null); const uploadedUrls = useRef([]); const config = imageUploadConfig(label);
+  async function uploadDataUrl(dataUrl) { const response = await fetch(`${API_BASE}/uploads/image`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error?.message || 'Image upload failed.'); return assetUrl(data.url); }
+  function chooseFiles(event) { const selected = [...event.target.files]; event.target.value = ''; if (!selected.length) return; const invalid = selected.find(file => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)); if (invalid) { setErrorMessage('Use JPG, PNG or WebP images.'); return; } setErrorMessage(''); uploadedUrls.current = []; setFiles(selected); setCurrentFile(selected[0]); }
+  async function confirmImage(crop) { if (!currentFile) return; setUploading(true); setErrorMessage(''); try { const dataUrl = await imageFileToDataUrl(currentFile, config, crop); const url = await uploadDataUrl(dataUrl); uploadedUrls.current = [...uploadedUrls.current, url]; const remaining = files.slice(1); if (remaining.length) { setFiles(remaining); setCurrentFile(remaining[0]); } else { await onUploaded(uploadedUrls.current); setFiles([]); setCurrentFile(null); } } catch (error) { setErrorMessage(error.message); } finally { setUploading(false); } }
+  function cancelEditor() { setFiles([]); setCurrentFile(null); uploadedUrls.current = []; }
+  return <div className="image-upload-control-wrap"><label className="image-upload-control"><span>{uploading ? 'Preparing…' : label}</span><input type="file" accept="image/jpeg,image/png,image/webp" multiple={multiple} onChange={chooseFiles} disabled={uploading} /></label><small className="media-size-note upload-size-note">{config.hint}. Select, crop and compress before upload.</small>{errorMessage && <small className="inline-error">{errorMessage}</small>}{currentFile && !uploading && <ImageCropEditor file={currentFile} config={config} onCancel={cancelEditor} onConfirm={confirmImage} />}</div>;
 }
 
 function useNativeBack(onBack) {
@@ -2000,7 +2031,7 @@ function SellerProductImages({ accessToken, product, onChanged }) {
     const response = await fetch(`${API_BASE}/seller/products/${product.id}/images/${image.id}`, { method: 'DELETE', headers });
     if (response.ok) onChanged();
   }
-  return <div className="seller-product-images">{confirmImage && <ConfirmDialog title="Delete image?" message={'Delete image ' + (confirmImage.sortOrder + 1) + '?'} onCancel={() => setConfirmImage(null)} onConfirm={confirmRemoveImage} />}<small className="seller-image-note">Image 1 is the main image shown in product lists and the cart.</small><div className="seller-product-image-list">{(product.images || []).map((image, index) => <div className="seller-product-image-item" key={image.id}><span className="seller-image-number">{index + 1}</span><img src={assetUrl(image.imageUrl)} alt={`${product.name} image ${index + 1}`} /><button type="button" className="danger-text" onClick={() => removeImage(image)}>Delete</button></div>)}</div><ImageUploadControl accessToken={accessToken} label={product.images?.length ? 'Add images' : 'Upload images'} multiple onUploaded={async urls => { for (const [index, imageUrl] of urls.entries()) { await fetch(`${API_BASE}/seller/products/${product.id}/images`, { method: 'POST', headers, body: JSON.stringify({ imageUrl, sortOrder: (product.images?.length || 0) + index }) }); } onChanged(); }} /></div>;
+  return <div className="seller-product-images">{confirmImage && <ConfirmDialog title="Delete image?" message={'Delete image ' + (confirmImage.sortOrder + 1) + '?'} onCancel={() => setConfirmImage(null)} onConfirm={confirmRemoveImage} />}<small className="seller-image-note">Image 1 is the main image shown in product lists and the cart.</small><div className="seller-product-image-list">{(product.images || []).map((image, index) => <div className="seller-product-image-item" key={image.id}><span className="seller-image-number">{index + 1}</span><div className="seller-product-image-frame"><img src={assetUrl(image.imageUrl)} alt={`${product.name} image ${index + 1}`} /></div><button type="button" className="danger-text" onClick={() => removeImage(image)}>Delete</button></div>)}</div><ImageUploadControl accessToken={accessToken} label={product.images?.length ? 'Add images' : 'Upload images'} multiple onUploaded={async urls => { for (const [index, imageUrl] of urls.entries()) { await fetch(`${API_BASE}/seller/products/${product.id}/images`, { method: 'POST', headers, body: JSON.stringify({ imageUrl, sortOrder: (product.images?.length || 0) + index }) }); } onChanged(); }} /></div>;
 }
 
 function SellerRatingVisibilityControl() {

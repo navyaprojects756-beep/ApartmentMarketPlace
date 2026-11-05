@@ -50,7 +50,9 @@ app.use(cors({ origin: (origin, callback) => {
   }
   callback(new Error('Origin is not allowed by the API CORS policy'));
 }, credentials: true }));
-app.use(express.json({ limit: '2mb' }));
+// Image uploads are compressed in the browser, but base64 JSON is larger than
+// the resulting file. Keep the request limit above the 1.5 MB binary limit.
+app.use(express.json({ limit: '3mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(morgan('dev'));
 app.use((request, response, next) => {
