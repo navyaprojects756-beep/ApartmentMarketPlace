@@ -216,7 +216,7 @@ function imageUploadConfig(label) {
   const name = label.toLowerCase();
   if (name === 'change image') return { width: 600, height: 600, maxBytes: 1.5 * 1024 * 1024, hint: '600 × 600 px · square crop · max 1.5 MB' };
   if (name.includes('main image') || name.includes('banner') || name.includes('carousel')) return { width: 1200, height: 500, maxBytes: 1.5 * 1024 * 1024, hint: '1200 × 500 px · 12:5 ratio · max 1.5 MB' };
-  if (name.includes('advertisement') || name.includes('ad images')) return { width: 1200, height: 628, maxBytes: 1.5 * 1024 * 1024, hint: '1200 × 628 px · max 1.5 MB' };
+  if (name.includes('advertisement') || name === 'upload ad images') return { width: 1200, height: 628, maxBytes: 1.5 * 1024 * 1024, hint: '1200 × 628 px · max 1.5 MB' };
   if (name.includes('logo') || name.includes('category') || name.includes('service') || name.includes('provider')) return { width: 600, height: 600, maxBytes: 1.5 * 1024 * 1024, hint: '600 × 600 px · square crop · max 1.5 MB' };
   if (name.includes('image')) return { width: 1200, height: 900, maxBytes: 1.5 * 1024 * 1024, hint: '1200 × 900 px · 4:3 ratio · max 1.5 MB' };
   return { width: 1200, height: 900, maxBytes: 1.5 * 1024 * 1024, hint: 'Optimized to 1200 × 900 px · max 1.5 MB' };
