@@ -46,7 +46,7 @@ The Expo project is owned by the `www.cheritech.com` organization, uses slug `ga
 
 ## Shared marketplace update — 2026-09-26
 
-The WebView now includes Global Admin-managed product categories, apartment-scoped category product browsing, application-wide plus apartment-targeted home carousel images, apartment seller visibility settings, and touch/swipe carousel navigation. These features require the deployed API to run the latest Prisma migration before building or testing the mobile shell.
+The WebView now includes Global Admin-managed product categories with optional subcategories, apartment-scoped category product browsing and filtering, application-wide plus apartment-targeted home carousel images, apartment seller visibility settings, and touch/swipe carousel navigation. These features require the deployed API to run the latest Prisma migration before building or testing the mobile shell.
 The shared WebView customer flow also includes multi-seller carts with one order created per seller, cart quantity controls, product-details navigation from category and cart views, consistent `Go to cart` actions, and the animated order-confirmation page with order tracking. The mobile shell does not maintain a separate implementation of these screens; it loads the hosted web application.
 
 ## Push notification diagnostics — 2026-09-27

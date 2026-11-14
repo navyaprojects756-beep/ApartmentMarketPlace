@@ -240,9 +240,9 @@ The frontend is built with `VITE_API_URL=https://gatedcart-api.onrender.com/api/
 
 ## 2026-09-26 implementation update
 
-- `GlobalCategory` is the shared product taxonomy managed by Global Admin. Products reference it through `Product.globalCategoryId`; the legacy seller-category relation remains for backward compatibility.
-- Global Admin category CRUD supports optional images, ordering, active/deactive state, and safe deletion checks.
-- Customer category discovery is apartment-scoped: results include products from approved/open community sellers in the apartment and approved/open outside sellers with an approved delivery area.
+- `GlobalCategory` is the shared product taxonomy managed by Global Admin. It supports an optional one-level `parentId`; products reference either a main category or an optional subcategory through `Product.globalCategoryId`. The legacy seller-category relation remains for backward compatibility.
+- Global Admin category CRUD supports main categories, adding subcategories from a main-category card, optional images, ordering, active/deactive state, and safe deletion checks.
+- Customer category discovery is apartment-scoped: top-level category results include products assigned directly to the main category or to its subcategories, with optional child filters. Products without a subcategory remain visible under the main category's All view.
 - Home carousel promotions are either application-wide or apartment-targeted through `AdvertisementTargetApartment`. Customer Home combines both scopes for the user's primary apartment.
 - The web carousel uses a fixed responsive 12:5 frame, contains the whole image, auto-rotates, and supports touch/pointer swiping.
 - Apartment settings manage seller visibility and apartment-specific carousel uploads. Seller product forms consume only active Global Admin categories.

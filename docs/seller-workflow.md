@@ -19,7 +19,7 @@ From Seller workspace → Settings, configure:
 
 ## Products and images
 
-From Seller workspace → Products, add the product name and price, then optionally set category, discount, pack size, description, instructions, minimum quantity, and maximum quantity. Upload product images using the same **1200 × 900 px (4:3)** format for consistent product cards and details pages.
+From Seller workspace → Products, add the product name and price, then optionally select a parent category and an available subcategory, discount, pack size, description, instructions, minimum quantity, and maximum quantity. A subcategory is never required; when none is selected, the product remains under the parent category. Upload product images using the same **1200 × 900 px (4:3)** format for consistent product cards and details pages.
 
 ## Inventory
 

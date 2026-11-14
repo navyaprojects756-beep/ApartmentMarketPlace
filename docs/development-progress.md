@@ -468,6 +468,7 @@ The database-free `npm test` suite now passes 17/17. Seeded database/API integra
 
 - [x] Added responsive crop-before-upload behavior for product, banner, advertisement, and square image types.
 - [x] Normalized product uploads to `1200 × 900 px` (4:3) and seller banners to `1200 × 500 px` (12:5).
+- [x] Added optional one-level global product subcategories with admin hierarchy management, seller parent/subcategory selection, and customer subcategory filters; legacy uncategorized and main-category products remain supported.
 - [x] Added measured crop-frame coordinates, drag bounds, canvas filling, and progressive WebP compression below 1.5 MB.
 - [x] Added fixed product thumbnail frames that contain the complete uploaded image.
 - [x] Verified the frontend production build and `git diff --check` after the image changes.

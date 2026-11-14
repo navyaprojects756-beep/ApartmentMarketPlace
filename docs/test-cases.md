@@ -40,7 +40,7 @@ Run these against a disposable database. On Windows hosts where the test runner 
 | Onboarding | Select apartment, block, flat, or manual flat | Association is scoped to authenticated user | Home data uses the selected primary apartment |
 | Home | Switch Community/Outside/Both visibility | Seller type, approval, apartment, delivery area, and availability filters | No ineligible seller is shown |
 | Search | Search product, seller, category, service, empty search | Search results are scoped to accessible records | Overlay results are accurate; empty state is shown |
-| Categories | Open active category; view disabled empty category | Product counts include only available eligible products | Correct category products appear |
+| Categories | Open active main category; filter optional subcategory; view disabled empty category | Product counts include only available eligible products; products without subcategories remain in All | Correct main-category and subcategory products appear |
 | Storefront | Open seller, banner, tabs, ads, availability label | Seller and product response is apartment-scoped | Closed/unapproved sellers are unavailable |
 | Product images | Select, crop, zoom, drag, use image, add/delete images | Upload accepts only allowed formats and size | Product output is 1200×900, full image remains inside 4:3 frame |
 | Seller banner | Select/crop/use banner and view customer store | Upload output is normalized | Banner output is 1200×500 with no top/bottom gaps |

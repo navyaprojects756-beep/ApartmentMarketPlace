@@ -47,8 +47,8 @@ Use `https://gatedcart.cheritech.com/?isSellorReg=true` as the private outside-s
 ### Global categories and category browsing
 
 - `GET /home/categories` — active global product categories for the authenticated customer.
-- `GET /home/categories/:categoryId/products` — products in a global category from approved/open sellers serving the customer's primary apartment.
-- `GET/POST/PATCH/DELETE /admin/categories` — Global Admin category management, including image URL, ordering, active status, and safe deletion checks.
+- `GET /home/categories/:categoryId/products` — products in a global category and its optional subcategories from approved/open sellers serving the customer's primary apartment; the response includes child categories for filtering.
+- `GET/POST/PATCH/DELETE /admin/categories` — Global Admin category management, including optional `parentId`, image URL, ordering, active status, and safe deletion checks.
 - `GET /seller/catalog-categories` — active global categories available to seller product forms.
 
 ## Commerce and delivery

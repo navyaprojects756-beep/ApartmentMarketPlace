@@ -119,12 +119,12 @@ npm run db:status
 
 ## Latest marketplace features — 2026-09-26
 
-- Global Admin now manages shared product categories, including category images and active/inactive status.
+- Global Admin now manages shared product categories, including category images, active/inactive status, and optional one-level subcategories.
 - Seller product creation uses active global categories; seller-owned category management is removed from the active seller navigation. Products may use `Other` when no shared category applies.
-- Customer Home displays global category chips with images. Selecting a category opens products from all approved/open sellers serving the customer's apartment.
+- Customer Home displays top-level global category chips with images. Selecting a category opens products from all approved/open sellers serving the customer's apartment, with optional subcategory filters when that category has children.
 - Home carousel promotions support application-wide images and apartment-targeted images. Customers receive both global images and images targeted to their primary apartment.
 - Apartment settings contain seller visibility (`Community`, `Outside`, or `Both`) and apartment-specific carousel uploads.
-- Carousel images use a consistent responsive display frame with automatic rotation and pointer/touch swiping. Recommended carousel assets are `1200 × 500 px` (12:5); product images are recommended at `1000 × 1000 px`.
+- Carousel images use a consistent responsive display frame with automatic rotation and pointer/touch swiping. Recommended carousel assets are `1200 × 500 px` (12:5); product images are normalized to `1200 × 900 px` (4:3).
 
 ## Seller and catalog updates - 2026-10-17
 
