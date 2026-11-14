@@ -17,7 +17,7 @@ export async function getHomeData(userId: string) {
     mode === 'LOCAL_ONLY' ? [] : prisma.sellerProfile.findMany({ where: { sellerType: 'OUTSIDE', status: 'APPROVED', deliveryAreas: { some: { apartmentId: association.apartmentId, isApproved: true, isEnabled: true } } }, select: sellerSelect, orderBy: { createdAt: 'asc' } }),
     prisma.advertisement.findMany({ where: { status: 'APPROVED', type: { not: 'PROMOTION' }, AND: [{ OR: [{ startAt: null }, { startAt: { lte: new Date() } }] }, { OR: [{ endAt: null }, { endAt: { gte: new Date() } }] }, { OR: [{ targets: { none: {} } }, { targets: { some: { apartmentId: association.apartmentId } } }] }] }, orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }], take: 10 }),
     prisma.advertisement.findMany({ where: { type: 'PROMOTION', sellerId: null, status: 'APPROVED', OR: [{ startAt: null }, { startAt: { lte: new Date() } }], AND: [{ OR: [{ endAt: null }, { endAt: { gte: new Date() } }] }, { OR: [{ targets: { none: {} } }, { targets: { some: { apartmentId: association.apartmentId } } }] }] }, orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }], take: 10 }),
-    prisma.globalCategory.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
+    prisma.globalCategory.findMany({ where: { isActive: true }, include: { children: { where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] } }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
     prisma.communityService.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { providers: { where: { isActive: true, apartments: { some: { apartmentId: association.apartmentId } } }, select: { id: true } } } }),
     prisma.product.findMany({
       where: {
@@ -41,5 +41,7 @@ export async function getHomeData(userId: string) {
     if (product.globalCategoryId) counts[product.globalCategoryId] = (counts[product.globalCategoryId] || 0) + 1;
     return counts;
   }, {});
-  return { mode, apartment: association, localSellers: available(localSellers).map(presentSeller), outsideSellers: available(outsideSellers).map(presentSeller), advertisements, homePromotions, globalCategories: globalCategories.map(category => ({ ...category, productCount: categoryProductCounts[category.id] || 0 })), communityServices: communityServices.map(service => ({ ...service, providerCount: service.providers.length, providers: undefined })) };
+  const categoryParents = new Map(globalCategories.map(category => [category.id, category.parentId]));
+  const countFor = (id: string) => Object.entries(categoryProductCounts).reduce((total, [categoryId, count]) => categoryId === id || categoryParents.get(categoryId) === id ? total + count : total, 0);
+  return { mode, apartment: association, localSellers: available(localSellers).map(presentSeller), outsideSellers: available(outsideSellers).map(presentSeller), advertisements, homePromotions, globalCategories: globalCategories.filter(category => !category.parentId).map(category => ({ ...category, productCount: countFor(category.id), children: category.children.map(child => ({ ...child, productCount: categoryProductCounts[child.id] || 0 })) })), communityServices: communityServices.map(service => ({ ...service, providerCount: service.providers.length, providers: undefined })) };
 }

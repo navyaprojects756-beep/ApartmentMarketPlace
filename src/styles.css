@@ -599,6 +599,20 @@ html:has(.customer-storefront-with-controls), body:has(.customer-storefront-with
 .media-size-note { margin: 8px 0 12px; padding: 9px 11px; border: 1px solid #e7ddff; border-radius: 9px; color: #67538d; background: #f8f5ff; font-size: 11px; line-height: 1.45; }
 .upload-size-note { display: block; max-width: 330px; margin: 7px 0 0; padding: 0; border: 0; color: #8d879b; background: transparent; font-size: 10px; }
 .seller-product-image-frame { aspect-ratio: 4 / 3; }
+.category-subcategory-tabs { display: flex; gap: 8px; margin: 16px 0 4px; overflow-x: auto; }
+.category-subcategory-tabs button { flex: 0 0 auto; padding: 8px 13px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: #fff; font-size: 11px; font-weight: 700; }
+.category-subcategory-tabs button.selected { color: #6241d3; border-color: #cfc1ff; background: #f2eeff; }
+.category-hierarchy-list { gap: 12px; }
+.product-category-picker { display: contents; }
+.product-category-picker label { display: grid; gap: 7px; }
+.category-hierarchy-card { overflow: hidden; border: 1px solid #e8e3f1; border-radius: 13px; background: #fff; }
+.category-hierarchy-card > .admin-category-row { border: 0; border-radius: 0; }
+.category-add-child-button { color: #6241d3; background: #f0ecff; }
+.subcategory-create-form { display: flex; align-items: end; gap: 8px; margin: 0 12px 12px 66px; padding: 10px; border: 1px dashed #bbaaf2; border-radius: 10px; background: #faf8ff; }
+.subcategory-create-form label { display: grid; flex: 1; gap: 5px; color: #6241d3; font-size: 10px; font-weight: 700; }
+.subcategory-create-form input { width: 100%; padding: 8px 10px; border: 1px solid #ded5f8; border-radius: 8px; background: #fff; }
+.subcategory-create-form button { flex: 0 0 auto; min-height: 34px; padding: 0 11px; }
+@media(max-width: 700px) { .subcategory-create-form { align-items: stretch; flex-direction: column; margin-left: 12px; }.subcategory-create-form button { width: 100%; } }
 
 /* Product uploads are normalized to 1200 × 900. Keep every product-facing
    frame at that same ratio so the viewer never crops the crop a second time. */

@@ -34,12 +34,13 @@ adminResourcesRouter.patch('/apartments/:apartmentId', ...adminOnly, async (requ
 });
 
 adminResourcesRouter.get('/categories', ...adminOnly, async (_request, response, next) => {
-  try { response.json(await prisma.globalCategory.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { _count: { select: { products: true } } } })); } catch (error) { next(error); }
+  try { response.json(await prisma.globalCategory.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { _count: { select: { products: true } }, children: { orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { _count: { select: { products: true } } } } } })); } catch (error) { next(error); }
 });
 
 adminResourcesRouter.post('/categories', ...adminOnly, async (request, response, next) => {
   try {
-    const input = z.object({ name: z.string().trim().min(2).max(100), imageUrl: z.string().url().nullable().optional(), sortOrder: z.number().int().default(0) }).parse(request.body);
+    const input = z.object({ name: z.string().trim().min(2).max(100), parentId: z.string().uuid().nullable().optional(), imageUrl: z.string().url().nullable().optional(), sortOrder: z.number().int().default(0) }).parse(request.body);
+    if (input.parentId && !(await prisma.globalCategory.findFirst({ where: { id: input.parentId, isActive: true } }))) { response.status(400).json({ error: { code: 'PARENT_CATEGORY_NOT_FOUND', message: 'Choose an active main category.' } }); return; }
     response.status(201).json(await prisma.globalCategory.create({ data: input }));
   } catch (error) { next(error); }
 });
@@ -47,7 +48,9 @@ adminResourcesRouter.post('/categories', ...adminOnly, async (request, response,
 adminResourcesRouter.patch('/categories/:categoryId', ...adminOnly, async (request, response, next) => {
   try {
     const categoryId = z.string().uuid().parse(request.params.categoryId);
-    const input = z.object({ name: z.string().trim().min(2).max(100).optional(), imageUrl: z.string().url().nullable().optional(), sortOrder: z.number().int().optional(), isActive: z.boolean().optional() }).parse(request.body);
+    const input = z.object({ name: z.string().trim().min(2).max(100).optional(), parentId: z.string().uuid().nullable().optional(), imageUrl: z.string().url().nullable().optional(), sortOrder: z.number().int().optional(), isActive: z.boolean().optional() }).parse(request.body);
+    if (input.parentId === categoryId) { response.status(400).json({ error: { code: 'INVALID_PARENT_CATEGORY', message: 'A category cannot be its own parent.' } }); return; }
+    if (input.parentId && !(await prisma.globalCategory.findFirst({ where: { id: input.parentId, isActive: true } }))) { response.status(400).json({ error: { code: 'PARENT_CATEGORY_NOT_FOUND', message: 'Choose an active main category.' } }); return; }
     response.json(await prisma.globalCategory.update({ where: { id: categoryId }, data: input, include: { _count: { select: { products: true } } } }));
   } catch (error) { next(error); }
 });

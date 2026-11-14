@@ -97,7 +97,7 @@ sellerManagementRouter.get('/categories', requireAuth, async (request, response,
 });
 
 sellerManagementRouter.get('/catalog-categories', requireAuth, async (_request, response, next) => {
-  try { response.json(await prisma.globalCategory.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] })); } catch (error) { next(error); }
+  try { const categories = await prisma.globalCategory.findMany({ where: { isActive: true }, include: { parent: { select: { name: true } } }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }); response.json(categories.map(category => ({ ...category, name: category.parent ? `${category.parent.name} / ${category.name}` : category.name }))); } catch (error) { next(error); }
 });
 
 sellerManagementRouter.get('/orders', requireAuth, async (request, response, next) => {
